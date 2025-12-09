@@ -4,19 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Loader2, Target } from "lucide-react";
+import { Eye, EyeOff, Loader2, Target, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (userData: { name: string; email: string }) => void;
 }
 
 export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [tab, setTab] = useState<"signin" | "signup">("signup");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -29,7 +30,8 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     setIsLoading(false);
-    onSuccess();
+    const userName = tab === "signup" ? name : email.split("@")[0];
+    onSuccess({ name: userName, email });
     onOpenChange(false);
   };
 
@@ -37,16 +39,18 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsLoading(false);
-    onSuccess();
+    onSuccess({ name: "User", email: "user@gmail.com" });
     onOpenChange(false);
   };
 
-  const isFormValid = email && password.length >= 6 && (tab === "signin" || agreed);
+  const isFormValid = tab === "signin" 
+    ? email && password.length >= 6 
+    : name && email && password.length >= 6 && agreed;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[440px] bg-card border-white/10 backdrop-blur-xl p-0 overflow-hidden animate-scale-in">
-        <div className="p-8">
+      <DialogContent className="sm:max-w-[440px] max-h-[90vh] overflow-y-auto bg-card border-white/10 backdrop-blur-xl p-0 animate-scale-in">
+        <div className="p-6 sm:p-8">
           {/* Logo & Welcome */}
           <DialogHeader className="text-center mb-6">
             <div className="flex justify-center mb-4">
@@ -133,6 +137,24 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
 
           {/* Email/Password Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {tab === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-foreground-secondary">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="bg-secondary border-border focus:border-primary h-12 pl-10"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground-secondary">Email</Label>
               <Input

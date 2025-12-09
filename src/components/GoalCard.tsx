@@ -45,61 +45,59 @@ export function GoalCard({
   return (
     <Card
       variant="glass"
-      className="p-6 hover-lift hover-glow cursor-pointer group relative overflow-hidden"
+      className="p-4 sm:p-5 hover-lift hover-glow cursor-pointer group relative overflow-hidden h-full"
       onClick={onClick}
     >
       {/* Background gradient accent */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-primary opacity-10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
 
-      <div className="relative flex items-start gap-5">
-        {/* Progress Ring */}
-        <ProgressRing progress={progress} size={100} strokeWidth={8} variant={getVariant()}>
-          <div className="text-center">
-            <span className="text-2xl font-bold">{Math.round(progress)}%</span>
+      <div className="relative flex flex-col h-full">
+        {/* Header with emoji, name and status */}
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="text-2xl flex-shrink-0">{emoji}</span>
+            <h3 className="text-base font-semibold truncate">{name}</h3>
           </div>
-        </ProgressRing>
+          <span className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0", bg, color)}>
+            {status === "ahead" && <TrendingUp className="w-3 h-3" />}
+            {label}
+          </span>
+        </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{emoji}</span>
-              <h3 className="text-lg font-semibold truncate">{name}</h3>
+        {/* Progress Ring and Stats */}
+        <div className="flex items-center gap-4 mb-4">
+          <ProgressRing progress={progress} size={70} strokeWidth={6} variant={getVariant()}>
+            <div className="text-center">
+              <span className="text-lg font-bold">{Math.round(progress)}%</span>
             </div>
-            <span className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium", bg, color)}>
-              {status === "ahead" && <TrendingUp className="w-3 h-3" />}
-              {label}
-            </span>
-          </div>
+          </ProgressRing>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-3">
+          <div className="flex-1 space-y-2 min-w-0">
             <div>
               <p className="text-xs text-muted-foreground mb-0.5">Progress</p>
-              <p className="text-sm font-medium">
+              <p className="text-sm font-medium truncate">
                 {currentValue} <span className="text-muted-foreground">/ {targetValue}</span>
               </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-0.5">Time Left</p>
               <p className="text-sm font-medium flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-muted-foreground" />
-                {timeRemaining}
+                <Calendar className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                <span className="truncate">{timeRemaining}</span>
               </p>
             </div>
           </div>
+        </div>
 
-          {/* Tasks Today */}
-          <div className="flex items-center justify-between pt-3 border-t border-white/10">
-            <span className="text-sm text-muted-foreground">Tasks today</span>
-            <span className="text-sm font-medium">
-              <span className={tasksToday.completed === tasksToday.total ? "text-success" : ""}>
-                {tasksToday.completed}
-              </span>
-              /{tasksToday.total}
+        {/* Tasks Today */}
+        <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-auto">
+          <span className="text-sm text-muted-foreground">Tasks today</span>
+          <span className="text-sm font-medium">
+            <span className={tasksToday.completed === tasksToday.total ? "text-success" : ""}>
+              {tasksToday.completed}
             </span>
-          </div>
+            /{tasksToday.total}
+          </span>
         </div>
       </div>
     </Card>
