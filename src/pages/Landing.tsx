@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { AuthModal } from "@/components/AuthModal";
 import { FeatureCard } from "@/components/FeatureCard";
+import { CurrencySelector } from "@/components/CurrencySelector";
+import { useCurrency } from "@/hooks/useCurrency";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
   Target,
@@ -24,7 +27,7 @@ const features = [
   {
     icon: Target,
     title: "Smart Goal Breaking",
-    description: "AI breaks your big audacious goals into daily actionable tasks you can actually complete.",
+    description: "Break your big audacious goals into daily actionable tasks you can actually complete.",
   },
   {
     icon: Flame,
@@ -74,39 +77,46 @@ const testimonials = [
   },
 ];
 
-const pricingPlans = [
-  {
-    name: "Monthly",
-    price: "$3",
-    period: "/month",
-    description: "Billed monthly. Cancel anytime.",
-    features: ["Unlimited goals", "Full analytics", "All achievements", "Priority support"],
-    popular: false,
-  },
-  {
-    name: "Annual",
-    price: "$25",
-    period: "/year",
-    description: "$2/month — Save 31%!",
-    features: ["Everything in Monthly", "2 months free", "Early access to features", "Exclusive badges"],
-    popular: true,
-  },
-];
-
 export default function Landing() {
   const [authOpen, setAuthOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const { getPricing, currentCurrency } = useCurrency();
+  const pricing = getPricing();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleAuthSuccess = (userData: { name: string; email: string }) => {
-    // Store user data (in real app, this would be in context/state management)
-    localStorage.setItem("userName", userData.name);
-    localStorage.setItem("userEmail", userData.email);
     navigate("/dashboard");
   };
 
+  const pricingPlans = [
+    {
+      name: "Monthly",
+      price: pricing.monthly.formatted,
+      period: "/month",
+      description: "Billed monthly. Cancel anytime.",
+      features: ["Unlimited goals", "Full analytics", "All achievements", "Priority support"],
+      popular: false,
+    },
+    {
+      name: "Annual",
+      price: pricing.annual.formatted,
+      period: "/year",
+      description: `${pricing.annual.perMonth}/month — Save ${pricing.annual.savings}!`,
+      features: ["Everything in Monthly", "2 months free", "Early access to features", "Exclusive badges"],
+      popular: true,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <ParticleBackground />
 
       {/* Navigation */}
@@ -123,6 +133,7 @@ export default function Landing() {
           
           {/* Desktop Menu */}
           <div className="hidden sm:flex items-center gap-4">
+            <CurrencySelector />
             <Button variant="ghost" onClick={() => setAuthOpen(true)}>
               Sign In
             </Button>
@@ -144,6 +155,9 @@ export default function Landing() {
         {mobileMenuOpen && (
           <div className="sm:hidden absolute top-full left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-white/10">
             <div className="flex flex-col gap-3">
+              <div className="flex justify-center mb-2">
+                <CurrencySelector />
+              </div>
               <Button variant="ghost" onClick={() => { setAuthOpen(true); setMobileMenuOpen(false); }}>
                 Sign In
               </Button>
@@ -180,7 +194,7 @@ export default function Landing() {
 
           {/* Subheadline */}
           <p className="text-base sm:text-xl text-foreground-secondary max-w-2xl mx-auto mb-8 sm:mb-10 animate-slide-up opacity-0 px-4" style={{ animationDelay: "100ms" }}>
-            The only goal tracker that actually works. AI-powered planning, gamification,
+            The only goal tracker that actually works. Smart planning, gamification,
             and accountability — all in one beautiful app.
           </p>
 
@@ -307,9 +321,13 @@ export default function Landing() {
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
               Simple, <span className="text-primary-gradient">Affordable</span> Pricing
             </h2>
-            <p className="text-base sm:text-lg text-muted-foreground">
+            <p className="text-base sm:text-lg text-muted-foreground mb-4">
               Start with a 7-day free trial. No credit card required.
             </p>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <span>Prices shown in {currentCurrency.name}</span>
+              <CurrencySelector className="ml-2" />
+            </div>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
