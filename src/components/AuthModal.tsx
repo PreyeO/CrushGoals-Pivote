@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Loader2, Target, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AuthModalProps {
   open: boolean;
@@ -25,22 +27,83 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate auth delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsLoading(false);
-    const userName = tab === "signup" ? name : email.split("@")[0];
-    onSuccess({ name: userName, email });
-    onOpenChange(false);
+
+    try {
+      if (tab === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              full_name: name,
+            },
+          },
+        });
+
+        if (error) {
+          if (error.message.includes("already registered")) {
+            toast.error("This email is already registered. Please sign in instead.");
+          } else {
+            toast.error(error.message);
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        if (data.user) {
+          toast.success("Account created successfully!");
+          onSuccess({ name, email });
+          onOpenChange(false);
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          if (error.message.includes("Invalid login credentials")) {
+            toast.error("Invalid email or password. Please try again.");
+          } else {
+            toast.error(error.message);
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        if (data.user) {
+          const userName = data.user.user_metadata?.full_name || email.split("@")[0];
+          toast.success("Welcome back!");
+          onSuccess({ name: userName, email });
+          onOpenChange(false);
+        }
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleAuth = async () => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    onSuccess({ name: "User", email: "user@gmail.com" });
-    onOpenChange(false);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      toast.error("Failed to sign in with Google. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   const isFormValid = tab === "signin" 
