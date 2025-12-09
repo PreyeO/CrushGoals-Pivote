@@ -11,7 +11,7 @@ interface GoalCardProps {
   currentValue: string;
   targetValue: string;
   timeRemaining: string;
-  status: "on-track" | "behind" | "ahead";
+  status: "on-track" | "behind" | "ahead" | "completed";
   tasksToday: { completed: number; total: number };
   onClick?: () => void;
 }
@@ -31,6 +31,7 @@ export function GoalCard({
     "on-track": { label: "On Track", color: "text-success", bg: "bg-success/20" },
     "behind": { label: "Behind", color: "text-warning", bg: "bg-warning/20" },
     "ahead": { label: "Crushing It!", color: "text-primary", bg: "bg-primary/20" },
+    "completed": { label: "Completed!", color: "text-premium", bg: "bg-premium/20" },
   };
 
   const { label, color, bg } = statusConfig[status];
