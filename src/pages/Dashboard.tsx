@@ -5,10 +5,12 @@ import { GoalCard } from "@/components/GoalCard";
 import { TaskItem } from "@/components/TaskItem";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AddGoalModal } from "@/components/AddGoalModal";
 import { Target, Zap, Trophy, Plus, Sparkles, ChevronRight } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 // Sample data
-const goals = [
+const initialGoals = [
   {
     id: "1",
     emoji: "💪",
@@ -34,10 +36,10 @@ const goals = [
   {
     id: "3",
     emoji: "💰",
-    name: "Earn ₦500K Side Hustle",
+    name: "Save $10,000",
     progress: 28,
-    currentValue: "₦140,000",
-    targetValue: "₦500,000",
+    currentValue: "$2,800",
+    targetValue: "$10,000",
     timeRemaining: "24 weeks",
     status: "behind" as const,
     tasksToday: { completed: 1, total: 3 },
@@ -74,10 +76,10 @@ const todaysTasks = [
   },
   {
     id: "t4",
-    title: "Post content on 2 platforms",
-    goalName: "Side Hustle",
+    title: "Transfer to savings",
+    goalName: "Savings",
     goalEmoji: "💰",
-    timeEstimate: "1 hour",
+    timeEstimate: "5 min",
     priority: "high" as const,
     completed: false,
   },
@@ -100,6 +102,9 @@ const motivationalQuotes = [
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState(todaysTasks);
+  const [goals, setGoals] = useState(initialGoals);
+  const [addGoalOpen, setAddGoalOpen] = useState(false);
+  const { toast } = useToast();
   const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
 
   const completedTasks = tasks.filter((t) => t.completed).length;
@@ -119,17 +124,36 @@ export default function Dashboard() {
     );
   };
 
+  const handleAddGoal = (goalData: { category: string; emoji: string; name: string; target: string; deadline: string }) => {
+    const newGoal = {
+      id: `goal-${Date.now()}`,
+      emoji: goalData.emoji,
+      name: goalData.name,
+      progress: 0,
+      currentValue: "0",
+      targetValue: goalData.target || "Complete",
+      timeRemaining: goalData.deadline ? `Until ${new Date(goalData.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : "No deadline",
+      status: "on-track" as const,
+      tasksToday: { completed: 0, total: 3 },
+    };
+    setGoals((prev) => [...prev, newGoal]);
+    toast({
+      title: "🎯 Goal Created!",
+      description: `"${goalData.name}" has been added to your goals.`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar />
 
       {/* Main Content */}
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
         {/* Header */}
-        <header className="mb-8">
-          <div className="flex items-start justify-between">
+        <header className="mb-6 lg:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold mb-2 animate-slide-up">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 animate-slide-up">
                 {getGreeting()}, Champion! ☀️
               </h1>
               <p className="text-muted-foreground animate-slide-up opacity-0" style={{ animationDelay: "50ms" }}>
@@ -141,7 +165,7 @@ export default function Dashboard() {
                 })}
               </p>
             </div>
-            <Button variant="hero" className="animate-fade-in">
+            <Button variant="hero" className="animate-fade-in w-full sm:w-auto" onClick={() => setAddGoalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               New Goal
             </Button>
@@ -160,7 +184,7 @@ export default function Dashboard() {
         </header>
 
         {/* Stats Overview */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 lg:mb-8">
           <StatCard
             title="Today's Progress"
             value={`${completedTasks}/${totalTasks} tasks`}
@@ -179,7 +203,7 @@ export default function Dashboard() {
           <StatCard
             icon={Target}
             title="Active Goals"
-            value="3"
+            value={goals.length.toString()}
             subtitle="All on track"
             delay={200}
           />
@@ -194,17 +218,17 @@ export default function Dashboard() {
         </section>
 
         {/* Today's Tasks */}
-        <section className="mb-8">
+        <section className="mb-6 lg:mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold flex items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
                 Today's Mission 🎯
               </h2>
               <p className="text-sm text-muted-foreground">
                 Complete all tasks for a Perfect Day bonus! (+100 XP)
               </p>
             </div>
-            <Button variant="ghost" className="text-primary">
+            <Button variant="ghost" className="text-primary hidden sm:flex">
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -235,16 +259,16 @@ export default function Dashboard() {
         {/* Goals Overview */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
               Your Active Goals 🎯
             </h2>
-            <Button variant="ghost" className="text-primary">
+            <Button variant="ghost" className="text-primary hidden sm:flex">
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {goals.map((goal, index) => (
               <div
                 key={goal.id}
@@ -258,9 +282,9 @@ export default function Dashboard() {
         </section>
 
         {/* Recent Achievements */}
-        <section className="mt-8">
+        <section className="mt-6 lg:mt-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
               <Trophy className="w-5 h-5 text-premium" />
               Recent Achievements
             </h2>
@@ -271,11 +295,11 @@ export default function Dashboard() {
               <Card
                 key={badge}
                 variant="glass"
-                className="p-4 min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
+                className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="text-4xl mb-2">🏆</div>
-                <p className="font-semibold mb-1">{badge}</p>
+                <div className="text-3xl sm:text-4xl mb-2">🏆</div>
+                <p className="font-semibold mb-1 text-sm sm:text-base">{badge}</p>
                 <p className="text-xs text-muted-foreground">Earned 2 days ago</p>
               </Card>
             ))}
@@ -283,10 +307,10 @@ export default function Dashboard() {
         </section>
 
         {/* This Week at a Glance */}
-        <section className="mt-8">
-          <h2 className="text-xl font-bold mb-4">This Week at a Glance 📅</h2>
-          <Card variant="glass" className="p-6">
-            <div className="flex items-center justify-between gap-2">
+        <section className="mt-6 lg:mt-8">
+          <h2 className="text-lg sm:text-xl font-bold mb-4">This Week at a Glance 📅</h2>
+          <Card variant="glass" className="p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-1 sm:gap-2">
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, index) => {
                 const isToday = index === new Date().getDay() - 1;
                 const isPast = index < new Date().getDay() - 1;
@@ -301,7 +325,7 @@ export default function Dashboard() {
                 return (
                   <div
                     key={day}
-                    className={`flex-1 text-center p-3 rounded-xl transition-all ${
+                    className={`flex-1 text-center p-2 sm:p-3 rounded-xl transition-all ${
                       isToday
                         ? "bg-primary/20 border border-primary/50"
                         : status === "complete"
@@ -312,7 +336,7 @@ export default function Dashboard() {
                     }`}
                   >
                     <p className="text-xs text-muted-foreground mb-1">{day}</p>
-                    <div className="text-lg">
+                    <div className="text-sm sm:text-lg">
                       {status === "complete" && "✓"}
                       {status === "partial" && "7/10"}
                       {status === "current" && `${completedTasks}/${totalTasks}`}
@@ -330,6 +354,13 @@ export default function Dashboard() {
           </Card>
         </section>
       </main>
+
+      {/* Add Goal Modal */}
+      <AddGoalModal 
+        open={addGoalOpen} 
+        onOpenChange={setAddGoalOpen} 
+        onSuccess={handleAddGoal}
+      />
     </div>
   );
 }
