@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,14 @@ import { toast } from "sonner";
 import { 
   User, Bell, Palette, Shield, CreditCard, 
   HelpCircle, Info, Camera, Lock, Crown, Check,
-  Moon, Sun, Monitor, Download, Loader2, LogOut
+  Moon, Sun, Monitor, Download, Loader2, LogOut, Volume2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const settingsSections = [
   { id: "account", label: "Account", icon: User },
@@ -30,10 +31,15 @@ export default function Settings() {
   const { profile, isLoading: profileLoading, updateProfile } = useProfile();
   const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft } = useSubscription();
   const { getPricing } = useCurrency();
+  const { playSound, setEnabled: setSoundEnabled } = useSoundEffects();
   const pricing = getPricing();
   
   const [activeSection, setActiveSection] = useState("account");
   const [theme, setTheme] = useState<"dark" | "light" | "auto">("dark");
+  const [soundEffects, setSoundEffects] = useState(() => {
+    const saved = localStorage.getItem('soundEffects');
+    return saved !== 'false';
+  });
   const [displayName, setDisplayName] = useState("");
   const [notifications, setNotifications] = useState({
     dailyReminder: true,
@@ -49,6 +55,11 @@ export default function Settings() {
     shareProgress: false,
     analytics: true,
   });
+
+  useEffect(() => {
+    setSoundEnabled(soundEffects);
+    localStorage.setItem('soundEffects', String(soundEffects));
+  }, [soundEffects, setSoundEnabled]);
 
   const isLoading = profileLoading || subscriptionLoading;
 
@@ -301,6 +312,28 @@ export default function Settings() {
                             <span className="text-xs sm:text-sm">{t.label}</span>
                           </button>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Sound Effects Toggle */}
+                    <div className="p-4 bg-white/5 rounded-xl">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <Volume2 className="w-5 h-5 text-muted-foreground" />
+                          <div>
+                            <h4 className="font-medium text-sm sm:text-base">Sound Effects</h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Play sounds for celebrations and task completions</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={soundEffects} 
+                          onCheckedChange={(checked) => {
+                            setSoundEffects(checked);
+                            if (checked) {
+                              playSound('taskComplete');
+                            }
+                          }}
+                        />
                       </div>
                     </div>
                   </div>

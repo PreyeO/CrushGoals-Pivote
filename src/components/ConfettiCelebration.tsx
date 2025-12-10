@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 interface Particle {
   id: number;
@@ -37,6 +38,7 @@ export function ConfettiCelebration({
 }: ConfettiCelebrationProps) {
   const [particles, setParticles] = useState<Particle[]>([]);
   const [isActive, setIsActive] = useState(false);
+  const { playSound } = useSoundEffects();
 
   const createParticles = useCallback(() => {
     const colorSet = colors[type];
@@ -64,6 +66,15 @@ export function ConfettiCelebration({
       setIsActive(true);
       setParticles(createParticles());
       
+      // Play appropriate sound based on celebration type
+      if (type === 'perfectDay') {
+        playSound('perfectDay');
+      } else if (type === 'milestone') {
+        playSound('milestone');
+      } else if (type === 'goalComplete') {
+        playSound('levelUp');
+      }
+      
       const timer = setTimeout(() => {
         setIsActive(false);
         setParticles([]);
@@ -72,7 +83,7 @@ export function ConfettiCelebration({
       
       return () => clearTimeout(timer);
     }
-  }, [trigger, isActive, createParticles, duration, onComplete]);
+  }, [trigger, isActive, createParticles, duration, onComplete, type, playSound]);
 
   if (!isActive || particles.length === 0) return null;
 

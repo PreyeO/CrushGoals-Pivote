@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Check, Clock, Star, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import {
@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface TaskItemProps {
   id: string;
@@ -14,7 +15,7 @@ interface TaskItemProps {
   goalName: string;
   goalEmoji: string;
   timeEstimate?: string;
-  priority: "high" | "medium" | "low";
+  priority: "high" | "medium" | "low" | null;
   completed?: boolean;
   onComplete?: (id: string) => void;
   onEdit?: () => void;
@@ -35,16 +36,25 @@ export function TaskItem({
 }: TaskItemProps) {
   const [isCompleted, setIsCompleted] = useState(completed);
   const [showXP, setShowXP] = useState(false);
+  const { playSound } = useSoundEffects();
+
+  // Sync with prop changes
+  useEffect(() => {
+    setIsCompleted(completed);
+  }, [completed]);
 
   const handleComplete = () => {
     if (isCompleted) return;
     
     setIsCompleted(true);
     setShowXP(true);
+    playSound('taskComplete');
     onComplete?.(id);
     
     setTimeout(() => setShowXP(false), 1000);
   };
+
+  const safePriority = priority || 'medium';
 
   const priorityColors = {
     high: "bg-destructive/20 text-destructive",
@@ -99,9 +109,9 @@ export function TaskItem({
             </span>
           )}
           
-          <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium", priorityColors[priority])}>
+          <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium", priorityColors[safePriority])}>
             <Star className="w-3 h-3" />
-            {priority.charAt(0).toUpperCase() + priority.slice(1)}
+            {safePriority.charAt(0).toUpperCase() + safePriority.slice(1)}
           </span>
         </div>
       </div>
