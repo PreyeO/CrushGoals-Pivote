@@ -182,16 +182,20 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="goalTarget">
-                  Target / How will you measure success? (optional)
+                <Label htmlFor="goalTarget" className="flex items-center gap-2">
+                  <span>Measurable Target</span>
+                  <span className="text-xs text-muted-foreground">(for smart daily breakdown)</span>
                 </Label>
                 <Input
                   id="goalTarget"
-                  placeholder="e.g., 20kg, $10,000, B2 level fluency"
+                  placeholder="e.g., 30 pages, 10kg, 5000 words, 24 chapters"
                   value={goalTarget}
                   onChange={(e) => setGoalTarget(e.target.value)}
                   className="bg-secondary border-border h-12"
                 />
+                <p className="text-xs text-muted-foreground">
+                  💡 Enter a number with unit (e.g., "30 pages") and we'll calculate your daily target automatically!
+                </p>
               </div>
 
               {/* Date Selection - Clear Start & End */}
@@ -335,9 +339,13 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                 <div className="flex items-start gap-3">
                   <Sparkles className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-success mb-1">What happens next?</p>
+                    <p className="font-medium text-success mb-1">🚀 Daily Tasks Auto-Generated!</p>
                     <p className="text-sm text-muted-foreground">
-                      We'll help you break this goal into daily tasks. Complete them each day to build momentum and earn XP!
+                      {goalTarget ? (
+                        <>We'll create {daysToAchieve} daily tasks breaking down "{goalTarget}" into achievable chunks. Check your Tasks page to see today's mission!</>
+                      ) : (
+                        <>We'll create daily reminder tasks for each day. Complete them to build momentum and earn XP!</>
+                      )}
                     </p>
                   </div>
                 </div>
