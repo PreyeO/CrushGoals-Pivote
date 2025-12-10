@@ -9,6 +9,23 @@ const getInitialEnabled = (): boolean => {
   return saved !== 'false';
 };
 
+// Haptic feedback utility
+const triggerHaptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    switch (type) {
+      case 'light':
+        navigator.vibrate(10);
+        break;
+      case 'medium':
+        navigator.vibrate(25);
+        break;
+      case 'heavy':
+        navigator.vibrate([50, 30, 50]);
+        break;
+    }
+  }
+};
+
 class AudioSynthesizer {
   private audioContext: AudioContext | null = null;
   private enabled: boolean = getInitialEnabled();
@@ -54,8 +71,7 @@ class AudioSynthesizer {
   playTaskComplete() {
     if (!this.enabled) return;
     
-    const ctx = this.getContext();
-    const now = ctx.currentTime;
+    triggerHaptic('medium');
     
     // Two-tone pleasant completion sound
     this.playTone(880, 0.15, 'sine', 0.2); // A5
@@ -64,12 +80,15 @@ class AudioSynthesizer {
 
   // XP gain subtle sound
   playXPGain() {
+    triggerHaptic('light');
     this.playTone(1046.5, 0.1, 'sine', 0.1); // C6 - subtle
   }
 
   // Triumphant fanfare for perfect day
   playPerfectDay() {
     if (!this.enabled) return;
+    
+    triggerHaptic('heavy');
     
     // Ascending triumphant melody
     const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
@@ -88,6 +107,8 @@ class AudioSynthesizer {
   // Level up celebration
   playLevelUp() {
     if (!this.enabled) return;
+    
+    triggerHaptic('heavy');
     
     // Ascending sweep with harmonics
     const baseNotes = [261.63, 329.63, 392, 523.25, 659.25, 783.99]; // C4 to G5
@@ -108,6 +129,8 @@ class AudioSynthesizer {
   playMilestone() {
     if (!this.enabled) return;
     
+    triggerHaptic('heavy');
+    
     // Achievement unlocked style
     this.playTone(440, 0.15, 'sine', 0.2); // A4
     setTimeout(() => this.playTone(554.37, 0.15, 'sine', 0.2), 100); // C#5
@@ -116,6 +139,7 @@ class AudioSynthesizer {
 
   // Error/failure sound
   playError() {
+    triggerHaptic('light');
     this.playTone(200, 0.2, 'sawtooth', 0.1);
   }
 }
@@ -123,7 +147,7 @@ class AudioSynthesizer {
 const synthesizer = new AudioSynthesizer();
 
 export function useSoundEffects() {
-  const enabledRef = useRef(true);
+  const enabledRef = useRef(getInitialEnabled());
 
   const playSound = useCallback((type: SoundType) => {
     if (!enabledRef.current) return;
@@ -155,7 +179,15 @@ export function useSoundEffects() {
     synthesizer.setEnabled(enabled);
   }, []);
 
-  return { playSound, setEnabled };
+  // Also expose haptic feedback directly
+  const haptic = useCallback((type: 'light' | 'medium' | 'heavy' = 'light') => {
+    if (enabledRef.current) {
+      triggerHaptic(type);
+    }
+  }, []);
+
+  return { playSound, setEnabled, haptic };
 }
 
-export { synthesizer };
+export { synthesizer, triggerHaptic };
+

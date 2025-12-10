@@ -11,6 +11,7 @@ export interface Goal {
   category: string;
   target_value: string | null;
   current_value: string;
+  start_date: string | null;
   deadline: string | null;
   status: 'on-track' | 'ahead' | 'behind' | 'completed';
   progress: number;
@@ -49,6 +50,7 @@ export function useGoals() {
     emoji: string;
     category: string;
     target_value?: string;
+    start_date?: string;
     deadline?: string;
   }) => {
     if (!user) return null;
@@ -62,6 +64,7 @@ export function useGoals() {
           emoji: goalData.emoji,
           category: goalData.category,
           target_value: goalData.target_value || null,
+          start_date: goalData.start_date || new Date().toISOString().split('T')[0],
           deadline: goalData.deadline || null,
         })
         .select()
@@ -70,7 +73,7 @@ export function useGoals() {
       if (error) throw error;
       
       setGoals(prev => [data as Goal, ...prev]);
-      toast.success('Goal created successfully!');
+      toast.success('Goal created successfully! 🎯');
       return data as Goal;
     } catch (error) {
       console.error('Error adding goal:', error);
