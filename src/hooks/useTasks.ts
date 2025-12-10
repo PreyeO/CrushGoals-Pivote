@@ -32,10 +32,11 @@ export function useTasks(date?: string) {
 
   const clearCelebration = () => setCelebrationTrigger(null);
 
-  // Check and unlock achievements based on stats
+  // Check and unlock achievements based on stats and time-based conditions
   const checkAndUnlockAchievements = async (
     userId: string, 
-    stats: { current_streak?: number; tasks_completed?: number; perfect_days?: number }
+    stats: { current_streak?: number; tasks_completed?: number; perfect_days?: number; level?: number },
+    options?: { isEarlyMorning?: boolean; isNightOwl?: boolean; isWeekend?: boolean; dailyTasksToday?: number }
   ) => {
     try {
       // Get existing achievements
@@ -45,6 +46,24 @@ export function useTasks(date?: string) {
         .eq('user_id', userId);
 
       const unlockedIds = new Set(existingAchievements?.map(a => a.badge_id) || []);
+
+      // Get user's active goals count for multi_goal badge
+      const { data: activeGoals } = await supabase
+        .from('goals')
+        .select('id')
+        .eq('user_id', userId)
+        .neq('status', 'completed');
+
+      const activeGoalsCount = activeGoals?.length || 0;
+
+      // Get user's level
+      const { data: userStats } = await supabase
+        .from('user_stats')
+        .select('level')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const userLevel = userStats?.level || 1;
 
       // Check each badge
       for (const badge of ALL_BADGES) {
@@ -62,6 +81,29 @@ export function useTasks(date?: string) {
           case 'perfect_days':
             shouldUnlock = (stats.perfect_days || 0) >= badge.requirement;
             break;
+          case 'level':
+            shouldUnlock = userLevel >= badge.requirement;
+            break;
+          case 'early_morning':
+            if (options?.isEarlyMorning) {
+              // For Morning Champion, need to track cumulative early morning tasks
+              // For Early Bird, just one task is enough
+              shouldUnlock = badge.requirement === 1;
+            }
+            break;
+          case 'night':
+            shouldUnlock = options?.isNightOwl && badge.requirement === 1;
+            break;
+          case 'weekend':
+            // Weekend warrior - would need tracking, simplify to first weekend task
+            shouldUnlock = options?.isWeekend && badge.requirement <= 5;
+            break;
+          case 'daily_tasks':
+            shouldUnlock = (options?.dailyTasksToday || 0) >= badge.requirement;
+            break;
+          case 'multi_goal':
+            shouldUnlock = activeGoalsCount >= badge.requirement;
+            break;
         }
 
         if (shouldUnlock) {
@@ -75,6 +117,12 @@ export function useTasks(date?: string) {
           toast.success(`🏆 Badge Unlocked: ${badge.name}!`, {
             description: `+${badge.xpReward} XP`,
           });
+
+          // Add XP reward
+          await supabase
+            .from('user_stats')
+            .update({ total_xp: (stats.tasks_completed || 0) * 10 + badge.xpReward })
+            .eq('user_id', userId);
         }
       }
     } catch (error) {
@@ -239,9 +287,24 @@ export function useTasks(date?: string) {
 
       // Update user stats if completing task
       if (completed && user) {
+        const now = new Date();
+        const hour = now.getHours();
+        const dayOfWeek = now.getDay();
+        
+        // Time-based achievement checks
+        const isEarlyMorning = hour < 7;
+        const isNightOwl = hour >= 22;
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+        // Count tasks completed today
+        const todayStr = now.toISOString().split('T')[0];
+        const todayCompletedTasks = updatedTasks.filter(
+          t => t.due_date === todayStr && t.completed
+        ).length;
+
         const { data: currentStats } = await supabase
           .from('user_stats')
-          .select('tasks_completed, total_xp, current_streak, longest_streak, perfect_days, last_activity_date')
+          .select('tasks_completed, total_xp, current_streak, longest_streak, perfect_days, last_activity_date, level')
           .eq('user_id', user.id)
           .single();
         
@@ -252,11 +315,17 @@ export function useTasks(date?: string) {
             total_xp: (currentStats.total_xp || 0) + 10,
           };
 
-          // Check for task-based achievements immediately
+          // Check for achievements immediately (including time-based)
           await checkAndUnlockAchievements(user.id, {
             current_streak: currentStats.current_streak || 0,
             tasks_completed: newTasksCompleted,
             perfect_days: currentStats.perfect_days || 0,
+            level: currentStats.level || 1,
+          }, {
+            isEarlyMorning,
+            isNightOwl,
+            isWeekend,
+            dailyTasksToday: todayCompletedTasks,
           });
 
           // Check if all tasks for today are now completed (Perfect Day)
@@ -308,6 +377,7 @@ export function useTasks(date?: string) {
                 current_streak: newStreak,
                 tasks_completed: statsUpdate.tasks_completed,
                 perfect_days: statsUpdate.perfect_days,
+                level: currentStats.level || 1,
               });
             }
           }
