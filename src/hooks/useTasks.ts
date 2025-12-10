@@ -112,23 +112,69 @@ export function useTasks(date?: string) {
 
       if (error) throw error;
       
-      setTasks(prev => prev.map(t => t.id === taskId ? data as Task : t));
+      const updatedTasks = tasks.map(t => t.id === taskId ? data as Task : t);
+      setTasks(updatedTasks);
 
       // Update user stats if completing task
       if (completed && user) {
         const { data: currentStats } = await supabase
           .from('user_stats')
-          .select('tasks_completed, total_xp')
+          .select('tasks_completed, total_xp, current_streak, longest_streak, perfect_days, last_activity_date')
           .eq('user_id', user.id)
           .single();
         
         if (currentStats) {
+          const statsUpdate: any = {
+            tasks_completed: (currentStats.tasks_completed || 0) + 1,
+            total_xp: (currentStats.total_xp || 0) + 10,
+          };
+
+          // Check if all tasks for today are now completed (Perfect Day)
+          const todayStr = new Date().toISOString().split('T')[0];
+          const todayTasks = updatedTasks.filter(t => t.due_date === todayStr);
+          const allCompleted = todayTasks.length > 0 && todayTasks.every(t => t.completed);
+
+          if (allCompleted) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const lastActivity = currentStats.last_activity_date 
+              ? new Date(currentStats.last_activity_date)
+              : null;
+            
+            if (lastActivity) {
+              lastActivity.setHours(0, 0, 0, 0);
+            }
+
+            // Check if we already counted today
+            const alreadyCountedToday = lastActivity && lastActivity.getTime() === today.getTime();
+
+            if (!alreadyCountedToday) {
+              // Check if yesterday was also a perfect day (continuing streak)
+              const yesterday = new Date(today);
+              yesterday.setDate(yesterday.getDate() - 1);
+              
+              const isConsecutive = lastActivity && lastActivity.getTime() === yesterday.getTime();
+              
+              const newStreak = isConsecutive 
+                ? (currentStats.current_streak || 0) + 1 
+                : 1;
+              
+              statsUpdate.current_streak = newStreak;
+              statsUpdate.longest_streak = Math.max(newStreak, currentStats.longest_streak || 0);
+              statsUpdate.perfect_days = (currentStats.perfect_days || 0) + 1;
+              statsUpdate.last_activity_date = todayStr;
+              statsUpdate.total_xp = statsUpdate.total_xp + 100; // Perfect Day bonus!
+
+              toast.success('🔥 Perfect Day! +100 XP bonus!', {
+                description: `Streak: ${newStreak} day${newStreak > 1 ? 's' : ''}`,
+              });
+            }
+          }
+
           await supabase
             .from('user_stats')
-            .update({
-              tasks_completed: (currentStats.tasks_completed || 0) + 1,
-              total_xp: (currentStats.total_xp || 0) + 10, // 10 XP per task
-            })
+            .update(statsUpdate)
             .eq('user_id', user.id);
         }
       }
