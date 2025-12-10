@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
 import { GoalCard } from "@/components/GoalCard";
@@ -9,11 +9,12 @@ import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
-import { Target, Zap, Trophy, Plus, Sparkles, ChevronRight, Loader2 } from "lucide-react";
+import { Target, Zap, Trophy, Plus, Sparkles, ChevronRight, Loader2, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const motivationalQuotes = [
   { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -29,7 +30,64 @@ export default function Dashboard() {
   const { tasks, isLoading: tasksLoading, toggleTask, addTask, celebrationTrigger, clearCelebration } = useTasks(today);
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
-  
+  const [weekData, setWeekData] = useState<{ date: string; day: string; completed: number; total: number }[]>([]);
+
+  // Fetch week data
+  useEffect(() => {
+    const fetchWeekData = async () => {
+      if (!profile) return;
+      
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const weekDates: { date: string; day: string; completed: number; total: number }[] = [];
+      
+      // Get start of week (Monday)
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(now);
+        date.setDate(now.getDate() + mondayOffset + i);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayIndex = date.getDay();
+        weekDates.push({
+          date: dateStr,
+          day: days[dayIndex],
+          completed: 0,
+          total: 0,
+        });
+      }
+
+      try {
+        const startDate = weekDates[0].date;
+        const endDate = weekDates[6].date;
+
+        const { data: weekTasks } = await supabase
+          .from('tasks')
+          .select('due_date, completed')
+          .eq('user_id', profile.user_id)
+          .gte('due_date', startDate)
+          .lte('due_date', endDate);
+
+        if (weekTasks) {
+          weekTasks.forEach(task => {
+            const dayData = weekDates.find(d => d.date === task.due_date);
+            if (dayData) {
+              dayData.total++;
+              if (task.completed) dayData.completed++;
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching week data:', error);
+      }
+
+      setWeekData(weekDates);
+    };
+
+    fetchWeekData();
+  }, [profile, tasks]);
+
   const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   
   // Determine if we should show milestone celebration
@@ -341,24 +399,35 @@ export default function Dashboard() {
           <h2 className="text-lg sm:text-xl font-bold mb-4">This Week at a Glance 📅</h2>
           <Card variant="glass" className="p-4 sm:p-6">
             <div className="flex items-center justify-between gap-1 sm:gap-2">
-              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, index) => {
-                const isToday = index === new Date().getDay() - 1;
-                const isPast = index < new Date().getDay() - 1;
+              {weekData.map((dayData) => {
+                const isToday = dayData.date === today;
+                const isPast = new Date(dayData.date) < new Date(today);
+                const isPerfect = dayData.total > 0 && dayData.completed === dayData.total;
 
                 return (
                   <div
-                    key={day}
+                    key={dayData.date}
                     className={`flex-1 text-center p-2 sm:p-3 rounded-xl transition-all ${
                       isToday
                         ? "bg-primary/20 border border-primary/50"
-                        : isPast
+                        : isPast && isPerfect
                         ? "bg-success/20"
+                        : isPast && dayData.total > 0
+                        ? "bg-warning/20"
                         : "bg-white/5"
                     }`}
                   >
-                    <p className="text-xs text-muted-foreground mb-1">{day}</p>
+                    <p className="text-xs text-muted-foreground mb-1">{dayData.day}</p>
                     <div className="text-sm sm:text-lg">
-                      {isToday ? `${completedTasks}/${totalTasks}` : isPast ? "✓" : "—"}
+                      {dayData.total > 0 ? (
+                        isPerfect ? (
+                          <Check className="w-4 h-4 mx-auto text-success" />
+                        ) : (
+                          `${dayData.completed}/${dayData.total}`
+                        )
+                      ) : (
+                        "—"
+                      )}
                     </div>
                   </div>
                 );
@@ -366,7 +435,9 @@ export default function Dashboard() {
             </div>
             <div className="mt-4 text-center">
               <p className="text-sm text-muted-foreground">
-                <span className="text-success font-medium">{stats?.perfect_days || 0}</span> perfect days this week
+                <span className="text-success font-medium">
+                  {weekData.filter(d => d.total > 0 && d.completed === d.total).length}
+                </span> perfect days this week
               </p>
             </div>
           </Card>
