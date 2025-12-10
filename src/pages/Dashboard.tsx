@@ -3,6 +3,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
 import { GoalCard } from "@/components/GoalCard";
 import { TaskItem } from "@/components/TaskItem";
+import { StreakCounter } from "@/components/StreakCounter";
+import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
@@ -21,10 +23,13 @@ export default function Dashboard() {
   const { profile, stats } = useAuth();
   const { goals, isLoading: goalsLoading, addGoal } = useGoals();
   const today = new Date().toISOString().split('T')[0];
-  const { tasks, isLoading: tasksLoading, toggleTask, addTask } = useTasks(today);
+  const { tasks, isLoading: tasksLoading, toggleTask, addTask, celebrationTrigger, clearCelebration } = useTasks(today);
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   
   const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+  
+  // Determine if we should show milestone celebration
+  const showMilestoneCelebration = stats?.current_streak === 7 || stats?.current_streak === 30;
 
   const completedTasks = tasks.filter((t) => t.completed).length;
   const totalTasks = tasks.length;
@@ -113,13 +118,15 @@ export default function Dashboard() {
             progress={progressPercent}
             delay={0}
           />
-          <StatCard
-            title="Current Streak"
-            value={`${stats?.current_streak || 0} days`}
-            subtitle={`Longest: ${stats?.longest_streak || 0} days`}
-            variant="streak"
-            delay={100}
-          />
+          
+          {/* Enhanced Streak Counter */}
+          <div className="animate-slide-up opacity-0" style={{ animationDelay: '100ms' }}>
+            <StreakCounter 
+              streak={stats?.current_streak || 0} 
+              longestStreak={stats?.longest_streak || 0}
+            />
+          </div>
+          
           <StatCard
             icon={Target}
             title="Active Goals"
@@ -349,6 +356,19 @@ export default function Dashboard() {
         open={addGoalOpen} 
         onOpenChange={setAddGoalOpen} 
         onSuccess={handleAddGoal}
+      />
+      
+      {/* Confetti Celebration */}
+      <ConfettiCelebration 
+        trigger={celebrationTrigger === 'perfectDay'}
+        type="perfectDay"
+        particleCount={150}
+        onComplete={clearCelebration}
+      />
+      <ConfettiCelebration 
+        trigger={showMilestoneCelebration}
+        type="milestone"
+        particleCount={100}
       />
     </div>
   );

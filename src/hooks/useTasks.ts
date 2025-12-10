@@ -21,10 +21,15 @@ export interface Task {
   };
 }
 
+export type CelebrationTrigger = 'perfectDay' | 'milestone' | null;
+
 export function useTasks(date?: string) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [celebrationTrigger, setCelebrationTrigger] = useState<CelebrationTrigger>(null);
+
+  const clearCelebration = () => setCelebrationTrigger(null);
 
   const fetchTasks = async () => {
     if (!user) return;
@@ -166,6 +171,9 @@ export function useTasks(date?: string) {
               statsUpdate.last_activity_date = todayStr;
               statsUpdate.total_xp = statsUpdate.total_xp + 100; // Perfect Day bonus!
 
+              // Trigger celebration
+              setCelebrationTrigger('perfectDay');
+
               toast.success('🔥 Perfect Day! +100 XP bonus!', {
                 description: `Streak: ${newStreak} day${newStreak > 1 ? 's' : ''}`,
               });
@@ -261,5 +269,7 @@ export function useTasks(date?: string) {
     updateTask,
     deleteTask,
     refreshTasks: fetchTasks,
+    celebrationTrigger,
+    clearCelebration,
   };
 }

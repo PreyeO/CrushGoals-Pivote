@@ -1,11 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { ProgressRing } from "@/components/ProgressRing";
 import { cn } from "@/lib/utils";
-import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -22,6 +23,7 @@ interface GoalCardProps {
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onAddTask?: () => void;
 }
 
 export function GoalCard({
@@ -36,6 +38,7 @@ export function GoalCard({
   onClick,
   onEdit,
   onDelete,
+  onAddTask,
 }: GoalCardProps) {
   const statusConfig = {
     "on-track": { label: "On Track", color: "text-success", bg: "bg-success/20" },
@@ -74,7 +77,7 @@ export function GoalCard({
               {status === "ahead" && <TrendingUp className="w-3 h-3" />}
               {label}
             </span>
-            {(onEdit || onDelete) && (
+            {(onEdit || onDelete || onAddTask) && (
               <DropdownMenu>
                 <DropdownMenuTrigger 
                   onClick={(e) => e.stopPropagation()}
@@ -83,6 +86,13 @@ export function GoalCard({
                   <MoreVertical className="w-4 h-4 text-muted-foreground" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-card border-white/10">
+                  {onAddTask && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAddTask(); }}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Task
+                    </DropdownMenuItem>
+                  )}
+                  {onAddTask && (onEdit || onDelete) && <DropdownMenuSeparator />}
                   {onEdit && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                       <Pencil className="w-4 h-4 mr-2" />
