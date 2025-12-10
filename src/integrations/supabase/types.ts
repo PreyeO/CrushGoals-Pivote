@@ -52,6 +52,7 @@ export type Database = {
           id: string
           name: string
           progress: number | null
+          start_date: string | null
           status: string | null
           target_value: string | null
           updated_at: string
@@ -67,6 +68,7 @@ export type Database = {
           id?: string
           name: string
           progress?: number | null
+          start_date?: string | null
           status?: string | null
           target_value?: string | null
           updated_at?: string
@@ -82,6 +84,7 @@ export type Database = {
           id?: string
           name?: string
           progress?: number | null
+          start_date?: string | null
           status?: string | null
           target_value?: string | null
           updated_at?: string

@@ -53,12 +53,20 @@ export default function Dashboard() {
     }
   };
 
-  const handleAddGoal = async (goalData: { category: string; emoji: string; name: string; target: string; deadline: string }) => {
+  const handleAddGoal = async (goalData: { 
+    category: string; 
+    emoji: string; 
+    name: string; 
+    target: string; 
+    startDate: string;
+    deadline: string 
+  }) => {
     await addGoal({
       name: goalData.name,
       emoji: goalData.emoji,
       category: goalData.category,
       target_value: goalData.target,
+      start_date: goalData.startDate,
       deadline: goalData.deadline,
     });
   };
