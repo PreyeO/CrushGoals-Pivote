@@ -1,19 +1,23 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { Crown, Medal, Trophy, TrendingUp, Users, Loader2, Globe } from "lucide-react";
+import { Crown, Medal, Trophy, TrendingUp, Users, Loader2, Globe, UserPlus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
-import { cn } from "@/lib/utils";
+import { useFriends } from "@/hooks/useFriends";
+import { AddFriendModal } from "@/components/AddFriendModal";
+import { FriendRequestCard } from "@/components/FriendRequestCard";
 
 type ViewFilter = "global" | "friends";
 type TimeFilter = "week" | "alltime";
 
 export default function Leaderboard() {
   const { entries, userRank, isLoading } = useLeaderboard();
+  const { friendsWithStats, pendingRequests, isLoading: friendsLoading, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useFriends();
   const [viewFilter, setViewFilter] = useState<ViewFilter>("global");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("alltime");
+  const [addFriendOpen, setAddFriendOpen] = useState(false);
 
-  if (isLoading) {
+  if (isLoading || friendsLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Sidebar />
@@ -24,10 +28,23 @@ export default function Leaderboard() {
     );
   }
 
-  // Filter entries based on time (would need backend support for real filtering)
-  const filteredEntries = entries;
-  const top3 = filteredEntries.slice(0, 3);
-  const rest = filteredEntries.slice(3, 10);
+  // Use friends data when viewing friends tab
+  const displayEntries = viewFilter === "friends" 
+    ? friendsWithStats.map((f, i) => ({
+        rank: i + 1,
+        user_id: f.user_id,
+        name: f.name,
+        avatar: f.avatar,
+        tasks_completed: f.tasks_completed,
+        current_streak: f.current_streak,
+        total_xp: f.total_xp,
+        level: f.level,
+        change: 0,
+      }))
+    : entries;
+
+  const top3 = displayEntries.slice(0, 3);
+  const rest = displayEntries.slice(3, 10);
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,12 +76,17 @@ export default function Leaderboard() {
               </Button>
               <Button 
                 variant={viewFilter === "friends" ? "default" : "outline"} 
-                className="gap-2" 
+                className="gap-2 relative" 
                 size="sm"
                 onClick={() => setViewFilter("friends")}
               >
                 <Users className="w-4 h-4" />
                 <span className="hidden sm:inline">Friends</span>
+                {pendingRequests.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-danger text-[10px] rounded-full flex items-center justify-center">
+                    {pendingRequests.length}
+                  </span>
+                )}
               </Button>
               <div className="w-px bg-border mx-1" />
               <Button 
@@ -84,16 +106,49 @@ export default function Leaderboard() {
             </div>
           </div>
 
-          {viewFilter === "friends" ? (
-            <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
-              <div className="text-5xl sm:text-6xl mb-4">👥</div>
-              <h3 className="text-xl font-semibold mb-2">Friends Feature Coming Soon!</h3>
-              <p className="text-muted-foreground mb-4">Add friends and compete with people you know.</p>
-              <Button variant="outline" onClick={() => setViewFilter("global")}>
-                View Global Leaderboard
+          {/* Pending Friend Requests */}
+          {viewFilter === "friends" && pendingRequests.length > 0 && (
+            <div className="glass-card p-4 rounded-2xl mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Bell className="w-4 h-4 text-warning" />
+                <h3 className="font-semibold text-sm">Pending Friend Requests ({pendingRequests.length})</h3>
+              </div>
+              <div className="space-y-2">
+                {pendingRequests.map((request) => (
+                  <FriendRequestCard
+                    key={request.id}
+                    id={request.id}
+                    name={request.user_profile?.full_name || 'Unknown'}
+                    email={request.user_profile?.email || ''}
+                    onAccept={acceptFriendRequest}
+                    onReject={rejectFriendRequest}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add Friend Button for Friends Tab */}
+          {viewFilter === "friends" && (
+            <div className="mb-6">
+              <Button onClick={() => setAddFriendOpen(true)} className="gap-2">
+                <UserPlus className="w-4 h-4" />
+                Add Friend
               </Button>
             </div>
-          ) : filteredEntries.length === 0 ? (
+          )}
+
+          {viewFilter === "friends" && friendsWithStats.length === 0 ? (
+            <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
+              <div className="text-5xl sm:text-6xl mb-4">👥</div>
+              <h3 className="text-xl font-semibold mb-2">No Friends Yet</h3>
+              <p className="text-muted-foreground mb-4">Add friends to compete on your own leaderboard!</p>
+              <Button onClick={() => setAddFriendOpen(true)}>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add Your First Friend
+              </Button>
+            </div>
+          ) : displayEntries.length === 0 ? (
             <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
               <div className="text-5xl sm:text-6xl mb-4">🏆</div>
               <h3 className="text-xl font-semibold mb-2">Leaderboard is empty</h3>
@@ -180,7 +235,7 @@ export default function Leaderboard() {
               )}
 
               {/* Your Rank Card */}
-              {userRank && (
+              {userRank && viewFilter === "global" && (
                 <div className="glass-card p-4 sm:p-6 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-transparent">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3 sm:gap-4">
@@ -214,6 +269,12 @@ export default function Leaderboard() {
           )}
         </div>
       </main>
+
+      <AddFriendModal 
+        open={addFriendOpen} 
+        onOpenChange={setAddFriendOpen}
+        onSendRequest={sendFriendRequest}
+      />
     </div>
   );
 }

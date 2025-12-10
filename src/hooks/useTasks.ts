@@ -302,11 +302,27 @@ export function useTasks(date?: string) {
           t => t.due_date === todayStr && t.completed
         ).length;
 
-        const { data: currentStats } = await supabase
+        // Get or create user stats
+        let { data: currentStats } = await supabase
           .from('user_stats')
           .select('tasks_completed, total_xp, current_streak, longest_streak, perfect_days, last_activity_date, level')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
+        
+        // Create user_stats if it doesn't exist
+        if (!currentStats) {
+          const { data: newStats, error: createError } = await supabase
+            .from('user_stats')
+            .insert({ user_id: user.id })
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('Error creating user stats:', createError);
+          } else {
+            currentStats = newStats;
+          }
+        }
         
         if (currentStats) {
           const newTasksCompleted = (currentStats.tasks_completed || 0) + 1;
