@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
 import { GoalCard } from "@/components/GoalCard";
@@ -20,6 +20,8 @@ const motivationalQuotes = [
   { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
   { quote: "Small steps every day lead to big changes.", author: "Unknown" },
   { quote: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+  { quote: "Progress, not perfection, is what we should be asking of ourselves.", author: "Julia Cameron" },
+  { quote: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
 ];
 
 export default function Dashboard() {
@@ -88,7 +90,10 @@ export default function Dashboard() {
     fetchWeekData();
   }, [profile, tasks]);
 
-  const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+  // Memoize the quote so it doesn't change on every render
+  const randomQuote = useMemo(() => {
+    return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+  }, []);
   
   // Determine if we should show milestone celebration
   const showMilestoneCelebration = stats?.current_streak === 7 || stats?.current_streak === 30;
