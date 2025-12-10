@@ -1,15 +1,40 @@
 import { cn } from "@/lib/utils";
+import { Share2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface StreakCounterProps {
   streak: number;
   longestStreak?: number;
   className?: string;
+  showShare?: boolean;
 }
 
-export function StreakCounter({ streak, longestStreak, className }: StreakCounterProps) {
+export function StreakCounter({ streak, longestStreak, className, showShare = true }: StreakCounterProps) {
   const isOnFire = streak >= 3;
   const isBlazing = streak >= 7;
   const isLegendary = streak >= 30;
+
+  const handleShare = async () => {
+    const label = isLegendary ? 'Legendary' : isBlazing ? 'Blazing' : isOnFire ? 'On Fire' : 'Growing';
+    const shareText = `🔥 ${streak} Day Streak on Goal Crusher!\n\n${label} streak - I'm crushing my goals every day!\n\n#GoalCrusher #Streak #Productivity`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${streak} Day Streak!`,
+          text: shareText,
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          navigator.clipboard.writeText(shareText);
+          toast.success('Copied to clipboard!');
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(shareText);
+      toast.success('Copied to clipboard!');
+    }
+  };
 
   return (
     <div className={cn("relative", className)}>
@@ -97,6 +122,17 @@ export function StreakCounter({ streak, longestStreak, className }: StreakCounte
             <p className="text-xs text-muted-foreground mt-3">
               Best: {longestStreak} days 🏅
             </p>
+          )}
+          
+          {/* Share button */}
+          {showShare && streak > 0 && (
+            <button
+              onClick={handleShare}
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Share2 className="w-3 h-3" />
+              Share
+            </button>
           )}
         </div>
       </div>

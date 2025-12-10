@@ -5,11 +5,13 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { TaskCalendar } from "@/components/TaskCalendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays } from "lucide-react";
+import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { useTasks, Task } from "@/hooks/useTasks";
+import { useMissedTasks } from "@/hooks/useMissedTasks";
 import { useGoals } from "@/hooks/useGoals";
 import { EditTaskModal } from "@/components/EditTaskModal";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +46,7 @@ const getTimeLeftToday = (): { hours: number; minutes: number; formatted: string
 export default function Tasks() {
   const today = new Date().toISOString().split('T')[0];
   const { tasks, isLoading, addTask, toggleTask, updateTask, deleteTask } = useTasks(today);
+  const { missedTasks, totalMissed, markTaskComplete, refreshMissedTasks, isLoading: missedLoading } = useMissedTasks();
   const { goals } = useGoals();
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -55,6 +58,7 @@ export default function Tasks() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(getTimeLeftToday());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showMissed, setShowMissed] = useState(false);
   
   // Update time left every minute
   useEffect(() => {
@@ -70,6 +74,14 @@ export default function Tasks() {
 
   const handleToggle = async (id: string, completed: boolean) => {
     await toggleTask(id, !completed);
+  };
+
+  const handleMissedTaskComplete = async (taskId: string) => {
+    const success = await markTaskComplete(taskId);
+    if (success) {
+      toast.success('Task marked as complete! (Late but done!)');
+      refreshMissedTasks();
+    }
   };
 
   const handleAddTask = async () => {
@@ -290,6 +302,65 @@ export default function Tasks() {
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Missed Tasks */}
+          {totalMissed > 0 && (
+            <div className="mt-6 lg:mt-8">
+              <button 
+                onClick={() => setShowMissed(!showMissed)}
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-destructive/10 border border-destructive/30 hover:bg-destructive/20 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
+                  <div className="text-left">
+                    <h3 className="font-semibold text-destructive">
+                      {totalMissed} Missed Task{totalMissed > 1 ? 's' : ''}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Past tasks not completed. Tap to complete late.
+                    </p>
+                  </div>
+                </div>
+                {showMissed ? (
+                  <ChevronUp className="w-5 h-5 text-destructive" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-destructive" />
+                )}
+              </button>
+              
+              {showMissed && (
+                <div className="mt-4 glass-card p-4 sm:p-6 rounded-2xl border border-destructive/20">
+                  <div className="space-y-4">
+                    {missedTasks.map(task => {
+                      const dueDate = new Date(task.due_date);
+                      const formattedDate = dueDate.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      });
+                      return (
+                        <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                          <button
+                            onClick={() => handleMissedTaskComplete(task.id)}
+                            className="w-6 h-6 rounded-full border-2 border-destructive/50 hover:bg-destructive/20 hover:border-destructive transition-all flex items-center justify-center flex-shrink-0"
+                          >
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{task.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {task.goal?.emoji} {task.goal?.name || 'No Goal'} • Due {formattedDate}
+                            </p>
+                          </div>
+                          <span className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
+                            Missed
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

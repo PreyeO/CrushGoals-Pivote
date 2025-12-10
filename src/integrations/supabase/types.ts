@@ -82,6 +82,7 @@ export type Database = {
           start_date: string | null
           status: string | null
           target_value: string | null
+          task_frequency: string | null
           updated_at: string
           user_id: string
         }
@@ -98,6 +99,7 @@ export type Database = {
           start_date?: string | null
           status?: string | null
           target_value?: string | null
+          task_frequency?: string | null
           updated_at?: string
           user_id: string
         }
@@ -114,6 +116,7 @@ export type Database = {
           start_date?: string | null
           status?: string | null
           target_value?: string | null
+          task_frequency?: string | null
           updated_at?: string
           user_id?: string
         }
