@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { ALL_BADGES } from '@/hooks/useAchievements';
 
 export interface Task {
   id: string;
@@ -30,6 +31,56 @@ export function useTasks(date?: string) {
   const [celebrationTrigger, setCelebrationTrigger] = useState<CelebrationTrigger>(null);
 
   const clearCelebration = () => setCelebrationTrigger(null);
+
+  // Check and unlock achievements based on stats
+  const checkAndUnlockAchievements = async (
+    userId: string, 
+    stats: { current_streak?: number; tasks_completed?: number; perfect_days?: number }
+  ) => {
+    try {
+      // Get existing achievements
+      const { data: existingAchievements } = await supabase
+        .from('achievements')
+        .select('badge_id')
+        .eq('user_id', userId);
+
+      const unlockedIds = new Set(existingAchievements?.map(a => a.badge_id) || []);
+
+      // Check each badge
+      for (const badge of ALL_BADGES) {
+        if (unlockedIds.has(badge.id)) continue;
+
+        let shouldUnlock = false;
+
+        switch (badge.type) {
+          case 'streak':
+            shouldUnlock = (stats.current_streak || 0) >= badge.requirement;
+            break;
+          case 'tasks':
+            shouldUnlock = (stats.tasks_completed || 0) >= badge.requirement;
+            break;
+          case 'perfect_days':
+            shouldUnlock = (stats.perfect_days || 0) >= badge.requirement;
+            break;
+        }
+
+        if (shouldUnlock) {
+          await supabase.from('achievements').insert({
+            user_id: userId,
+            badge_id: badge.id,
+            badge_name: badge.name,
+            badge_emoji: badge.emoji,
+          });
+          
+          toast.success(`🏆 Badge Unlocked: ${badge.name}!`, {
+            description: `+${badge.xpReward} XP`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking achievements:', error);
+    }
+  };
 
   const fetchTasks = async () => {
     if (!user) return;
@@ -242,6 +293,13 @@ export function useTasks(date?: string) {
 
               toast.success('🔥 Perfect Day! +100 XP bonus!', {
                 description: `Streak: ${newStreak} day${newStreak > 1 ? 's' : ''}`,
+              });
+
+              // Check and unlock achievements
+              await checkAndUnlockAchievements(user.id, {
+                current_streak: newStreak,
+                tasks_completed: statsUpdate.tasks_completed,
+                perfect_days: statsUpdate.perfect_days,
               });
             }
           }

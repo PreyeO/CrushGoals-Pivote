@@ -159,26 +159,7 @@ export default function Tasks() {
             </div>
           </div>
 
-          {/* Time Left Banner */}
-          <div className="glass-card p-3 sm:p-4 rounded-xl mb-4 bg-gradient-to-r from-warning/10 to-orange-500/10 border border-warning/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center">
-                  <Timer className="w-5 h-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Time left today</p>
-                  <p className="text-xl sm:text-2xl font-bold text-warning">{timeLeft.formatted}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Tasks pending</p>
-                <p className="text-lg font-bold">{tasks.length - completedCount}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Progress Overview */}
+          {/* Progress Overview with Time Left */}
           <div className="glass-card p-4 sm:p-6 rounded-2xl mb-6 lg:mb-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4 sm:gap-6">
@@ -199,13 +180,22 @@ export default function Tasks() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
-                <div className="text-center">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <Clock className="w-4 h-4" />
-                    <span className="text-xs sm:text-sm">Completed</span>
+              <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
+                {/* Time Left */}
+                <div className="text-center px-3 py-2 rounded-xl bg-warning/10 border border-warning/20">
+                  <div className="flex items-center gap-1.5 text-warning mb-0.5">
+                    <Timer className="w-3.5 h-3.5" />
+                    <span className="text-[10px] sm:text-xs font-medium">Time left</span>
                   </div>
-                  <p className="text-lg sm:text-xl font-bold text-success">{completedCount}</p>
+                  <p className="text-base sm:text-lg font-bold text-warning">{timeLeft.formatted}</p>
+                </div>
+                {/* Completed */}
+                <div className="text-center">
+                  <div className="flex items-center gap-1.5 text-muted-foreground mb-0.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="text-[10px] sm:text-xs">Done</span>
+                  </div>
+                  <p className="text-base sm:text-lg font-bold text-success">{completedCount}</p>
                 </div>
                 <Button variant="premium" className="gap-2">
                   <Zap className="w-4 h-4" />

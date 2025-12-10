@@ -81,11 +81,11 @@ export function GoalCard({
               <DropdownMenu>
                 <DropdownMenuTrigger 
                   onClick={(e) => e.stopPropagation()}
-                  className="p-1 rounded-lg hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-1.5 rounded-lg hover:bg-white/10 transition-colors bg-white/5"
                 >
                   <MoreVertical className="w-4 h-4 text-muted-foreground" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-card border-white/10">
+                <DropdownMenuContent align="end" className="bg-card border-white/10 z-50">
                   {onAddTask && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAddTask(); }}>
                       <Plus className="w-4 h-4 mr-2" />
