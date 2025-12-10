@@ -141,6 +141,30 @@ export function useTasks(date?: string) {
     }
   };
 
+  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update(updates)
+        .eq('id', taskId)
+        .select(`
+          *,
+          goal:goals(id, name, emoji)
+        `)
+        .single();
+
+      if (error) throw error;
+      
+      setTasks(prev => prev.map(t => t.id === taskId ? data as Task : t));
+      toast.success('Task updated');
+      return data as Task;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
+      return null;
+    }
+  };
+
   const deleteTask = async (taskId: string) => {
     try {
       const { error } = await supabase
@@ -188,6 +212,7 @@ export function useTasks(date?: string) {
     isLoading,
     addTask,
     toggleTask,
+    updateTask,
     deleteTask,
     refreshTasks: fetchTasks,
   };

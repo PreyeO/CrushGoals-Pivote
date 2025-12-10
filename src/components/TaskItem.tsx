@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Check, Clock, Star } from "lucide-react";
+import { Check, Clock, Star, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface TaskItemProps {
   id: string;
@@ -11,6 +17,8 @@ interface TaskItemProps {
   priority: "high" | "medium" | "low";
   completed?: boolean;
   onComplete?: (id: string) => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export function TaskItem({
@@ -22,6 +30,8 @@ export function TaskItem({
   priority,
   completed = false,
   onComplete,
+  onEdit,
+  onDelete,
 }: TaskItemProps) {
   const [isCompleted, setIsCompleted] = useState(completed);
   const [showXP, setShowXP] = useState(false);
@@ -95,6 +105,29 @@ export function TaskItem({
           </span>
         </div>
       </div>
+
+      {/* Actions Menu */}
+      {(onEdit || onDelete) && !isCompleted && (
+        <DropdownMenu>
+          <DropdownMenuTrigger className="p-2 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0">
+            <MoreVertical className="w-4 h-4 text-muted-foreground" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-card border-white/10">
+            {onEdit && (
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Task
+              </DropdownMenuItem>
+            )}
+            {onDelete && (
+              <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Task
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       {/* XP Animation */}
       {showXP && (

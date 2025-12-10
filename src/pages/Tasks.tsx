@@ -5,8 +5,10 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Filter, Clock, Zap, Loader2 } from "lucide-react";
-import { useTasks } from "@/hooks/useTasks";
+import { useTasks, Task } from "@/hooks/useTasks";
 import { useGoals } from "@/hooks/useGoals";
+import { EditTaskModal } from "@/components/EditTaskModal";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -23,13 +25,16 @@ import {
 
 export default function Tasks() {
   const today = new Date().toISOString().split('T')[0];
-  const { tasks, isLoading, addTask, toggleTask } = useTasks(today);
+  const { tasks, isLoading, addTask, toggleTask, updateTask, deleteTask } = useTasks(today);
   const { goals } = useGoals();
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskGoalId, setNewTaskGoalId] = useState<string>("");
   const [newTaskPriority, setNewTaskPriority] = useState<"high" | "medium" | "low">("medium");
   const [newTaskTime, setNewTaskTime] = useState("");
+  const [editTask, setEditTask] = useState<Task | null>(null);
+  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const completedCount = tasks.filter(t => t.completed).length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
@@ -55,6 +60,23 @@ export default function Tasks() {
     setNewTaskTime("");
     setAddTaskOpen(false);
   };
+
+  const handleEditTask = async (taskId: string, updates: Partial<Task>) => {
+    await updateTask(taskId, updates);
+  };
+
+  const handleDeleteTask = async () => {
+    if (!deleteTaskId) return;
+    setIsDeleting(true);
+    try {
+      await deleteTask(deleteTaskId);
+      setDeleteTaskId(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const taskToDelete = tasks.find(t => t.id === deleteTaskId);
 
   const pendingTasks = tasks.filter(t => !t.completed);
   const completedTasks = tasks.filter(t => t.completed);
@@ -183,6 +205,8 @@ export default function Tasks() {
                       priority={task.priority as "high" | "medium" | "low"}
                       completed={task.completed || false}
                       onComplete={() => handleToggle(task.id, task.completed || false)}
+                      onEdit={() => setEditTask(task)}
+                      onDelete={() => setDeleteTaskId(task.id)}
                     />
                   ))}
                 </div>
@@ -279,6 +303,23 @@ export default function Tasks() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <EditTaskModal
+        open={!!editTask}
+        onOpenChange={(open) => !open && setEditTask(null)}
+        task={editTask}
+        goals={goals}
+        onSave={handleEditTask}
+      />
+
+      <DeleteConfirmDialog
+        open={!!deleteTaskId}
+        onOpenChange={(open) => !open && setDeleteTaskId(null)}
+        title="Delete Task"
+        description={`Are you sure you want to delete "${taskToDelete?.title}"? This action cannot be undone.`}
+        onConfirm={handleDeleteTask}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
