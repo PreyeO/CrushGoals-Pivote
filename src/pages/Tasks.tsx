@@ -259,12 +259,12 @@ export default function Tasks() {
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">Link to Goal (optional)</label>
-              <Select value={newTaskGoalId} onValueChange={setNewTaskGoalId}>
+              <Select value={newTaskGoalId || "none"} onValueChange={(v) => setNewTaskGoalId(v === "none" ? "" : v)}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select a goal" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Goal</SelectItem>
+                  <SelectItem value="none">No Goal</SelectItem>
                   {goals.map(goal => (
                     <SelectItem key={goal.id} value={goal.id}>
                       {goal.emoji} {goal.name}
