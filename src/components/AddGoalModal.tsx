@@ -45,7 +45,27 @@ const getDaysBetween = (start: string, end: string): number => {
   const startDate = new Date(start);
   const endDate = new Date(end);
   const diffTime = endDate.getTime() - startDate.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include both start and end
+};
+
+// Generate daily task title preview
+const getDailyTaskTitle = (goalName: string, targetValue: string, days: number): string => {
+  if (!targetValue || days <= 0) return `Work on: ${goalName}`;
+  
+  const match = targetValue.match(/^\$?(\d+(?:\.\d+)?)\s*(.*)$/);
+  if (!match) return `Work on: ${goalName}`;
+  
+  const value = parseFloat(match[1]);
+  const unit = match[2].trim() || 'units';
+  const dailyTarget = value / days;
+  const displayTarget = dailyTarget % 1 === 0 ? dailyTarget : dailyTarget.toFixed(1);
+  
+  const unitLower = unit.toLowerCase();
+  if (unitLower.includes('page')) return `Write ${displayTarget} ${unit}`;
+  if (unitLower.includes('word')) return `Write ${displayTarget} ${unit}`;
+  if (unitLower.includes('kg') || unitLower.includes('lb')) return `Work towards ${displayTarget}${unit}`;
+  if (unitLower.includes('chapter')) return `Complete ${displayTarget} ${unit}`;
+  return `${goalName}: ${displayTarget} ${unit}`;
 };
 
 export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProps) {
@@ -335,17 +355,44 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                 )}
               </div>
 
+              {/* Daily Task Preview */}
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <Target className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Your Daily Mission Preview</p>
+                    <p className="text-xs text-muted-foreground">This is what you'll see each day</p>
+                  </div>
+                </div>
+                
+                <div className="p-3 rounded-lg bg-secondary/50 border border-border flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full border-2 border-primary/50" />
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">
+                      {selectedCategory.emoji} {getDailyTaskTitle(goalName, goalTarget, daysToAchieve)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Due today • Medium priority</p>
+                  </div>
+                </div>
+
+                {goalTarget && daysToAchieve > 0 && (
+                  <div className="mt-3 p-2 rounded-lg bg-success/10 border border-success/20">
+                    <p className="text-xs text-center text-success">
+                      📊 Complete all {daysToAchieve} daily tasks → 100% goal achieved!
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="p-4 rounded-xl bg-success/10 border border-success/30">
                 <div className="flex items-start gap-3">
                   <Sparkles className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-success mb-1">🚀 Daily Tasks Auto-Generated!</p>
+                    <p className="font-medium text-success mb-1">🚀 Smart Progress Tracking</p>
                     <p className="text-sm text-muted-foreground">
-                      {goalTarget ? (
-                        <>We'll create {daysToAchieve} daily tasks breaking down "{goalTarget}" into achievable chunks. Check your Tasks page to see today's mission!</>
-                      ) : (
-                        <>We'll create daily reminder tasks for each day. Complete them to build momentum and earn XP!</>
-                      )}
+                      Each completed task automatically updates your goal progress. If you complete 15/{daysToAchieve} tasks, your goal will show {Math.round((15/daysToAchieve) * 100)}% complete!
                     </p>
                   </div>
                 </div>

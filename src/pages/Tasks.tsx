@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { TaskItem } from "@/components/TaskItem";
 import { ProgressRing } from "@/components/ProgressRing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Filter, Clock, Zap, Loader2 } from "lucide-react";
+import { Plus, Filter, Clock, Zap, Loader2, Timer } from "lucide-react";
 import { useTasks, Task } from "@/hooks/useTasks";
 import { useGoals } from "@/hooks/useGoals";
 import { EditTaskModal } from "@/components/EditTaskModal";
@@ -23,6 +23,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Calculate time left until midnight
+const getTimeLeftToday = (): { hours: number; minutes: number; formatted: string } => {
+  const now = new Date();
+  const midnight = new Date();
+  midnight.setHours(24, 0, 0, 0);
+  
+  const diffMs = midnight.getTime() - now.getTime();
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  return {
+    hours,
+    minutes,
+    formatted: `${hours}h ${minutes}m`
+  };
+};
+
 export default function Tasks() {
   const today = new Date().toISOString().split('T')[0];
   const { tasks, isLoading, addTask, toggleTask, updateTask, deleteTask } = useTasks(today);
@@ -35,6 +52,16 @@ export default function Tasks() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(getTimeLeftToday());
+  
+  // Update time left every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeLeft(getTimeLeftToday());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, []);
   
   const completedCount = tasks.filter(t => t.completed).length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
@@ -132,6 +159,25 @@ export default function Tasks() {
             </div>
           </div>
 
+          {/* Time Left Banner */}
+          <div className="glass-card p-3 sm:p-4 rounded-xl mb-4 bg-gradient-to-r from-warning/10 to-orange-500/10 border border-warning/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center">
+                  <Timer className="w-5 h-5 text-warning" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Time left today</p>
+                  <p className="text-xl sm:text-2xl font-bold text-warning">{timeLeft.formatted}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Tasks pending</p>
+                <p className="text-lg font-bold">{tasks.length - completedCount}</p>
+              </div>
+            </div>
+          </div>
+
           {/* Progress Overview */}
           <div className="glass-card p-4 sm:p-6 rounded-2xl mb-6 lg:mb-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -157,9 +203,9 @@ export default function Tasks() {
                 <div className="text-center">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
                     <Clock className="w-4 h-4" />
-                    <span className="text-xs sm:text-sm">Remaining</span>
+                    <span className="text-xs sm:text-sm">Completed</span>
                   </div>
-                  <p className="text-lg sm:text-xl font-bold">{tasks.length - completedCount}</p>
+                  <p className="text-lg sm:text-xl font-bold text-success">{completedCount}</p>
                 </div>
                 <Button variant="premium" className="gap-2">
                   <Zap className="w-4 h-4" />
