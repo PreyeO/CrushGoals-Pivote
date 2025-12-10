@@ -3,13 +3,18 @@ import { Sidebar } from "@/components/Sidebar";
 import { GoalCard } from "@/components/GoalCard";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
+import { EditGoalModal } from "@/components/EditGoalModal";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2 } from "lucide-react";
-import { useGoals } from "@/hooks/useGoals";
+import { useGoals, Goal } from "@/hooks/useGoals";
 import { toast } from "sonner";
 
 export default function Goals() {
-  const { goals, isLoading, addGoal } = useGoals();
+  const { goals, isLoading, addGoal, updateGoal, deleteGoal } = useGoals();
   const [addGoalOpen, setAddGoalOpen] = useState(false);
+  const [editGoal, setEditGoal] = useState<Goal | null>(null);
+  const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleAddGoal = async (goalData: { category: string; emoji: string; name: string; target: string; deadline: string }) => {
     const result = await addGoal({
@@ -24,6 +29,19 @@ export default function Goals() {
       toast.success(`🎯 Goal Created: "${goalData.name}"`);
     }
   };
+
+  const handleDeleteGoal = async () => {
+    if (!deleteGoalId) return;
+    setIsDeleting(true);
+    try {
+      await deleteGoal(deleteGoalId);
+      setDeleteGoalId(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const goalToDelete = goals.find(g => g.id === deleteGoalId);
 
   const activeGoals = goals.filter(g => g.status !== 'completed');
   const completedGoals = goals.filter(g => g.status === 'completed');
@@ -149,6 +167,8 @@ export default function Goals() {
                     }
                     status={goal.status as 'on-track' | 'ahead' | 'behind' | 'completed'}
                     tasksToday={{ completed: 0, total: 0 }}
+                    onEdit={() => setEditGoal(goal)}
+                    onDelete={() => setDeleteGoalId(goal.id)}
                   />
                 ))}
               </div>
@@ -190,6 +210,22 @@ export default function Goals() {
         open={addGoalOpen} 
         onOpenChange={setAddGoalOpen}
         onSuccess={handleAddGoal}
+      />
+
+      <EditGoalModal
+        open={!!editGoal}
+        onOpenChange={(open) => !open && setEditGoal(null)}
+        goal={editGoal}
+        onSave={updateGoal}
+      />
+
+      <DeleteConfirmDialog
+        open={!!deleteGoalId}
+        onOpenChange={(open) => !open && setDeleteGoalId(null)}
+        title="Delete Goal"
+        description={`Are you sure you want to delete "${goalToDelete?.name}"? This will also delete all tasks linked to this goal. This action cannot be undone.`}
+        onConfirm={handleDeleteGoal}
+        isLoading={isDeleting}
       />
     </div>
   );

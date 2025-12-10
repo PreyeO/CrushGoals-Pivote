@@ -1,7 +1,13 @@
 import { Card } from "@/components/ui/card";
 import { ProgressRing } from "@/components/ProgressRing";
 import { cn } from "@/lib/utils";
-import { TrendingUp, Calendar } from "lucide-react";
+import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface GoalCardProps {
   id: string;
@@ -14,6 +20,8 @@ interface GoalCardProps {
   status: "on-track" | "behind" | "ahead" | "completed";
   tasksToday: { completed: number; total: number };
   onClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export function GoalCard({
@@ -26,6 +34,8 @@ export function GoalCard({
   status,
   tasksToday,
   onClick,
+  onEdit,
+  onDelete,
 }: GoalCardProps) {
   const statusConfig = {
     "on-track": { label: "On Track", color: "text-success", bg: "bg-success/20" },
@@ -59,10 +69,39 @@ export function GoalCard({
             <span className="text-2xl flex-shrink-0">{emoji}</span>
             <h3 className="text-base font-semibold truncate">{name}</h3>
           </div>
-          <span className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0", bg, color)}>
-            {status === "ahead" && <TrendingUp className="w-3 h-3" />}
-            {label}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap", bg, color)}>
+              {status === "ahead" && <TrendingUp className="w-3 h-3" />}
+              {label}
+            </span>
+            {(onEdit || onDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger 
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1 rounded-lg hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-card border-white/10">
+                  {onEdit && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Edit Goal
+                    </DropdownMenuItem>
+                  )}
+                  {onDelete && (
+                    <DropdownMenuItem 
+                      onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Goal
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         {/* Progress Ring and Stats */}
