@@ -3,80 +3,52 @@ import { Sidebar } from "@/components/Sidebar";
 import { GoalCard } from "@/components/GoalCard";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
-import { Plus, Target, TrendingUp, Calendar, Trophy } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-const initialGoals = [
-  {
-    id: "1",
-    name: "Lose 20kg by June",
-    emoji: "💪",
-    progress: 34,
-    currentValue: "6.8kg lost",
-    targetValue: "20kg",
-    timeRemaining: "18 weeks",
-    status: "on-track" as const,
-    tasksToday: { completed: 3, total: 5 },
-  },
-  {
-    id: "2",
-    name: "Read 24 Books",
-    emoji: "📚",
-    progress: 25,
-    currentValue: "6 books",
-    targetValue: "24 books",
-    timeRemaining: "11 months",
-    status: "on-track" as const,
-    tasksToday: { completed: 2, total: 2 },
-  },
-  {
-    id: "3",
-    name: "Save $10,000",
-    emoji: "💰",
-    progress: 15,
-    currentValue: "$1,500",
-    targetValue: "$10,000",
-    timeRemaining: "10 months",
-    status: "behind" as const,
-    tasksToday: { completed: 1, total: 4 },
-  },
-];
-
-const completedGoals = [
-  {
-    id: "4",
-    title: "Complete JavaScript Course",
-    emoji: "🎓",
-    progress: 100,
-    completedDate: "Dec 15, 2025",
-  },
-];
+import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2 } from "lucide-react";
+import { useGoals } from "@/hooks/useGoals";
+import { toast } from "sonner";
 
 export default function Goals() {
-  const [goals, setGoals] = useState(initialGoals);
+  const { goals, isLoading, addGoal } = useGoals();
   const [addGoalOpen, setAddGoalOpen] = useState(false);
-  const { toast } = useToast();
 
-  const handleAddGoal = (goalData: { category: string; emoji: string; name: string; target: string; deadline: string }) => {
-    const newGoal = {
-      id: `goal-${Date.now()}`,
-      emoji: goalData.emoji,
+  const handleAddGoal = async (goalData: { category: string; emoji: string; name: string; target: string; deadline: string }) => {
+    const result = await addGoal({
       name: goalData.name,
-      progress: 0,
-      currentValue: "0",
-      targetValue: goalData.target || "Complete",
-      timeRemaining: goalData.deadline ? `Until ${new Date(goalData.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : "No deadline",
-      status: "on-track" as const,
-      tasksToday: { completed: 0, total: 3 },
-    };
-    setGoals((prev) => [...prev, newGoal]);
-    toast({
-      title: "🎯 Goal Created!",
-      description: `"${goalData.name}" has been added to your goals.`,
+      emoji: goalData.emoji,
+      category: goalData.category,
+      target_value: goalData.target || undefined,
+      deadline: goalData.deadline || undefined,
     });
+    
+    if (result) {
+      toast.success(`🎯 Goal Created: "${goalData.name}"`);
+    }
   };
 
-  const avgProgress = Math.round(goals.reduce((acc, g) => acc + g.progress, 0) / goals.length);
+  const activeGoals = goals.filter(g => g.status !== 'completed');
+  const completedGoals = goals.filter(g => g.status === 'completed');
+  const avgProgress = activeGoals.length > 0 
+    ? Math.round(activeGoals.reduce((acc, g) => acc + (g.progress || 0), 0) / activeGoals.length)
+    : 0;
+
+  // Find next deadline
+  const upcomingDeadlines = activeGoals
+    .filter(g => g.deadline)
+    .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime());
+  const nextDeadline = upcomingDeadlines[0]?.deadline 
+    ? new Date(upcomingDeadlines[0].deadline).toLocaleDateString('en-US', { month: 'short' })
+    : 'None';
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Sidebar />
+        <main className="lg:pl-64 min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,7 +76,7 @@ export default function Goals() {
                   <Target className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xl sm:text-2xl font-bold">{goals.length}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{activeGoals.length}</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">Active Goals</p>
                 </div>
               </div>
@@ -137,44 +109,80 @@ export default function Goals() {
                   <Calendar className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-xl sm:text-2xl font-bold">Jun</p>
+                  <p className="text-xl sm:text-2xl font-bold">{nextDeadline}</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">Next Deadline</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Active Goals */}
-          <div className="mb-6 lg:mb-8">
-            <h2 className="text-lg sm:text-xl font-semibold mb-4">Active Goals</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {goals.map((goal) => (
-                <GoalCard key={goal.id} {...goal} />
-              ))}
+          {/* Empty State */}
+          {goals.length === 0 && (
+            <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
+              <div className="text-5xl sm:text-6xl mb-4">🎯</div>
+              <h3 className="text-xl font-semibold mb-2">No goals yet</h3>
+              <p className="text-muted-foreground mb-6">Create your first goal and start crushing it!</p>
+              <Button variant="hero" onClick={() => setAddGoalOpen(true)}>
+                <Plus className="w-5 h-5 mr-2" />
+                Create Your First Goal
+              </Button>
             </div>
-          </div>
+          )}
+
+          {/* Active Goals */}
+          {activeGoals.length > 0 && (
+            <div className="mb-6 lg:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold mb-4">Active Goals</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {activeGoals.map((goal) => (
+                  <GoalCard 
+                    key={goal.id} 
+                    id={goal.id}
+                    name={goal.name}
+                    emoji={goal.emoji || '🎯'}
+                    progress={goal.progress || 0}
+                    currentValue={goal.current_value || '0'}
+                    targetValue={goal.target_value || 'Complete'}
+                    timeRemaining={goal.deadline 
+                      ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                      : 'No deadline'
+                    }
+                    status={goal.status as 'on-track' | 'ahead' | 'behind' | 'completed'}
+                    tasksToday={{ completed: 0, total: 0 }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Completed Goals */}
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold mb-4">Completed Goals 🏆</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {completedGoals.map((goal) => (
-                <div key={goal.id} className="glass-card p-4 sm:p-6 rounded-2xl border-success/30">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-2xl sm:text-3xl">{goal.emoji}</span>
-                    <div className="min-w-0">
-                      <h3 className="font-semibold truncate">{goal.title}</h3>
-                      <p className="text-sm text-success">Completed on {goal.completedDate}</p>
+          {completedGoals.length > 0 && (
+            <div>
+              <h2 className="text-lg sm:text-xl font-semibold mb-4">Completed Goals 🏆</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {completedGoals.map((goal) => (
+                  <div key={goal.id} className="glass-card p-4 sm:p-6 rounded-2xl border-success/30">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-2xl sm:text-3xl">{goal.emoji}</span>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold truncate">{goal.name}</h3>
+                        <p className="text-sm text-success">
+                          Completed {goal.completed_at 
+                            ? new Date(goal.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : 'recently'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">100% Complete</span>
+                      <Trophy className="w-5 h-5 text-premium" />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">100% Complete</span>
-                    <Trophy className="w-5 h-5 text-premium" />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
 

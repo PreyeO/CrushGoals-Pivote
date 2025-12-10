@@ -1,184 +1,166 @@
 import { Sidebar } from "@/components/Sidebar";
-import { Crown, Medal, Trophy, TrendingUp, Users } from "lucide-react";
+import { Crown, Medal, Trophy, TrendingUp, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface LeaderboardEntry {
-  rank: number;
-  name: string;
-  avatar: string;
-  tasks: number;
-  streak: number;
-  xp: number;
-  change: number;
-  verified: boolean;
-}
-
-const leaderboardData: LeaderboardEntry[] = [
-  { rank: 1, name: "JapaQueen247", avatar: "J", tasks: 847, streak: 45, xp: 12450, change: 0, verified: true },
-  { rank: 2, name: "HustleKing", avatar: "H", tasks: 783, streak: 38, xp: 10230, change: 2, verified: true },
-  { rank: 3, name: "FitQueen9ja", avatar: "F", tasks: 721, streak: 32, xp: 9450, change: -1, verified: true },
-  { rank: 4, name: "GoalGetter", avatar: "G", tasks: 698, streak: 29, xp: 8920, change: 1, verified: false },
-  { rank: 5, name: "DisciplinedDave", avatar: "D", tasks: 654, streak: 27, xp: 8340, change: 3, verified: true },
-  { rank: 6, name: "MotivatedMary", avatar: "M", tasks: 612, streak: 24, xp: 7890, change: -2, verified: false },
-  { rank: 7, name: "StreakMaster", avatar: "S", tasks: 587, streak: 41, xp: 7650, change: 0, verified: true },
-  { rank: 8, name: "ProductivityPro", avatar: "P", tasks: 545, streak: 19, xp: 7120, change: 4, verified: false },
-  { rank: 9, name: "FocusedFemi", avatar: "F", tasks: 523, streak: 21, xp: 6890, change: -1, verified: true },
-  { rank: 10, name: "AchievementAce", avatar: "A", tasks: 498, streak: 18, xp: 6540, change: 1, verified: false },
-];
-
-const userRank = {
-  rank: 47,
-  name: "You",
-  avatar: "C",
-  tasks: 387,
-  streak: 23,
-  xp: 4560,
-  change: 5,
-  gapToNext: 23,
-  gapToTop10: 111,
-};
+import { useLeaderboard } from "@/hooks/useLeaderboard";
 
 export default function Leaderboard() {
+  const { entries, userRank, isLoading } = useLeaderboard();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Sidebar />
+        <main className="lg:pl-64 min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
+
+  const top3 = entries.slice(0, 3);
+  const rest = entries.slice(3, 10);
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
       
-      <main className="pl-64 min-h-screen">
-        <div className="p-8">
+      <main className="lg:pl-64 min-h-screen">
+        <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Global Leaderboard 🏆</h1>
-              <p className="text-muted-foreground">Compete with goal crushers across Nigeria</p>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2">Global Leaderboard 🏆</h1>
+              <p className="text-muted-foreground">Compete with goal crushers worldwide</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" className="gap-2" size="sm">
                 <Users className="w-4 h-4" />
-                Friends Only
+                <span className="hidden sm:inline">Friends Only</span>
               </Button>
-              <Button variant="ghost">This Week</Button>
-              <Button variant="ghost">This Month</Button>
-              <Button variant="ghost">All Time</Button>
+              <Button variant="ghost" size="sm">This Week</Button>
+              <Button variant="ghost" size="sm">All Time</Button>
             </div>
           </div>
 
-          {/* Podium */}
-          <div className="glass-card p-8 rounded-2xl mb-8">
-            <div className="flex items-end justify-center gap-4">
-              {/* 2nd Place */}
-              <div className="text-center">
-                <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center text-2xl font-bold text-slate-800 ring-4 ring-slate-400/50">
-                  {leaderboardData[1].avatar}
-                </div>
-                <Medal className="w-6 h-6 mx-auto mb-2 text-slate-300" />
-                <h3 className="font-semibold">{leaderboardData[1].name}</h3>
-                <p className="text-sm text-muted-foreground">{leaderboardData[1].tasks} tasks</p>
-                <div className="h-24 w-24 bg-gradient-to-t from-slate-500/30 to-transparent rounded-t-lg mt-4" />
-              </div>
-
-              {/* 1st Place */}
-              <div className="text-center -mt-8">
-                <Crown className="w-8 h-8 mx-auto mb-2 text-premium animate-bounce-subtle" />
-                <div className="w-24 h-24 mx-auto mb-3 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-3xl font-bold text-amber-900 ring-4 ring-premium/50 shadow-[0_0_30px_rgba(251,191,36,0.4)]">
-                  {leaderboardData[0].avatar}
-                </div>
-                <h3 className="font-bold text-lg">{leaderboardData[0].name}</h3>
-                <p className="text-premium font-semibold">{leaderboardData[0].tasks} tasks</p>
-                <p className="text-xs text-muted-foreground">🔥 {leaderboardData[0].streak} day streak</p>
-                <div className="h-32 w-28 bg-gradient-to-t from-premium/30 to-transparent rounded-t-lg mt-4" />
-              </div>
-
-              {/* 3rd Place */}
-              <div className="text-center">
-                <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-2xl font-bold text-amber-100 ring-4 ring-amber-600/50">
-                  {leaderboardData[2].avatar}
-                </div>
-                <Trophy className="w-6 h-6 mx-auto mb-2 text-amber-600" />
-                <h3 className="font-semibold">{leaderboardData[2].name}</h3>
-                <p className="text-sm text-muted-foreground">{leaderboardData[2].tasks} tasks</p>
-                <div className="h-16 w-24 bg-gradient-to-t from-amber-700/30 to-transparent rounded-t-lg mt-4" />
-              </div>
+          {entries.length === 0 ? (
+            <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
+              <div className="text-5xl sm:text-6xl mb-4">🏆</div>
+              <h3 className="text-xl font-semibold mb-2">Leaderboard is empty</h3>
+              <p className="text-muted-foreground">Be the first to start crushing goals!</p>
             </div>
-          </div>
-
-          {/* Rankings List */}
-          <div className="glass-card rounded-2xl overflow-hidden mb-8">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">Rank</th>
-                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">User</th>
-                  <th className="text-right p-4 text-sm font-medium text-muted-foreground">Tasks</th>
-                  <th className="text-right p-4 text-sm font-medium text-muted-foreground">Streak</th>
-                  <th className="text-right p-4 text-sm font-medium text-muted-foreground">XP</th>
-                  <th className="text-right p-4 text-sm font-medium text-muted-foreground">Change</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboardData.slice(3).map((entry) => (
-                  <tr key={entry.rank} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="p-4 font-bold text-lg">#{entry.rank}</td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center font-bold">
-                          {entry.avatar}
-                        </div>
-                        <span className="font-medium">{entry.name}</span>
-                        {entry.verified && (
-                          <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">Verified</span>
-                        )}
+          ) : (
+            <>
+              {/* Podium */}
+              {top3.length >= 3 && (
+                <div className="glass-card p-4 sm:p-8 rounded-2xl mb-6 lg:mb-8">
+                  <div className="flex items-end justify-center gap-2 sm:gap-4">
+                    {/* 2nd Place */}
+                    <div className="text-center flex-1 max-w-[120px]">
+                      <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center text-lg sm:text-2xl font-bold text-slate-800 ring-2 sm:ring-4 ring-slate-400/50">
+                        {top3[1]?.avatar}
                       </div>
-                    </td>
-                    <td className="p-4 text-right font-semibold">{entry.tasks}</td>
-                    <td className="p-4 text-right">
-                      <span className="text-orange-400">🔥 {entry.streak}</span>
-                    </td>
-                    <td className="p-4 text-right text-primary">{entry.xp.toLocaleString()}</td>
-                    <td className="p-4 text-right">
-                      {entry.change > 0 ? (
-                        <span className="text-success flex items-center justify-end gap-1">
-                          <TrendingUp className="w-4 h-4" /> +{entry.change}
-                        </span>
-                      ) : entry.change < 0 ? (
-                        <span className="text-danger">↓ {Math.abs(entry.change)}</span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <Medal className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-slate-300" />
+                      <h3 className="font-semibold text-xs sm:text-base truncate">{top3[1]?.name}</h3>
+                      <p className="text-[10px] sm:text-sm text-muted-foreground">{top3[1]?.tasks_completed} tasks</p>
+                      <div className="h-16 sm:h-24 w-full bg-gradient-to-t from-slate-500/30 to-transparent rounded-t-lg mt-2 sm:mt-4" />
+                    </div>
 
-          {/* Your Rank Card */}
-          <div className="glass-card p-6 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-transparent">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="text-3xl font-bold text-primary">#{userRank.rank}</div>
-                <div className="w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center text-lg font-bold">
-                  {userRank.avatar}
+                    {/* 1st Place */}
+                    <div className="text-center flex-1 max-w-[140px] -mt-4 sm:-mt-8">
+                      <Crown className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 sm:mb-2 text-premium animate-bounce-subtle" />
+                      <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-xl sm:text-3xl font-bold text-amber-900 ring-2 sm:ring-4 ring-premium/50 shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+                        {top3[0]?.avatar}
+                      </div>
+                      <h3 className="font-bold text-sm sm:text-lg truncate">{top3[0]?.name}</h3>
+                      <p className="text-premium font-semibold text-xs sm:text-base">{top3[0]?.tasks_completed} tasks</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">🔥 {top3[0]?.current_streak} day streak</p>
+                      <div className="h-20 sm:h-32 w-full bg-gradient-to-t from-premium/30 to-transparent rounded-t-lg mt-2 sm:mt-4" />
+                    </div>
+
+                    {/* 3rd Place */}
+                    <div className="text-center flex-1 max-w-[120px]">
+                      <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-lg sm:text-2xl font-bold text-amber-100 ring-2 sm:ring-4 ring-amber-600/50">
+                        {top3[2]?.avatar}
+                      </div>
+                      <Trophy className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-amber-600" />
+                      <h3 className="font-semibold text-xs sm:text-base truncate">{top3[2]?.name}</h3>
+                      <p className="text-[10px] sm:text-sm text-muted-foreground">{top3[2]?.tasks_completed} tasks</p>
+                      <div className="h-12 sm:h-16 w-full bg-gradient-to-t from-amber-700/30 to-transparent rounded-t-lg mt-2 sm:mt-4" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Your Ranking</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {userRank.tasks} tasks • 🔥 {userRank.streak} streak • {userRank.xp.toLocaleString()} XP
-                  </p>
+              )}
+
+              {/* Rankings List */}
+              {rest.length > 0 && (
+                <div className="glass-card rounded-2xl overflow-hidden mb-6 lg:mb-8 overflow-x-auto">
+                  <table className="w-full min-w-[500px]">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="text-left p-3 sm:p-4 text-xs sm:text-sm font-medium text-muted-foreground">Rank</th>
+                        <th className="text-left p-3 sm:p-4 text-xs sm:text-sm font-medium text-muted-foreground">User</th>
+                        <th className="text-right p-3 sm:p-4 text-xs sm:text-sm font-medium text-muted-foreground">Tasks</th>
+                        <th className="text-right p-3 sm:p-4 text-xs sm:text-sm font-medium text-muted-foreground">Streak</th>
+                        <th className="text-right p-3 sm:p-4 text-xs sm:text-sm font-medium text-muted-foreground">XP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rest.map((entry) => (
+                        <tr key={entry.rank} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="p-3 sm:p-4 font-bold text-base sm:text-lg">#{entry.rank}</td>
+                          <td className="p-3 sm:p-4">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-primary flex items-center justify-center font-bold text-sm sm:text-base">
+                                {entry.avatar}
+                              </div>
+                              <span className="font-medium text-sm sm:text-base">{entry.name}</span>
+                            </div>
+                          </td>
+                          <td className="p-3 sm:p-4 text-right font-semibold text-sm sm:text-base">{entry.tasks_completed}</td>
+                          <td className="p-3 sm:p-4 text-right">
+                            <span className="text-orange-400 text-sm sm:text-base">🔥 {entry.current_streak}</span>
+                          </td>
+                          <td className="p-3 sm:p-4 text-right text-primary text-sm sm:text-base">{entry.total_xp.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="text-success flex items-center gap-1 justify-end mb-1">
-                  <TrendingUp className="w-4 h-4" /> Moved up {userRank.change} spots this week!
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Complete {userRank.gapToNext} more tasks to reach #{userRank.rank - 1}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {userRank.gapToTop10} tasks away from top 10! 🔥
-                </p>
-              </div>
-            </div>
-          </div>
+              )}
+
+              {/* Your Rank Card */}
+              {userRank && (
+                <div className="glass-card p-4 sm:p-6 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-transparent">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="text-2xl sm:text-3xl font-bold text-primary">#{userRank.rank}</div>
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-primary flex items-center justify-center text-base sm:text-lg font-bold">
+                        {userRank.avatar}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-base sm:text-lg">Your Ranking</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          {userRank.tasks_completed} tasks • 🔥 {userRank.current_streak} streak • {userRank.total_xp.toLocaleString()} XP
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-center sm:text-right">
+                      {userRank.change > 0 && (
+                        <p className="text-success flex items-center gap-1 justify-center sm:justify-end mb-1 text-sm">
+                          <TrendingUp className="w-4 h-4" /> Moved up {userRank.change} spots!
+                        </p>
+                      )}
+                      {userRank.rank > 1 && (
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Keep crushing goals to climb higher! 🔥
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </main>
     </div>
