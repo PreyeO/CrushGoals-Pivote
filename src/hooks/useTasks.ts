@@ -98,6 +98,67 @@ export function useTasks(date?: string) {
     }
   };
 
+  const updateGoalProgress = async (goalId: string) => {
+    if (!user || !goalId) return;
+
+    try {
+      // Get all tasks for this goal
+      const { data: goalTasks, error: fetchError } = await supabase
+        .from('tasks')
+        .select('id, completed')
+        .eq('goal_id', goalId)
+        .eq('user_id', user.id);
+
+      if (fetchError) throw fetchError;
+      if (!goalTasks || goalTasks.length === 0) return;
+
+      const completedCount = goalTasks.filter(t => t.completed).length;
+      const totalCount = goalTasks.length;
+      const progress = Math.round((completedCount / totalCount) * 100);
+
+      // Update goal progress
+      const updates: any = { progress };
+      
+      // Mark as completed if 100%
+      if (progress === 100) {
+        updates.status = 'completed';
+        updates.completed_at = new Date().toISOString();
+        toast.success('🏆 Goal Completed! Amazing work!');
+      } else if (progress >= 70) {
+        updates.status = 'ahead';
+      } else if (progress >= 30) {
+        updates.status = 'on-track';
+      } else {
+        updates.status = 'behind';
+      }
+
+      // Also update current_value to show progress
+      const { data: goal } = await supabase
+        .from('goals')
+        .select('target_value')
+        .eq('id', goalId)
+        .single();
+
+      if (goal?.target_value) {
+        const match = goal.target_value.match(/^\$?(\d+(?:\.\d+)?)\s*(.*)$/);
+        if (match) {
+          const totalValue = parseFloat(match[1]);
+          const unit = match[2].trim();
+          const currentValue = ((completedCount / totalCount) * totalValue).toFixed(1);
+          updates.current_value = `${currentValue} ${unit}`.trim();
+        }
+      }
+
+      await supabase
+        .from('goals')
+        .update(updates)
+        .eq('id', goalId);
+
+    } catch (error) {
+      console.error('Error updating goal progress:', error);
+    }
+  };
+
   const toggleTask = async (taskId: string, completed: boolean) => {
     try {
       const updates: any = {
@@ -119,6 +180,11 @@ export function useTasks(date?: string) {
       
       const updatedTasks = tasks.map(t => t.id === taskId ? data as Task : t);
       setTasks(updatedTasks);
+
+      // Auto-update goal progress
+      if (data.goal_id) {
+        await updateGoalProgress(data.goal_id);
+      }
 
       // Update user stats if completing task
       if (completed && user) {

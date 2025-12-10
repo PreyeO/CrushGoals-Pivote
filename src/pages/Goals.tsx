@@ -20,17 +20,18 @@ export default function Goals() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [addTaskGoal, setAddTaskGoal] = useState<Goal | null>(null);
 
-  const handleAddGoal = async (goalData: { category: string; emoji: string; name: string; target: string; deadline: string }) => {
+  const handleAddGoal = async (goalData: { category: string; emoji: string; name: string; target: string; startDate: string; deadline: string }) => {
     const result = await addGoal({
       name: goalData.name,
       emoji: goalData.emoji,
       category: goalData.category,
       target_value: goalData.target || undefined,
+      start_date: goalData.startDate || undefined,
       deadline: goalData.deadline || undefined,
     });
     
     if (result) {
-      toast.success(`🎯 Goal Created: "${goalData.name}"`);
+      // Toast handled in useGoals
     }
   };
 
