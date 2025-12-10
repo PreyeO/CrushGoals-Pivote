@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { TaskItem } from "@/components/TaskItem";
 import { ProgressRing } from "@/components/ProgressRing";
+import { TaskCalendar } from "@/components/TaskCalendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Filter, Clock, Zap, Loader2, Timer } from "lucide-react";
+import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays } from "lucide-react";
 import { useTasks, Task } from "@/hooks/useTasks";
 import { useGoals } from "@/hooks/useGoals";
 import { EditTaskModal } from "@/components/EditTaskModal";
@@ -53,6 +54,7 @@ export default function Tasks() {
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(getTimeLeftToday());
+  const [showCalendar, setShowCalendar] = useState(false);
   
   // Update time left every minute
   useEffect(() => {
@@ -148,6 +150,14 @@ export default function Tasks() {
               </p>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
+              <Button 
+                variant={showCalendar ? "default" : "outline"} 
+                className="gap-2"
+                onClick={() => setShowCalendar(!showCalendar)}
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span className="hidden sm:inline">Calendar</span>
+              </Button>
               <Button variant="outline" className="gap-2">
                 <Filter className="w-4 h-4" />
                 <span className="hidden sm:inline">Filter</span>
@@ -204,6 +214,14 @@ export default function Tasks() {
               </div>
             </div>
           </div>
+
+          {/* Calendar View */}
+          {showCalendar && (
+            <div className="mb-6 glass-card rounded-2xl p-4 sm:p-6">
+              <h3 className="font-semibold mb-4">Task Calendar</h3>
+              <TaskCalendar selectedDate={new Date()} />
+            </div>
+          )}
 
           {/* Empty State */}
           {tasks.length === 0 && (
