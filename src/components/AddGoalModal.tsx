@@ -25,6 +25,7 @@ export interface GoalData {
   startDate: string;
   deadline: string;
   reason: string;
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
 }
 
 const goalCategories = [
@@ -68,6 +69,13 @@ const getDailyTaskTitle = (goalName: string, targetValue: string, days: number):
   return `${goalName}: ${displayTarget} ${unit}`;
 };
 
+const taskFrequencies = [
+  { id: 'daily', label: 'Daily', desc: 'Every day' },
+  { id: 'weekly', label: 'Weekly', desc: 'Once a week' },
+  { id: 'biweekly', label: 'Bi-weekly', desc: 'Every 2 weeks' },
+  { id: 'monthly', label: 'Monthly', desc: 'Once a month' },
+] as const;
+
 export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProps) {
   const [step, setStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<typeof goalCategories[0] | null>(null);
@@ -76,6 +84,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [deadline, setDeadline] = useState("");
   const [reason, setReason] = useState("");
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'biweekly' | 'monthly'>('daily');
 
   const handleCategorySelect = (category: typeof goalCategories[0]) => {
     setSelectedCategory(category);
@@ -92,6 +101,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
         startDate,
         deadline,
         reason,
+        frequency,
       });
       resetForm();
       onOpenChange(false);
@@ -106,6 +116,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setStartDate(new Date().toISOString().split('T')[0]);
     setDeadline("");
     setReason("");
+    setFrequency('daily');
   };
 
   const handleClose = (isOpen: boolean) => {
@@ -272,6 +283,35 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                     </span>
                   </div>
                 )}
+              </div>
+
+              {/* Task Frequency Selection */}
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                <Label className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  How often do you want tasks?
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {taskFrequencies.map((freq) => (
+                    <button
+                      key={freq.id}
+                      type="button"
+                      onClick={() => setFrequency(freq.id)}
+                      className={cn(
+                        "p-3 rounded-lg border transition-all text-left",
+                        frequency === freq.id
+                          ? "bg-primary/20 border-primary/50"
+                          : "bg-white/5 border-white/10 hover:border-white/20"
+                      )}
+                    >
+                      <p className="font-medium text-sm">{freq.label}</p>
+                      <p className="text-xs text-muted-foreground">{freq.desc}</p>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  💡 Daily is best for habits. Weekly/monthly for bigger milestones.
+                </p>
               </div>
 
               <div className="space-y-2">

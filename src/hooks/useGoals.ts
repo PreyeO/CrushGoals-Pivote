@@ -18,6 +18,7 @@ export interface Goal {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  task_frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
 }
 
 // Parse target value to extract number and unit
@@ -96,50 +97,54 @@ export function useGoals() {
     }
   };
 
-  const generateDailyTasks = async (goalId: string, goalName: string, emoji: string, targetValue: string, startDate: string, deadline: string) => {
+  const generateTasks = async (
+    goalId: string, 
+    goalName: string, 
+    emoji: string, 
+    targetValue: string, 
+    startDate: string, 
+    deadline: string,
+    frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' = 'daily'
+  ) => {
     if (!user) return;
 
     const parsed = parseTargetValue(targetValue);
-    if (!parsed) {
-      // If no parseable target, create a single daily reminder task for each day
-      const days = getDaysBetween(startDate, deadline);
-      const tasks = [];
-      
-      for (let i = 0; i < days; i++) {
-        const taskDate = new Date(startDate);
-        taskDate.setDate(taskDate.getDate() + i);
-        const dateStr = taskDate.toISOString().split('T')[0];
-        
-        tasks.push({
-          user_id: user.id,
-          goal_id: goalId,
-          title: `${emoji} Work on: ${goalName}`,
-          priority: 'medium',
-          due_date: dateStr,
-        });
-      }
-
-      if (tasks.length > 0) {
-        await supabase.from('tasks').insert(tasks);
-      }
-      return;
+    const totalDays = getDaysBetween(startDate, deadline);
+    
+    // Calculate how many tasks based on frequency
+    let taskInterval: number;
+    switch (frequency) {
+      case 'weekly': taskInterval = 7; break;
+      case 'biweekly': taskInterval = 14; break;
+      case 'monthly': taskInterval = 30; break;
+      default: taskInterval = 1; // daily
     }
-
-    const days = getDaysBetween(startDate, deadline);
-    const dailyTarget = parsed.value / days;
-    const taskTitle = generateDailyTaskTitle(goalName, dailyTarget, parsed.unit);
-
-    // Generate tasks for each day
+    
+    const numberOfTasks = Math.max(1, Math.ceil(totalDays / taskInterval));
+    const targetPerTask = parsed ? parsed.value / numberOfTasks : 0;
+    
     const tasks = [];
-    for (let i = 0; i < days; i++) {
+    for (let i = 0; i < numberOfTasks; i++) {
       const taskDate = new Date(startDate);
-      taskDate.setDate(taskDate.getDate() + i);
+      taskDate.setDate(taskDate.getDate() + (i * taskInterval));
+      
+      // Don't create tasks after deadline
+      if (taskDate > new Date(deadline)) break;
+      
       const dateStr = taskDate.toISOString().split('T')[0];
+      
+      let taskTitle: string;
+      if (parsed && targetPerTask > 0) {
+        const displayTarget = targetPerTask % 1 === 0 ? targetPerTask : targetPerTask.toFixed(1);
+        taskTitle = `${emoji} ${generateDailyTaskTitle(goalName, targetPerTask, parsed.unit)}`;
+      } else {
+        taskTitle = `${emoji} Work on: ${goalName}`;
+      }
       
       tasks.push({
         user_id: user.id,
         goal_id: goalId,
-        title: `${emoji} ${taskTitle}`,
+        title: taskTitle,
         priority: 'medium',
         due_date: dateStr,
       });
@@ -160,11 +165,13 @@ export function useGoals() {
     target_value?: string;
     start_date?: string;
     deadline?: string;
+    task_frequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   }) => {
     if (!user) return null;
 
     try {
       const startDate = goalData.start_date || new Date().toISOString().split('T')[0];
+      const frequency = goalData.task_frequency || 'daily';
       
       const { data, error } = await supabase
         .from('goals')
@@ -176,6 +183,7 @@ export function useGoals() {
           target_value: goalData.target_value || null,
           start_date: startDate,
           deadline: goalData.deadline || null,
+          task_frequency: frequency,
         })
         .select()
         .single();
@@ -184,18 +192,21 @@ export function useGoals() {
       
       setGoals(prev => [data as Goal, ...prev]);
       
-      // Auto-generate daily tasks if we have start date and deadline
+      // Auto-generate tasks based on frequency
       if (startDate && goalData.deadline) {
-        await generateDailyTasks(
+        await generateTasks(
           data.id,
           goalData.name,
           goalData.emoji,
           goalData.target_value || '',
           startDate,
-          goalData.deadline
+          goalData.deadline,
+          frequency
         );
-        toast.success('Goal created with daily tasks! 🎯', {
-          description: 'Check your Tasks page to see today\'s mission.'
+        
+        const freqLabel = frequency === 'daily' ? 'daily' : frequency === 'weekly' ? 'weekly' : frequency === 'biweekly' ? 'bi-weekly' : 'monthly';
+        toast.success(`Goal created with ${freqLabel} tasks! 🎯`, {
+          description: 'Check your Tasks page to see your missions.'
         });
       } else {
         toast.success('Goal created successfully! 🎯');

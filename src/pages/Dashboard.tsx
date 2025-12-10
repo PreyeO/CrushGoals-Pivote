@@ -122,7 +122,8 @@ export default function Dashboard() {
     name: string; 
     target: string; 
     startDate: string;
-    deadline: string 
+    deadline: string;
+    frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   }) => {
     await addGoal({
       name: goalData.name,
@@ -131,6 +132,7 @@ export default function Dashboard() {
       target_value: goalData.target,
       start_date: goalData.startDate,
       deadline: goalData.deadline,
+      task_frequency: goalData.frequency,
     });
   };
 
