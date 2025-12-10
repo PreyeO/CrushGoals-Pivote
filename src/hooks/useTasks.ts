@@ -246,10 +246,18 @@ export function useTasks(date?: string) {
           .single();
         
         if (currentStats) {
+          const newTasksCompleted = (currentStats.tasks_completed || 0) + 1;
           const statsUpdate: any = {
-            tasks_completed: (currentStats.tasks_completed || 0) + 1,
+            tasks_completed: newTasksCompleted,
             total_xp: (currentStats.total_xp || 0) + 10,
           };
+
+          // Check for task-based achievements immediately
+          await checkAndUnlockAchievements(user.id, {
+            current_streak: currentStats.current_streak || 0,
+            tasks_completed: newTasksCompleted,
+            perfect_days: currentStats.perfect_days || 0,
+          });
 
           // Check if all tasks for today are now completed (Perfect Day)
           const todayStr = new Date().toISOString().split('T')[0];
@@ -295,7 +303,7 @@ export function useTasks(date?: string) {
                 description: `Streak: ${newStreak} day${newStreak > 1 ? 's' : ''}`,
               });
 
-              // Check and unlock achievements
+              // Check and unlock achievements for perfect day/streak
               await checkAndUnlockAchievements(user.id, {
                 current_streak: newStreak,
                 tasks_completed: statsUpdate.tasks_completed,

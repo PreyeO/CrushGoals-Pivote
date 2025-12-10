@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const settingsSections = [
   { id: "account", label: "Account", icon: User },
@@ -32,24 +34,16 @@ export default function Settings() {
   const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft } = useSubscription();
   const { getPricing } = useCurrency();
   const { playSound, setEnabled: setSoundEnabled } = useSoundEffects();
+  const { theme, setTheme } = useTheme();
+  const { settings: notificationSettings, updateSettings: updateNotificationSettings, requestPermission, permissionStatus } = useNotifications();
   const pricing = getPricing();
   
   const [activeSection, setActiveSection] = useState("account");
-  const [theme, setTheme] = useState<"dark" | "light" | "auto">("dark");
   const [soundEffects, setSoundEffects] = useState(() => {
     const saved = localStorage.getItem('soundEffects');
     return saved !== 'false';
   });
   const [displayName, setDisplayName] = useState("");
-  const [notifications, setNotifications] = useState({
-    dailyReminder: true,
-    weeklyReview: true,
-    milestoneAlerts: true,
-    streakReminders: true,
-    achievements: true,
-    email: true,
-    push: false,
-  });
   const [privacy, setPrivacy] = useState({
     showOnLeaderboard: true,
     shareProgress: false,
@@ -202,6 +196,16 @@ export default function Settings() {
                 <div className="space-y-6">
                   <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Notification Preferences</h2>
                   
+                  {/* Push Notification Permission */}
+                  {permissionStatus !== 'granted' && (
+                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
+                      <p className="text-sm mb-3">Enable push notifications to get reminders about your goals and streaks.</p>
+                      <Button onClick={requestPermission} size="sm">
+                        Enable Notifications
+                      </Button>
+                    </div>
+                  )}
+                  
                   <div className="space-y-3 sm:space-y-4">
                     {[
                       { key: "dailyReminder", label: "Daily Task Reminder", desc: "Get reminded to complete your daily tasks" },
@@ -216,8 +220,8 @@ export default function Settings() {
                           <p className="text-xs sm:text-sm text-muted-foreground truncate">{item.desc}</p>
                         </div>
                         <Switch 
-                          checked={notifications[item.key as keyof typeof notifications]} 
-                          onCheckedChange={(checked) => setNotifications({...notifications, [item.key]: checked})}
+                          checked={notificationSettings[item.key as keyof typeof notificationSettings] as boolean} 
+                          onCheckedChange={(checked) => updateNotificationSettings({ [item.key]: checked })}
                         />
                       </div>
                     ))}
@@ -296,16 +300,16 @@ export default function Settings() {
                         {[
                           { id: "dark", icon: Moon, label: "Dark" },
                           { id: "light", icon: Sun, label: "Light" },
-                          { id: "auto", icon: Monitor, label: "Auto" },
+                          { id: "system", icon: Monitor, label: "Auto" },
                         ].map((t) => (
                           <button 
                             key={t.id}
-                            onClick={() => setTheme(t.id as typeof theme)}
+                            onClick={() => setTheme(t.id)}
                             className={cn(
                               "p-3 sm:p-4 rounded-xl border-2 transition-all flex-1 min-w-[80px]",
                               theme === t.id 
                                 ? "border-primary ring-2 ring-primary/30 bg-primary/10" 
-                                : "border-white/20 hover:border-white/40 bg-white/5"
+                                : "border-border/50 hover:border-border bg-card/50"
                             )}
                           >
                             <t.icon className="w-5 h-5 mx-auto mb-2" />
