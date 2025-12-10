@@ -5,6 +5,7 @@ import { GoalCard } from "@/components/GoalCard";
 import { TaskItem } from "@/components/TaskItem";
 import { StreakCounter } from "@/components/StreakCounter";
 import { ConfettiCelebration } from "@/components/ConfettiCelebration";
+import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
@@ -12,6 +13,7 @@ import { Target, Zap, Trophy, Plus, Sparkles, ChevronRight, Loader2 } from "luci
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
+import { useNavigate } from "react-router-dom";
 
 const motivationalQuotes = [
   { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -20,11 +22,13 @@ const motivationalQuotes = [
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { profile, stats } = useAuth();
   const { goals, isLoading: goalsLoading, addGoal } = useGoals();
   const today = new Date().toISOString().split('T')[0];
   const { tasks, isLoading: tasksLoading, toggleTask, addTask, celebrationTrigger, clearCelebration } = useTasks(today);
   const [addGoalOpen, setAddGoalOpen] = useState(false);
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
   
   const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   
@@ -56,6 +60,16 @@ export default function Dashboard() {
       category: goalData.category,
       target_value: goalData.target,
       deadline: goalData.deadline,
+    });
+  };
+
+  const handleAddTask = async (taskData: TaskData) => {
+    await addTask({
+      title: taskData.title,
+      goal_id: taskData.goal_id,
+      due_date: taskData.due_date || today,
+      priority: taskData.priority as 'high' | 'medium' | 'low',
+      time_estimate: taskData.time_estimate,
     });
   };
 
@@ -155,7 +169,7 @@ export default function Dashboard() {
                 Complete all tasks for a Perfect Day bonus! (+100 XP)
               </p>
             </div>
-            <Button variant="ghost" className="text-primary hidden sm:flex">
+            <Button variant="ghost" className="text-primary hidden sm:flex" onClick={() => navigate('/tasks')}>
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -199,7 +213,7 @@ export default function Dashboard() {
           )}
 
           {/* Quick Add */}
-          <Button variant="glass" className="w-full mt-4">
+          <Button variant="glass" className="w-full mt-4" onClick={() => setAddTaskOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add custom task for today
           </Button>
@@ -211,7 +225,7 @@ export default function Dashboard() {
             <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
               Your Active Goals 🎯
             </h2>
-            <Button variant="ghost" className="text-primary hidden sm:flex">
+            <Button variant="ghost" className="text-primary hidden sm:flex" onClick={() => navigate('/goals')}>
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -356,6 +370,13 @@ export default function Dashboard() {
         open={addGoalOpen} 
         onOpenChange={setAddGoalOpen} 
         onSuccess={handleAddGoal}
+      />
+
+      {/* Add Task Modal */}
+      <AddTaskModal
+        open={addTaskOpen}
+        onOpenChange={setAddTaskOpen}
+        onSuccess={handleAddTask}
       />
       
       {/* Confetti Celebration */}
