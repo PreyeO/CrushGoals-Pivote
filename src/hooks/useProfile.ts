@@ -42,12 +42,41 @@ export function useProfile() {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase
+      // First try to update existing profile
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .update(updates)
+        .select('*')
         .eq('user_id', user.id)
-        .select()
-        .single();
+        .maybeSingle();
+
+      let data;
+      let error;
+
+      if (existingProfile) {
+        // Update existing profile
+        const result = await supabase
+          .from('profiles')
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .select()
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
+      } else {
+        // Create new profile
+        const result = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            email: user.email || '',
+            full_name: updates.full_name || 'User',
+            ...updates,
+          })
+          .select()
+          .single();
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
       

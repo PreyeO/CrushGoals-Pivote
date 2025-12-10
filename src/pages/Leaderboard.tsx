@@ -1,10 +1,17 @@
+import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { Crown, Medal, Trophy, TrendingUp, Users, Loader2 } from "lucide-react";
+import { Crown, Medal, Trophy, TrendingUp, Users, Loader2, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
+import { cn } from "@/lib/utils";
+
+type ViewFilter = "global" | "friends";
+type TimeFilter = "week" | "alltime";
 
 export default function Leaderboard() {
   const { entries, userRank, isLoading } = useLeaderboard();
+  const [viewFilter, setViewFilter] = useState<ViewFilter>("global");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("alltime");
 
   if (isLoading) {
     return (
@@ -17,8 +24,10 @@ export default function Leaderboard() {
     );
   }
 
-  const top3 = entries.slice(0, 3);
-  const rest = entries.slice(3, 10);
+  // Filter entries based on time (would need backend support for real filtering)
+  const filteredEntries = entries;
+  const top3 = filteredEntries.slice(0, 3);
+  const rest = filteredEntries.slice(3, 10);
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,20 +38,62 @@ export default function Leaderboard() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2">Global Leaderboard 🏆</h1>
-              <p className="text-muted-foreground">Compete with goal crushers worldwide</p>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+                {viewFilter === "global" ? "Global Leaderboard 🏆" : "Friends Leaderboard 👥"}
+              </h1>
+              <p className="text-muted-foreground">
+                {viewFilter === "global" 
+                  ? "Compete with goal crushers worldwide" 
+                  : "See how you rank among friends"}
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" className="gap-2" size="sm">
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Friends Only</span>
+              <Button 
+                variant={viewFilter === "global" ? "default" : "outline"} 
+                className="gap-2" 
+                size="sm"
+                onClick={() => setViewFilter("global")}
+              >
+                <Globe className="w-4 h-4" />
+                <span className="hidden sm:inline">Global</span>
               </Button>
-              <Button variant="ghost" size="sm">This Week</Button>
-              <Button variant="ghost" size="sm">All Time</Button>
+              <Button 
+                variant={viewFilter === "friends" ? "default" : "outline"} 
+                className="gap-2" 
+                size="sm"
+                onClick={() => setViewFilter("friends")}
+              >
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Friends</span>
+              </Button>
+              <div className="w-px bg-border mx-1" />
+              <Button 
+                variant={timeFilter === "week" ? "secondary" : "ghost"} 
+                size="sm"
+                onClick={() => setTimeFilter("week")}
+              >
+                This Week
+              </Button>
+              <Button 
+                variant={timeFilter === "alltime" ? "secondary" : "ghost"} 
+                size="sm"
+                onClick={() => setTimeFilter("alltime")}
+              >
+                All Time
+              </Button>
             </div>
           </div>
 
-          {entries.length === 0 ? (
+          {viewFilter === "friends" ? (
+            <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
+              <div className="text-5xl sm:text-6xl mb-4">👥</div>
+              <h3 className="text-xl font-semibold mb-2">Friends Feature Coming Soon!</h3>
+              <p className="text-muted-foreground mb-4">Add friends and compete with people you know.</p>
+              <Button variant="outline" onClick={() => setViewFilter("global")}>
+                View Global Leaderboard
+              </Button>
+            </div>
+          ) : filteredEntries.length === 0 ? (
             <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
               <div className="text-5xl sm:text-6xl mb-4">🏆</div>
               <h3 className="text-xl font-semibold mb-2">Leaderboard is empty</h3>

@@ -205,6 +205,23 @@ export default function Settings() {
                       </Button>
                     </div>
                   )}
+
+                  {/* Daily Reminder Time Picker */}
+                  <div className="p-4 bg-white/5 rounded-xl">
+                    <h4 className="font-medium mb-3 text-sm sm:text-base">Daily Reminder Time</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-3">Choose when to receive your daily task reminder</p>
+                    <select 
+                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-background border border-border text-sm"
+                      value={notificationSettings.reminderTime || "09:00"}
+                      onChange={(e) => updateNotificationSettings({ reminderTime: e.target.value })}
+                    >
+                      {Array.from({ length: 24 }, (_, i) => {
+                        const hour = i.toString().padStart(2, '0');
+                        const label = i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`;
+                        return <option key={hour} value={`${hour}:00`}>{label}</option>;
+                      })}
+                    </select>
+                  </div>
                   
                   <div className="space-y-3 sm:space-y-4">
                     {[
