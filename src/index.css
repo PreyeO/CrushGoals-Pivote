@@ -297,6 +297,71 @@
   }
 }
 
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh) rotate(720deg) scale(0.5);
+  }
+}
+
+@keyframes fire-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes fire-shake {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(-3deg);
+  }
+  50% {
+    transform: scale(1.15) rotate(0deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(3deg);
+  }
+}
+
+@keyframes fire-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-8px) scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes celebration-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes progress-fill {
   from {
     stroke-dashoffset: 283;
@@ -318,6 +383,26 @@
 
 .animate-confetti {
   animation: confetti 1s ease-out forwards;
+}
+
+.animate-confetti-fall {
+  animation: confetti-fall 3s ease-out forwards;
+}
+
+.animate-fire-pulse {
+  animation: fire-pulse 1s ease-in-out infinite;
+}
+
+.animate-fire-shake {
+  animation: fire-shake 0.5s ease-in-out infinite;
+}
+
+.animate-fire-float {
+  animation: fire-float 2s ease-in-out infinite;
+}
+
+.animate-celebration-pop {
+  animation: celebration-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .animate-progress-fill {
