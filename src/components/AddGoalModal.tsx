@@ -150,8 +150,8 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-card border-white/10 backdrop-blur-xl p-0">
-        <div className="p-6">
+      <DialogContent className="sm:max-w-[600px] w-[95vw] max-h-[85vh] overflow-y-auto bg-card border-white/10 backdrop-blur-xl p-0">
+        <div className="p-4 sm:p-6">
           <DialogHeader className="mb-6">
             <div className="flex items-center gap-3">
               {step > 1 && (
@@ -210,18 +210,18 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                 {goalCategories.map((category) => (
                   <button
                     key={category.id}
                     onClick={() => handleCategorySelect(category)}
                     className={cn(
-                      "p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/50 transition-all text-left group"
+                      "p-3 sm:p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/50 transition-all text-left group"
                     )}
                   >
-                    <span className="text-3xl mb-2 block">{category.emoji}</span>
-                    <p className="font-medium text-sm mb-1">{category.label}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{category.examples}</p>
+                    <span className="text-2xl sm:text-3xl mb-1 sm:mb-2 block">{category.emoji}</span>
+                    <p className="font-medium text-xs sm:text-sm mb-0.5 sm:mb-1 line-clamp-1">{category.label}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2">{category.examples}</p>
                   </button>
                 ))}
               </div>

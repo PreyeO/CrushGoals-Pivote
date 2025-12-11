@@ -6,13 +6,15 @@ import { TaskItem } from "@/components/TaskItem";
 import { StreakCounter } from "@/components/StreakCounter";
 import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
+import { WeeklySummary } from "@/components/WeeklySummary";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
-import { Target, Zap, Trophy, Plus, Sparkles, ChevronRight, Loader2, Check } from "lucide-react";
+import { Target, Zap, Trophy, Plus, Sparkles, ChevronRight, Loader2, Check, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
+import { useStreakNotifications } from "@/hooks/useStreakNotifications";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,7 +34,11 @@ export default function Dashboard() {
   const { tasks, isLoading: tasksLoading, toggleTask, addTask, celebrationTrigger, clearCelebration } = useTasks(today);
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [weeklySummaryOpen, setWeeklySummaryOpen] = useState(false);
   const [weekData, setWeekData] = useState<{ date: string; day: string; completed: number; total: number }[]>([]);
+  
+  // Enable streak notifications
+  useStreakNotifications();
 
   // Fetch week data
   useEffect(() => {
@@ -196,21 +202,24 @@ export default function Dashboard() {
         </header>
 
         {/* Stats Overview */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 lg:mb-8">
+        <section className="grid grid-cols-2 gap-3 mb-6 lg:mb-8">
           <StatCard
             title="Today's Progress"
-            value={`${completedTasks}/${totalTasks} tasks`}
+            value={`${completedTasks}/${totalTasks}`}
             subtitle={totalTasks === 0 ? "No tasks yet" : "Keep going! 💪"}
             variant="progress"
             progress={progressPercent}
             delay={0}
+            className="col-span-1"
           />
           
           {/* Enhanced Streak Counter */}
-          <div className="animate-slide-up opacity-0" style={{ animationDelay: '100ms' }}>
+          <div className="animate-slide-up opacity-0 col-span-1" style={{ animationDelay: '100ms' }}>
             <StreakCounter 
               streak={stats?.current_streak || 0} 
               longestStreak={stats?.longest_streak || 0}
+              showShare={false}
+              className="h-full"
             />
           </div>
           
@@ -218,16 +227,18 @@ export default function Dashboard() {
             icon={Target}
             title="Active Goals"
             value={goals.filter(g => g.status !== 'completed').length.toString()}
-            subtitle={goals.length > 0 ? "Keep crushing it!" : "Add your first goal"}
+            subtitle={goals.length > 0 ? "Crushing it!" : "Add a goal"}
             delay={200}
+            className="col-span-1"
           />
           <StatCard
             icon={Zap}
-            title="Level & XP"
-            value={`Level ${currentLevel}`}
-            subtitle={`${xpToNext} XP to Level ${currentLevel + 1}`}
-            trend={{ value: `${currentXP} XP total`, positive: true }}
+            title="Level"
+            value={`Lvl ${currentLevel}`}
+            subtitle={`${xpToNext} XP to next`}
+            trend={{ value: `${currentXP} XP`, positive: true }}
             delay={300}
+            className="col-span-1"
           />
         </section>
 
@@ -440,16 +451,23 @@ export default function Dashboard() {
                 );
               })}
             </div>
-            <div className="mt-4 text-center">
+            <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 <span className="text-success font-medium">
                   {weekData.filter(d => d.total > 0 && d.completed === d.total).length}
                 </span> perfect days this week
               </p>
+              <Button variant="ghost" size="sm" onClick={() => setWeeklySummaryOpen(true)}>
+                <Calendar className="w-4 h-4 mr-1" />
+                Weekly Summary
+              </Button>
             </div>
           </Card>
         </section>
       </main>
+
+      {/* Weekly Summary Modal */}
+      <WeeklySummary open={weeklySummaryOpen} onOpenChange={setWeeklySummaryOpen} />
 
       {/* Add Goal Modal */}
       <AddGoalModal 
