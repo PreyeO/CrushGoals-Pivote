@@ -6,6 +6,8 @@ import { AddGoalModal } from "@/components/AddGoalModal";
 import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { EditGoalModal } from "@/components/EditGoalModal";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { GoalHabitCalendar } from "@/components/GoalHabitCalendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2 } from "lucide-react";
 import { useGoals, Goal } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
@@ -19,6 +21,7 @@ export default function Goals() {
   const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [addTaskGoal, setAddTaskGoal] = useState<Goal | null>(null);
+  const [calendarGoal, setCalendarGoal] = useState<Goal | null>(null);
 
   const handleAddGoal = async (goalData: { 
     category: string; 
@@ -195,9 +198,12 @@ export default function Goals() {
                     }
                     status={goal.status as 'on-track' | 'ahead' | 'behind' | 'completed'}
                     tasksToday={{ completed: 0, total: 0 }}
+                    startDate={goal.start_date || undefined}
+                    endDate={goal.deadline || undefined}
                     onEdit={() => setEditGoal(goal)}
                     onDelete={() => setDeleteGoalId(goal.id)}
                     onAddTask={() => setAddTaskGoal(goal)}
+                    onViewCalendar={() => setCalendarGoal(goal)}
                   />
                 ))}
               </div>
@@ -265,6 +271,24 @@ export default function Goals() {
         goalEmoji={addTaskGoal?.emoji || '🎯'}
         onSuccess={handleAddTask}
       />
+
+      {/* Habit Calendar Modal */}
+      <Dialog open={!!calendarGoal} onOpenChange={(open) => !open && setCalendarGoal(null)}>
+        <DialogContent className="sm:max-w-[450px] bg-card border-border/50">
+          <DialogHeader>
+            <DialogTitle>Habit Tracking</DialogTitle>
+          </DialogHeader>
+          {calendarGoal && (
+            <GoalHabitCalendar
+              goalId={calendarGoal.id}
+              goalName={calendarGoal.name}
+              goalEmoji={calendarGoal.emoji || '🎯'}
+              startDate={calendarGoal.start_date || undefined}
+              endDate={calendarGoal.deadline || undefined}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
