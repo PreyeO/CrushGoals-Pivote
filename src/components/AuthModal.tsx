@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Loader2, Target, User } from "lucide-react";
+import { Eye, EyeOff, Loader2, Target, User, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { loginSchema, signupSchema } from "@/lib/validations";
+import { useRateLimiter } from "@/hooks/useRateLimiter";
 
 interface AuthModalProps {
   open: boolean;
@@ -25,6 +26,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { checkRateLimit, recordAttempt, getRemainingAttempts } = useRateLimiter();
 
   const validateForm = () => {
     setErrors({});
@@ -55,6 +57,15 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
     e.preventDefault();
     
     if (!validateForm()) return;
+    
+    // Check rate limit for sign-in only
+    if (tab === "signin") {
+      const { allowed, remainingTime } = checkRateLimit();
+      if (!allowed) {
+        toast.error(`Too many login attempts. Please try again in ${remainingTime} minutes.`);
+        return;
+      }
+    }
     
     setIsLoading(true);
 
@@ -93,8 +104,16 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         });
 
         if (error) {
+          // Record failed attempt
+          recordAttempt(false);
+          const remaining = getRemainingAttempts();
+          
           if (error.message.includes("Invalid login credentials")) {
-            toast.error("Invalid email or password. Please try again.");
+            if (remaining > 0) {
+              toast.error(`Invalid email or password. ${remaining} attempts remaining.`);
+            } else {
+              toast.error("Too many failed attempts. Account locked for 15 minutes.");
+            }
           } else {
             toast.error(error.message);
           }
@@ -103,6 +122,8 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         }
 
         if (data.user) {
+          // Record successful login
+          recordAttempt(true);
           const userName = data.user.user_metadata?.full_name || email.split("@")[0];
           toast.success("Welcome back!");
           onSuccess({ name: userName, email: email.trim() });
