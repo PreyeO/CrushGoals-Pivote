@@ -1,14 +1,20 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { EmailVerificationBanner } from './EmailVerificationBanner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requireVerifiedEmail?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { user, isAdmin, isLoading } = useAuth();
+export function ProtectedRoute({ 
+  children, 
+  requireAdmin = false,
+  requireVerifiedEmail = true 
+}: ProtectedRouteProps) {
+  const { user, isAdmin, isLoading, isEmailVerified, profile } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -28,6 +34,20 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
 
   if (requireAdmin && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Show email verification banner if email is not verified
+  if (requireVerifiedEmail && !isEmailVerified) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container max-w-4xl mx-auto p-4 pt-8">
+          <EmailVerificationBanner email={profile?.email || user?.email || ''} />
+          <div className="opacity-50 pointer-events-none">
+            {children}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
