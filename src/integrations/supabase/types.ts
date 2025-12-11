@@ -161,6 +161,27 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          attempt_time: string
+          email: string
+          id: string
+          success: boolean
+        }
+        Insert: {
+          attempt_time?: string
+          email: string
+          id?: string
+          success?: boolean
+        }
+        Update: {
+          attempt_time?: string
+          email?: string
+          id?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -357,6 +378,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_login_rate_limit: { Args: { check_email: string }; Returns: number }
       get_leaderboard_data: {
         Args: { limit_count?: number }
         Returns: {
@@ -374,6 +396,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      record_login_attempt: {
+        Args: { attempt_email: string; attempt_success: boolean }
+        Returns: undefined
       }
     }
     Enums: {
