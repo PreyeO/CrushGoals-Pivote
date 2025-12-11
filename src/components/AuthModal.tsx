@@ -1,15 +1,17 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Loader2, Target, User, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, Loader2, Target, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { loginSchema, signupSchema } from "@/lib/validations";
 import { useRateLimiter } from "@/hooks/useRateLimiter";
+import { ForgotPasswordModal } from "./ForgotPasswordModal";
 
 interface AuthModalProps {
   open: boolean;
@@ -18,15 +20,27 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"signin" | "signup">("signup");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { checkRateLimit, recordAttempt } = useRateLimiter();
+
+  const checkIfAdmin = async (userId: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .maybeSingle();
+    return !!data;
+  };
 
   const validateForm = () => {
     setErrors({});
@@ -126,9 +140,20 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
           // Record successful login server-side
           await recordAttempt(email, true);
           const userName = data.user.user_metadata?.full_name || email.split("@")[0];
+          
+          // Check if user is admin and redirect accordingly
+          const isAdmin = await checkIfAdmin(data.user.id);
+          
           toast.success("Welcome back!");
           onSuccess({ name: userName, email: email.trim() });
           onOpenChange(false);
+          
+          // Redirect admin to admin dashboard, regular users to dashboard
+          if (isAdmin) {
+            navigate('/admin');
+          } else {
+            navigate('/dashboard');
+          }
         }
       }
     } catch (error) {
@@ -225,7 +250,11 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-foreground-secondary">Password</Label>
                 {tab === "signin" && (
-                  <button type="button" className="text-xs text-primary hover:underline">
+                  <button 
+                    type="button" 
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
                     Forgot password?
                   </button>
                 )}
@@ -322,6 +351,12 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
           </p>
         </div>
       </DialogContent>
+
+      <ForgotPasswordModal
+        open={showForgotPassword}
+        onOpenChange={setShowForgotPassword}
+        onBack={() => setShowForgotPassword(false)}
+      />
     </Dialog>
   );
 }
