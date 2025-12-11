@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -31,7 +32,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const { profile, stats, subscription } = useAuth();
+  const { profile, stats, subscription, isAdmin } = useAuth();
 
   // Use real data from auth context
   const userName = profile?.full_name || "Champion";
@@ -103,7 +104,15 @@ export function Sidebar() {
                 {userName.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate">{userName}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold truncate">{userName}</p>
+                  {isAdmin && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-destructive/20 text-destructive border border-destructive/30">
+                      <Shield className="w-3 h-3" />
+                      Admin
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   {isPremium ? (
                     <span className="inline-flex items-center gap-1 text-xs text-premium">
@@ -160,6 +169,24 @@ export function Sidebar() {
 
         {/* Bottom Section */}
         <div className="p-3 space-y-2 border-t border-sidebar-border">
+          {/* Admin Dashboard Link - Only for admins */}
+          {isAdmin && (
+            <NavLink
+              to="/admin"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
+                location.pathname === "/admin"
+                  ? "bg-destructive/20 text-destructive border border-destructive/30"
+                  : "text-destructive/80 hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20",
+                collapsed && "justify-center"
+              )}
+            >
+              <Shield className="w-5 h-5" />
+              {!collapsed && <span className="font-medium">Admin Panel</span>}
+            </NavLink>
+          )}
+
           {/* Streak */}
           <div className={cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20",
