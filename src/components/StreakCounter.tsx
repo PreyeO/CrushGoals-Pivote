@@ -37,9 +37,9 @@ export function StreakCounter({ streak, longestStreak, className, showShare = tr
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative h-full", className)}>
       <div className={cn(
-        "glass-card p-6 rounded-2xl text-center overflow-hidden relative",
+        "glass-card p-3 sm:p-6 rounded-2xl text-center overflow-hidden relative h-full flex flex-col justify-center",
         isLegendary && "border-premium/50 bg-premium/10",
         isBlazing && !isLegendary && "border-orange-500/50 bg-orange-500/10",
         isOnFire && !isBlazing && "border-primary/50"
@@ -57,9 +57,9 @@ export function StreakCounter({ streak, longestStreak, className, showShare = tr
         )}
 
         {/* Fire emoji with animation */}
-        <div className="relative mb-3">
+        <div className="relative mb-1 sm:mb-3">
           <span className={cn(
-            "text-5xl inline-block",
+            "text-3xl sm:text-5xl inline-block",
             isOnFire && "animate-fire-pulse",
             isBlazing && "animate-fire-shake"
           )}>
@@ -85,13 +85,13 @@ export function StreakCounter({ streak, longestStreak, className, showShare = tr
         {/* Streak count */}
         <div className="relative z-10">
           <p className={cn(
-            "text-4xl font-bold mb-1",
+            "text-2xl sm:text-4xl font-bold mb-0.5 sm:mb-1",
             isLegendary && "text-premium",
             isBlazing && !isLegendary && "text-orange-400"
           )}>
             {streak}
           </p>
-          <p className="text-sm text-muted-foreground uppercase tracking-wider mb-2">
+          <p className="text-[10px] sm:text-sm text-muted-foreground uppercase tracking-wider mb-1 sm:mb-2">
             Day{streak !== 1 ? 's' : ''} Streak
           </p>
           

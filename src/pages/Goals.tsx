@@ -14,7 +14,7 @@ import { useTasks } from "@/hooks/useTasks";
 import { toast } from "sonner";
 
 export default function Goals() {
-  const { goals, isLoading, addGoal, updateGoal, deleteGoal } = useGoals();
+  const { goals, isLoading, addGoal, updateGoal, deleteGoal, duplicateGoal } = useGoals();
   const { addTask } = useTasks();
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   const [editGoal, setEditGoal] = useState<Goal | null>(null);
@@ -204,6 +204,7 @@ export default function Goals() {
                     onDelete={() => setDeleteGoalId(goal.id)}
                     onAddTask={() => setAddTaskGoal(goal)}
                     onViewCalendar={() => setCalendarGoal(goal)}
+                    onDuplicate={() => duplicateGoal(goal.id)}
                   />
                 ))}
               </div>

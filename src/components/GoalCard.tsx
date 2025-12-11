@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { ProgressRing } from "@/components/ProgressRing";
 import { cn } from "@/lib/utils";
-import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus, CalendarDays } from "lucide-react";
+import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus, CalendarDays, Copy } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,7 @@ interface GoalCardProps {
   onDelete?: () => void;
   onAddTask?: () => void;
   onViewCalendar?: () => void;
+  onDuplicate?: () => void;
 }
 
 export function GoalCard({
@@ -45,6 +46,7 @@ export function GoalCard({
   onDelete,
   onAddTask,
   onViewCalendar,
+  onDuplicate,
 }: GoalCardProps) {
   const statusConfig = {
     "on-track": { label: "On Track", color: "text-success", bg: "bg-success/20" },
@@ -83,7 +85,7 @@ export function GoalCard({
               {status === "ahead" && <TrendingUp className="w-3 h-3" />}
               {label}
             </span>
-            {(onEdit || onDelete || onAddTask || onViewCalendar) && (
+            {(onEdit || onDelete || onAddTask || onViewCalendar || onDuplicate) && (
               <DropdownMenu>
                 <DropdownMenuTrigger 
                   onClick={(e) => e.stopPropagation()}
@@ -104,7 +106,13 @@ export function GoalCard({
                       View Calendar
                     </DropdownMenuItem>
                   )}
-                  {(onAddTask || onViewCalendar) && (onEdit || onDelete) && <DropdownMenuSeparator />}
+                  {onDuplicate && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Duplicate Goal
+                    </DropdownMenuItem>
+                  )}
+                  {(onAddTask || onViewCalendar || onDuplicate) && (onEdit || onDelete) && <DropdownMenuSeparator />}
                   {onEdit && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                       <Pencil className="w-4 h-4 mr-2" />

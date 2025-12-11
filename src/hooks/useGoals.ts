@@ -263,6 +263,71 @@ export function useGoals() {
     }
   };
 
+  const duplicateGoal = async (goalId: string) => {
+    if (!user) return null;
+
+    const originalGoal = goals.find(g => g.id === goalId);
+    if (!originalGoal) return null;
+
+    try {
+      // Calculate new dates (starting from today)
+      const today = new Date();
+      const originalDuration = originalGoal.deadline && originalGoal.start_date
+        ? getDaysBetween(originalGoal.start_date, originalGoal.deadline)
+        : 365;
+      
+      const newStartDate = today.toISOString().split('T')[0];
+      const newDeadline = new Date(today);
+      newDeadline.setDate(newDeadline.getDate() + originalDuration);
+      const newDeadlineStr = newDeadline.toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('goals')
+        .insert({
+          user_id: user.id,
+          name: `${originalGoal.name} (Copy)`,
+          emoji: originalGoal.emoji,
+          category: originalGoal.category,
+          target_value: originalGoal.target_value,
+          start_date: newStartDate,
+          deadline: newDeadlineStr,
+          task_frequency: originalGoal.task_frequency,
+          progress: 0,
+          current_value: '0',
+          status: 'on-track',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setGoals(prev => [data as Goal, ...prev]);
+
+      // Generate tasks for the duplicated goal
+      if (originalGoal.target_value) {
+        await generateTasks(
+          data.id,
+          data.name,
+          data.emoji,
+          originalGoal.target_value,
+          newStartDate,
+          newDeadlineStr,
+          originalGoal.task_frequency
+        );
+      }
+      
+      toast.success('Goal duplicated! 🎯', {
+        description: 'A new copy has been created with fresh dates.'
+      });
+      
+      return data as Goal;
+    } catch (error) {
+      console.error('Error duplicating goal:', error);
+      toast.error('Failed to duplicate goal');
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchGoals();
 
@@ -294,6 +359,7 @@ export function useGoals() {
     addGoal,
     updateGoal,
     deleteGoal,
+    duplicateGoal,
     refreshGoals: fetchGoals,
   };
 }

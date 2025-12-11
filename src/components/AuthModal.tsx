@@ -8,6 +8,7 @@ import { Eye, EyeOff, Loader2, Target, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { loginSchema, signupSchema } from "@/lib/validations";
 
 interface AuthModalProps {
   open: boolean;
@@ -23,20 +24,49 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    setErrors({});
+    
+    try {
+      if (tab === "signup") {
+        signupSchema.parse({ name, email, password, agreed });
+      } else {
+        loginSchema.parse({ email, password });
+      }
+      return true;
+    } catch (error: any) {
+      if (error.errors) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          const field = err.path[0];
+          if (field && !newErrors[field]) {
+            newErrors[field] = err.message;
+          }
+        });
+        setErrors(newErrors);
+      }
+      return false;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
     setIsLoading(true);
 
     try {
       if (tab === "signup") {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
-              full_name: name,
+              full_name: name.trim(),
             },
           },
         });
@@ -53,12 +83,12 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
 
         if (data.user) {
           toast.success("Account created successfully!");
-          onSuccess({ name, email });
+          onSuccess({ name: name.trim(), email: email.trim() });
           onOpenChange(false);
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
 
@@ -75,7 +105,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         if (data.user) {
           const userName = data.user.user_metadata?.full_name || email.split("@")[0];
           toast.success("Welcome back!");
-          onSuccess({ name: userName, email });
+          onSuccess({ name: userName, email: email.trim() });
           onOpenChange(false);
         }
       }
@@ -86,15 +116,14 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
     }
   };
 
-
   const isFormValid = tab === "signin" 
     ? email && password.length >= 6 
     : name && email && password.length >= 6 && agreed;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[440px] max-h-[90vh] overflow-y-auto bg-card border-white/10 backdrop-blur-xl p-0 animate-scale-in">
-        <div className="p-6 sm:p-8">
+      <DialogContent className="sm:max-w-[440px] w-[95vw] max-h-[90vh] overflow-y-auto bg-card border-white/10 backdrop-blur-xl p-0 animate-scale-in">
+        <div className="p-4 sm:p-6 md:p-8">
           {/* Logo & Welcome */}
           <DialogHeader className="text-center mb-6">
             <div className="flex justify-center mb-4">
@@ -149,9 +178,11 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="bg-secondary border-border focus:border-primary h-12 pl-10"
-                    disabled={isLoading}
-                  />
-                </div>
+                disabled={isLoading}
+              />
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+            </div>
+                {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
               </div>
             )}
 
@@ -198,6 +229,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
               {password && password.length < 6 && (
                 <p className="text-xs text-warning">Password must be at least 6 characters</p>
               )}
+              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
 
             {tab === "signup" && (
