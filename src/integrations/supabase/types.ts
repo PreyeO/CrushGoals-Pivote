@@ -378,6 +378,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_admin_login_rate_limit: {
+        Args: { check_email: string }
+        Returns: number
+      }
       check_login_rate_limit: { Args: { check_email: string }; Returns: number }
       get_leaderboard_data: {
         Args: { limit_count?: number }
