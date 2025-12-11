@@ -16,6 +16,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -26,26 +27,23 @@ const navItems = [
   { icon: Users, label: "Leaderboard", path: "/leaderboard" },
 ];
 
-interface SidebarProps {
-  userName?: string;
-  userLevel?: number;
-  userXP?: number;
-  maxXP?: number;
-  streak?: number;
-  isPremium?: boolean;
-}
-
-export function Sidebar({
-  userName = "Champion",
-  userLevel = 7,
-  userXP = 2340,
-  maxXP = 3000,
-  streak = 23,
-  isPremium = true,
-}: SidebarProps) {
+export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { profile, stats, subscription } = useAuth();
+
+  // Use real data from auth context
+  const userName = profile?.full_name || "Champion";
+  const userLevel = stats?.level || 1;
+  const userXP = stats?.total_xp || 0;
+  const streak = stats?.current_streak || 0;
+  const isPremium = subscription?.plan === 'monthly' || subscription?.plan === 'annual';
+  
+  // Calculate XP needed for next level (each level needs 500 XP)
+  const xpPerLevel = 500;
+  const currentLevelXp = userXP % xpPerLevel;
+  const maxXP = xpPerLevel;
 
   return (
     <>
@@ -124,12 +122,12 @@ export function Sidebar({
             <div className="mt-3">
               <div className="flex items-center justify-between text-sm mb-1">
                 <span className="text-muted-foreground">Level {userLevel}</span>
-                <span className="text-muted-foreground">{userXP}/{maxXP} XP</span>
+                <span className="text-muted-foreground">{currentLevelXp}/{maxXP} XP</span>
               </div>
               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-primary rounded-full transition-all duration-500"
-                  style={{ width: `${(userXP / maxXP) * 100}%` }}
+                  style={{ width: `${(currentLevelXp / maxXP) * 100}%` }}
                 />
               </div>
             </div>

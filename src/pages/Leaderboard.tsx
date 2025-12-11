@@ -156,43 +156,55 @@ export default function Leaderboard() {
             </div>
           ) : (
             <>
-              {/* Podium */}
-              {top3.length >= 3 && (
+              {/* Podium - show when 1+ entries */}
+              {top3.length >= 1 && (
                 <div className="glass-card p-4 sm:p-8 rounded-2xl mb-6 lg:mb-8">
                   <div className="flex items-end justify-center gap-2 sm:gap-4">
                     {/* 2nd Place */}
-                    <div className="text-center flex-1 max-w-[120px]">
-                      <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center text-lg sm:text-2xl font-bold text-slate-800 ring-2 sm:ring-4 ring-slate-400/50">
-                        {top3[1]?.avatar}
+                    {top3[1] && (
+                      <div className="text-center flex-1 max-w-[120px]">
+                        <div className="text-lg sm:text-xl font-bold text-slate-400 mb-2">#2</div>
+                        <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center text-lg sm:text-2xl font-bold text-slate-800 ring-2 sm:ring-4 ring-slate-400/50">
+                          {top3[1]?.avatar}
+                        </div>
+                        <Medal className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-slate-300" />
+                        <h3 className="font-semibold text-xs sm:text-base truncate">{top3[1]?.name}</h3>
+                        <p className="text-[10px] sm:text-sm text-muted-foreground">{top3[1]?.tasks_completed} tasks</p>
+                        <p className="text-primary text-xs">{top3[1]?.total_xp.toLocaleString()} XP</p>
+                        <div className="h-16 sm:h-24 w-full bg-gradient-to-t from-slate-500/30 to-transparent rounded-t-lg mt-2 sm:mt-4" />
                       </div>
-                      <Medal className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-slate-300" />
-                      <h3 className="font-semibold text-xs sm:text-base truncate">{top3[1]?.name}</h3>
-                      <p className="text-[10px] sm:text-sm text-muted-foreground">{top3[1]?.tasks_completed} tasks</p>
-                      <div className="h-16 sm:h-24 w-full bg-gradient-to-t from-slate-500/30 to-transparent rounded-t-lg mt-2 sm:mt-4" />
-                    </div>
+                    )}
 
                     {/* 1st Place */}
-                    <div className="text-center flex-1 max-w-[140px] -mt-4 sm:-mt-8">
-                      <Crown className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 sm:mb-2 text-premium animate-bounce-subtle" />
-                      <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-xl sm:text-3xl font-bold text-amber-900 ring-2 sm:ring-4 ring-premium/50 shadow-[0_0_30px_rgba(251,191,36,0.4)]">
-                        {top3[0]?.avatar}
+                    {top3[0] && (
+                      <div className="text-center flex-1 max-w-[140px] -mt-4 sm:-mt-8">
+                        <div className="text-xl sm:text-2xl font-bold text-premium mb-2">#1</div>
+                        <Crown className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 sm:mb-2 text-premium animate-bounce-subtle" />
+                        <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-xl sm:text-3xl font-bold text-amber-900 ring-2 sm:ring-4 ring-premium/50 shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+                          {top3[0]?.avatar}
+                        </div>
+                        <h3 className="font-bold text-sm sm:text-lg truncate">{top3[0]?.name}</h3>
+                        <p className="text-premium font-semibold text-xs sm:text-base">{top3[0]?.tasks_completed} tasks</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">🔥 {top3[0]?.current_streak} day streak</p>
+                        <p className="text-primary text-xs font-medium">{top3[0]?.total_xp.toLocaleString()} XP</p>
+                        <div className="h-20 sm:h-32 w-full bg-gradient-to-t from-premium/30 to-transparent rounded-t-lg mt-2 sm:mt-4" />
                       </div>
-                      <h3 className="font-bold text-sm sm:text-lg truncate">{top3[0]?.name}</h3>
-                      <p className="text-premium font-semibold text-xs sm:text-base">{top3[0]?.tasks_completed} tasks</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">🔥 {top3[0]?.current_streak} day streak</p>
-                      <div className="h-20 sm:h-32 w-full bg-gradient-to-t from-premium/30 to-transparent rounded-t-lg mt-2 sm:mt-4" />
-                    </div>
+                    )}
 
                     {/* 3rd Place */}
-                    <div className="text-center flex-1 max-w-[120px]">
-                      <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-lg sm:text-2xl font-bold text-amber-100 ring-2 sm:ring-4 ring-amber-600/50">
-                        {top3[2]?.avatar}
+                    {top3[2] && (
+                      <div className="text-center flex-1 max-w-[120px]">
+                        <div className="text-lg sm:text-xl font-bold text-amber-600 mb-2">#3</div>
+                        <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-lg sm:text-2xl font-bold text-amber-100 ring-2 sm:ring-4 ring-amber-600/50">
+                          {top3[2]?.avatar}
+                        </div>
+                        <Trophy className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-amber-600" />
+                        <h3 className="font-semibold text-xs sm:text-base truncate">{top3[2]?.name}</h3>
+                        <p className="text-[10px] sm:text-sm text-muted-foreground">{top3[2]?.tasks_completed} tasks</p>
+                        <p className="text-primary text-xs">{top3[2]?.total_xp.toLocaleString()} XP</p>
+                        <div className="h-12 sm:h-16 w-full bg-gradient-to-t from-amber-700/30 to-transparent rounded-t-lg mt-2 sm:mt-4" />
                       </div>
-                      <Trophy className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-amber-600" />
-                      <h3 className="font-semibold text-xs sm:text-base truncate">{top3[2]?.name}</h3>
-                      <p className="text-[10px] sm:text-sm text-muted-foreground">{top3[2]?.tasks_completed} tasks</p>
-                      <div className="h-12 sm:h-16 w-full bg-gradient-to-t from-amber-700/30 to-transparent rounded-t-lg mt-2 sm:mt-4" />
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
