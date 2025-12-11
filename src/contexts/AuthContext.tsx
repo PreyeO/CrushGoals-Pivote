@@ -135,6 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // CRITICAL: Reset isAdminLoaded to false BEFORE fetching data
+          // This ensures ProtectedRoute waits for admin status to be determined
+          setIsAdminLoaded(false);
           // Defer Supabase calls with setTimeout to prevent deadlocks
           setTimeout(() => {
             fetchUserData(session.user.id);
@@ -156,7 +159,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        // Reset isAdminLoaded before fetching to ensure proper waiting
+        setIsAdminLoaded(false);
         fetchUserData(session.user.id);
+      } else {
+        setIsAdminLoaded(true);
       }
       setIsLoading(false);
     });
