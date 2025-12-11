@@ -26,7 +26,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { checkRateLimit, recordAttempt, getRemainingAttempts } = useRateLimiter();
+  const { checkRateLimit, recordAttempt } = useRateLimiter();
 
   const validateForm = () => {
     setErrors({});
@@ -58,16 +58,17 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
     
     if (!validateForm()) return;
     
-    // Check rate limit for sign-in only
+    setIsLoading(true);
+    
+    // Check rate limit for sign-in only (server-side)
     if (tab === "signin") {
-      const { allowed, remainingTime } = checkRateLimit();
+      const { allowed, remainingAttempts } = await checkRateLimit(email);
       if (!allowed) {
-        toast.error(`Too many login attempts. Please try again in ${remainingTime} minutes.`);
+        toast.error("Too many login attempts. Please try again in 15 minutes.");
+        setIsLoading(false);
         return;
       }
     }
-    
-    setIsLoading(true);
 
     try {
       if (tab === "signup") {
@@ -104,13 +105,13 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         });
 
         if (error) {
-          // Record failed attempt
-          recordAttempt(false);
-          const remaining = getRemainingAttempts();
+          // Record failed attempt server-side
+          await recordAttempt(email, false);
+          const { remainingAttempts } = await checkRateLimit(email);
           
           if (error.message.includes("Invalid login credentials")) {
-            if (remaining > 0) {
-              toast.error(`Invalid email or password. ${remaining} attempts remaining.`);
+            if (remainingAttempts > 0) {
+              toast.error(`Invalid email or password. ${remainingAttempts} attempts remaining.`);
             } else {
               toast.error("Too many failed attempts. Account locked for 15 minutes.");
             }
@@ -122,8 +123,8 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         }
 
         if (data.user) {
-          // Record successful login
-          recordAttempt(true);
+          // Record successful login server-side
+          await recordAttempt(email, true);
           const userName = data.user.user_metadata?.full_name || email.split("@")[0];
           toast.success("Welcome back!");
           onSuccess({ name: userName, email: email.trim() });
