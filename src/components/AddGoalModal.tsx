@@ -7,9 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { 
   Dumbbell, DollarSign, BookOpen, Briefcase, Heart, 
   Palette, Brain, Plane, Edit3, ChevronLeft, ChevronRight,
-  Target, Calendar, Sparkles, CalendarDays
+  Target, Calendar, Sparkles, CalendarDays, Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GoalTemplates, GoalTemplate, goalTemplates } from "./GoalTemplates";
+import { addDays, format } from "date-fns";
 
 interface AddGoalModalProps {
   open: boolean;
@@ -89,6 +91,23 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   const handleCategorySelect = (category: typeof goalCategories[0]) => {
     setSelectedCategory(category);
     setStep(2);
+  };
+
+  const handleTemplateSelect = (template: GoalTemplate) => {
+    const category = goalCategories.find(c => c.id === template.category);
+    if (category) {
+      setSelectedCategory(category);
+      setGoalName(template.name);
+      setGoalTarget(template.target);
+      setFrequency(template.frequency);
+      setReason(template.reason);
+      // Set dates based on template duration
+      const start = new Date();
+      const end = addDays(start, template.durationDays);
+      setStartDate(format(start, 'yyyy-MM-dd'));
+      setDeadline(format(end, 'yyyy-MM-dd'));
+      setStep(2);
+    }
   };
 
   const handleSubmit = () => {
@@ -171,20 +190,41 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
           </DialogHeader>
 
           {step === 1 && (
-            <div className="grid grid-cols-3 gap-3">
-              {goalCategories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategorySelect(category)}
-                  className={cn(
-                    "p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/50 transition-all text-left group"
-                  )}
-                >
-                  <span className="text-3xl mb-2 block">{category.emoji}</span>
-                  <p className="font-medium text-sm mb-1">{category.label}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{category.examples}</p>
-                </button>
-              ))}
+            <div className="space-y-6">
+              {/* Quick Templates Section */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-success/10 border border-primary/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-5 h-5 text-primary" />
+                  <span className="font-semibold">Quick Start Templates</span>
+                </div>
+                <GoalTemplates onSelectTemplate={handleTemplateSelect} />
+              </div>
+
+              {/* Or Choose Category */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border/50" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or choose a category</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {goalCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategorySelect(category)}
+                    className={cn(
+                      "p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/50 transition-all text-left group"
+                    )}
+                  >
+                    <span className="text-3xl mb-2 block">{category.emoji}</span>
+                    <p className="font-medium text-sm mb-1">{category.label}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{category.examples}</p>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

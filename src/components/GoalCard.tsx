@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { ProgressRing } from "@/components/ProgressRing";
 import { cn } from "@/lib/utils";
-import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus } from "lucide-react";
+import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus, CalendarDays } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +20,13 @@ interface GoalCardProps {
   timeRemaining: string;
   status: "on-track" | "behind" | "ahead" | "completed";
   tasksToday: { completed: number; total: number };
+  startDate?: string;
+  endDate?: string;
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onAddTask?: () => void;
+  onViewCalendar?: () => void;
 }
 
 export function GoalCard({
@@ -35,10 +38,13 @@ export function GoalCard({
   timeRemaining,
   status,
   tasksToday,
+  startDate,
+  endDate,
   onClick,
   onEdit,
   onDelete,
   onAddTask,
+  onViewCalendar,
 }: GoalCardProps) {
   const statusConfig = {
     "on-track": { label: "On Track", color: "text-success", bg: "bg-success/20" },
@@ -77,7 +83,7 @@ export function GoalCard({
               {status === "ahead" && <TrendingUp className="w-3 h-3" />}
               {label}
             </span>
-            {(onEdit || onDelete || onAddTask) && (
+            {(onEdit || onDelete || onAddTask || onViewCalendar) && (
               <DropdownMenu>
                 <DropdownMenuTrigger 
                   onClick={(e) => e.stopPropagation()}
@@ -92,7 +98,13 @@ export function GoalCard({
                       Add Task
                     </DropdownMenuItem>
                   )}
-                  {onAddTask && (onEdit || onDelete) && <DropdownMenuSeparator />}
+                  {onViewCalendar && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewCalendar(); }}>
+                      <CalendarDays className="w-4 h-4 mr-2" />
+                      View Calendar
+                    </DropdownMenuItem>
+                  )}
+                  {(onAddTask || onViewCalendar) && (onEdit || onDelete) && <DropdownMenuSeparator />}
                   {onEdit && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                       <Pencil className="w-4 h-4 mr-2" />
