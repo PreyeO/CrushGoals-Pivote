@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { useAuditLog } from "@/hooks/useAuditLog";
 interface UserData {
   id: string;
   full_name: string;
@@ -54,8 +54,15 @@ export default function Admin() {
     totalGoals: 0,
   });
   const usersPerPage = 10;
+  const { logAction } = useAuditLog();
 
   useEffect(() => {
+    // Log admin dashboard access
+    logAction({
+      action: 'admin_dashboard_accessed',
+      target_table: 'admin_audit_logs',
+    });
+    
     fetchUsers();
     fetchStats();
     fetchAuditLogs();
