@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +19,6 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
-  const navigate = useNavigate();
   const [tab, setTab] = useState<"signin" | "signup">("signup");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,16 +29,6 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { checkRateLimit, recordAttempt } = useRateLimiter();
-
-  const checkIfAdmin = async (userId: string): Promise<boolean> => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .maybeSingle();
-    return !!data;
-  };
 
   const validateForm = () => {
     setErrors({});
@@ -141,19 +129,10 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
           await recordAttempt(email, true);
           const userName = data.user.user_metadata?.full_name || email.split("@")[0];
           
-          // Check if user is admin and redirect accordingly
-          const isAdmin = await checkIfAdmin(data.user.id);
-          
           toast.success("Welcome back!");
           onSuccess({ name: userName, email: email.trim() });
           onOpenChange(false);
-          
-          // Redirect admin to admin dashboard, regular users to dashboard
-          if (isAdmin) {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
-          }
+          // Navigation is handled by Landing page's useEffect based on admin status
         }
       }
     } catch (error) {

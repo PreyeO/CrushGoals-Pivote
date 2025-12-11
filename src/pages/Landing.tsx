@@ -80,20 +80,24 @@ const testimonials = [
 export default function Landing() {
   const [authOpen, setAuthOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, isAdmin, isAdminLoaded } = useAuth();
   const navigate = useNavigate();
   const { getPricing, currentCurrency } = useCurrency();
   const pricing = getPricing();
 
-  // Redirect if already logged in
+  // Redirect if already logged in - admins go to /admin, regular users to /dashboard
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
+    if (user && isAdminLoaded) {
+      if (isAdmin) {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     }
-  }, [user, navigate]);
+  }, [user, isAdmin, isAdminLoaded, navigate]);
 
   const handleAuthSuccess = (userData: { name: string; email: string }) => {
-    navigate("/dashboard");
+    // Navigation is handled by the useEffect based on admin status
   };
 
   const pricingPlans = [

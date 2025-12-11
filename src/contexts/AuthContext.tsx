@@ -36,6 +36,7 @@ interface AuthContextType {
   subscription: Subscription | null;
   isAdmin: boolean;
   isLoading: boolean;
+  isAdminLoaded: boolean;
   isEmailVerified: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminLoaded, setIsAdminLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -112,8 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
       
       setIsAdmin(!!roleData);
+      setIsAdminLoaded(true);
     } catch (error) {
       console.error('Error fetching user data:', error);
+      setIsAdminLoaded(true);
     }
   };
 
@@ -140,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setStats(null);
           setSubscription(null);
           setIsAdmin(false);
+          setIsAdminLoaded(true);
         }
         setIsLoading(false);
       }
@@ -167,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStats(null);
     setSubscription(null);
     setIsAdmin(false);
+    setIsAdminLoaded(false);
   };
 
   return (
@@ -178,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription,
       isAdmin,
       isLoading,
+      isAdminLoaded,
       isEmailVerified,
       signOut,
       refreshProfile,
