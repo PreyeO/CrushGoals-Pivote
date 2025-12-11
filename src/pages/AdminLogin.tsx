@@ -25,15 +25,18 @@ export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(3);
+  const [adminVerifiedLocally, setAdminVerifiedLocally] = useState(false);
 
-  // Redirect to admin dashboard if already logged in as admin
+  // Redirect to admin dashboard if already logged in as admin OR after local verification
   useEffect(() => {
-    if (user && isAdminLoaded) {
-      if (isAdmin) {
-        navigate('/admin', { replace: true });
-      }
+    if (user && isAdminLoaded && isAdmin) {
+      navigate('/admin', { replace: true });
     }
-  }, [user, isAdmin, isAdminLoaded, navigate]);
+    // Also navigate if we've verified admin locally and AuthContext now confirms
+    if (adminVerifiedLocally && user && isAdminLoaded && isAdmin) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, isAdmin, isAdminLoaded, adminVerifiedLocally, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,8 +95,9 @@ export default function AdminLogin() {
         await recordAttempt(email, true);
         toast.success('Welcome back, Admin!');
         
-        // Navigate immediately - AuthContext will catch up
-        navigate('/admin', { replace: true });
+        // Set flag to indicate we've verified admin locally
+        // The useEffect will handle navigation once AuthContext confirms
+        setAdminVerifiedLocally(true);
       }
     } catch (error) {
       await recordAttempt(email, false);
@@ -103,11 +107,14 @@ export default function AdminLogin() {
     }
   };
 
-  // If already an admin, show loading while redirecting
-  if (user && isAdminLoaded && isAdmin) {
+  // If already an admin or waiting for AuthContext to confirm after local verification
+  if ((user && isAdminLoaded && isAdmin) || (adminVerifiedLocally && user)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Redirecting to admin dashboard...</p>
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Redirecting to admin dashboard...</p>
+        </div>
       </div>
     );
   }
