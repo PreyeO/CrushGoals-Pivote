@@ -7,6 +7,7 @@ import { StreakCounter } from "@/components/StreakCounter";
 import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { WeeklySummary } from "@/components/WeeklySummary";
+import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
@@ -37,9 +38,29 @@ export default function Dashboard() {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [weeklySummaryOpen, setWeeklySummaryOpen] = useState(false);
   const [weekData, setWeekData] = useState<{ date: string; day: string; completed: number; total: number }[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   
   // Enable streak notifications
   useStreakNotifications();
+
+  // Check if new user and show onboarding
+  useEffect(() => {
+    const checkOnboarding = () => {
+      const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+      const isNewUser = goals.length === 0 && stats?.tasks_completed === 0;
+      
+      if (!hasSeenOnboarding && isNewUser && !goalsLoading) {
+        setShowOnboarding(true);
+      }
+    };
+    
+    checkOnboarding();
+  }, [goals, stats, goalsLoading]);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('hasSeenOnboarding', 'true');
+    setShowOnboarding(false);
+  };
 
   // Fetch week data
   useEffect(() => {
@@ -495,6 +516,13 @@ export default function Dashboard() {
         trigger={showMilestoneCelebration}
         type="milestone"
         particleCount={100}
+      />
+
+      {/* Onboarding Flow for New Users */}
+      <OnboardingFlow
+        open={showOnboarding}
+        onOpenChange={setShowOnboarding}
+        onComplete={handleOnboardingComplete}
       />
     </div>
   );

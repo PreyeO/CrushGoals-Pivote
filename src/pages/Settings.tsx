@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { 
   User, Bell, Palette, Shield, CreditCard, 
   HelpCircle, Info, Camera, Lock, Crown, Check,
-  Moon, Sun, Monitor, Download, Loader2, LogOut, Volume2
+  Moon, Sun, Monitor, Download, Loader2, LogOut, Volume2, AtSign, Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useNotifications } from "@/hooks/useNotifications";
+import { supabase } from "@/integrations/supabase/client";
 
 const settingsSections = [
   { id: "account", label: "Account", icon: User },
@@ -44,11 +45,23 @@ export default function Settings() {
     return saved !== 'false';
   });
   const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [showOnLeaderboard, setShowOnLeaderboard] = useState(false);
   const [privacy, setPrivacy] = useState({
-    showOnLeaderboard: true,
     shareProgress: false,
     analytics: true,
   });
+
+  // Initialize form values from profile
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.full_name || "");
+      setUsername(profile.username || "");
+      setShowOnLeaderboard(profile.show_on_leaderboard || false);
+    }
+  }, [profile]);
 
   useEffect(() => {
     setSoundEnabled(soundEffects);
@@ -57,10 +70,53 @@ export default function Settings() {
 
   const isLoading = profileLoading || subscriptionLoading;
 
+  const checkUsernameAvailability = async (value: string) => {
+    if (value.length < 3) {
+      setUsernameError("Username must be at least 3 characters");
+      return;
+    }
+    
+    // If same as current username, no need to check
+    if (value.toLowerCase() === profile?.username?.toLowerCase()) {
+      setUsernameError("");
+      return;
+    }
+    
+    setCheckingUsername(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', value.toLowerCase())
+        .maybeSingle();
+
+      if (data) {
+        setUsernameError("Username is already taken");
+      } else {
+        setUsernameError("");
+      }
+    } catch (error) {
+      // Ignore errors during availability check
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
   const handleUpdateProfile = async () => {
     if (displayName.trim()) {
       await updateProfile({ full_name: displayName });
     }
+  };
+
+  const handleUpdateUsername = async () => {
+    if (username.trim() && !usernameError && username !== profile?.username) {
+      await updateProfile({ username: username.toLowerCase().trim() });
+    }
+  };
+
+  const handleToggleLeaderboard = async (checked: boolean) => {
+    setShowOnLeaderboard(checked);
+    await updateProfile({ show_on_leaderboard: checked });
   };
 
   const handleManageSubscription = () => {
@@ -148,13 +204,69 @@ export default function Settings() {
                       <div>
                         <label className="block text-xs sm:text-sm font-medium mb-2">Display Name</label>
                         <Input 
-                          defaultValue={profile?.full_name || ''} 
+                          value={displayName}
                           onChange={(e) => setDisplayName(e.target.value)}
                           onBlur={handleUpdateProfile}
                           className="bg-white/5 border-white/10 text-sm sm:text-base" 
                         />
-                        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">This name appears on leaderboards</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Your full name (private)</p>
                       </div>
+                      
+                      {/* Username Field */}
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium mb-2">Username</label>
+                        <div className="relative">
+                          <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input 
+                            value={username}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
+                              setUsername(value);
+                              if (value.length >= 3) {
+                                checkUsernameAvailability(value);
+                              }
+                            }}
+                            onBlur={handleUpdateUsername}
+                            placeholder="FitWarrior23"
+                            className="bg-white/5 border-white/10 text-sm sm:text-base pl-10" 
+                          />
+                          {checkingUsername && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
+                        {usernameError ? (
+                          <p className="text-[10px] sm:text-xs text-destructive mt-1">{usernameError}</p>
+                        ) : (
+                          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">This is your public name on leaderboards</p>
+                        )}
+                      </div>
+
+                      {/* Leaderboard Toggle */}
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-premium/20 flex items-center justify-center flex-shrink-0">
+                            <Trophy className="w-5 h-5 text-premium" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <label className="text-sm font-medium cursor-pointer">
+                                Show on Global Leaderboard
+                              </label>
+                              <Switch
+                                checked={showOnLeaderboard}
+                                onCheckedChange={handleToggleLeaderboard}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {showOnLeaderboard 
+                                ? "Your username is visible to other users on leaderboards"
+                                : "You're hidden from leaderboards - only you can see your progress"
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
                       <div>
                         <label className="block text-xs sm:text-sm font-medium mb-2">Email</label>
                         <div className="flex items-center gap-2">
@@ -367,7 +479,6 @@ export default function Settings() {
                   
                   <div className="space-y-3 sm:space-y-4">
                     {[
-                      { key: "showOnLeaderboard", label: "Show on Leaderboard", desc: "Allow others to see your rank" },
                       { key: "shareProgress", label: "Share Progress Publicly", desc: "Allow others to view your goal progress" },
                       { key: "analytics", label: "Usage Analytics", desc: "Help us improve Goal Crusher" },
                     ].map((item) => (

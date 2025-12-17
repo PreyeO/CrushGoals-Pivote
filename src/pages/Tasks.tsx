@@ -5,10 +5,11 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { TaskCalendar } from "@/components/TaskCalendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { BulkTaskCompletion } from "@/components/BulkTaskCompletion";
+import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays, AlertTriangle, ChevronDown, ChevronUp, CheckSquare } from "lucide-react";
 import { useTasks, Task } from "@/hooks/useTasks";
 import { useMissedTasks } from "@/hooks/useMissedTasks";
-import { useGoals } from "@/hooks/useGoals";
+import { useGoals, Goal } from "@/hooks/useGoals";
 import { EditTaskModal } from "@/components/EditTaskModal";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ export default function Tasks() {
   const [timeLeft, setTimeLeft] = useState(getTimeLeftToday());
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMissed, setShowMissed] = useState(false);
+  const [bulkCompleteGoal, setBulkCompleteGoal] = useState<Goal | null>(null);
   
   // Update time left every minute
   useEffect(() => {
@@ -115,6 +117,13 @@ export default function Tasks() {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleBulkComplete = async (taskIds: string[]) => {
+    for (const taskId of taskIds) {
+      await toggleTask(taskId, true);
+    }
+    toast.success(`${taskIds.length} tasks completed! 🎉`);
   };
 
   const taskToDelete = tasks.find(t => t.id === deleteTaskId);
@@ -250,34 +259,51 @@ export default function Tasks() {
 
           {/* Tasks by Goal */}
           <div className="space-y-4 sm:space-y-6">
-            {Object.entries(groupedTasks).map(([goalName, goalTasks]) => (
-              <div key={goalName} className="glass-card p-4 sm:p-6 rounded-2xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-xl sm:text-2xl">{goalTasks[0]?.goal?.emoji || '📌'}</span>
-                  <h3 className="font-semibold text-base sm:text-lg">{goalName}</h3>
-                  <span className="text-xs sm:text-sm text-muted-foreground ml-auto">
-                    {goalTasks.filter(t => t.completed).length}/{goalTasks.length} complete
-                  </span>
+            {Object.entries(groupedTasks).map(([goalName, goalTasks]) => {
+              const goalData = goals.find(g => g.name === goalName);
+              const incompleteTasks = goalTasks.filter(t => !t.completed);
+              
+              return (
+                <div key={goalName} className="glass-card p-4 sm:p-6 rounded-2xl">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xl sm:text-2xl">{goalTasks[0]?.goal?.emoji || '📌'}</span>
+                    <h3 className="font-semibold text-base sm:text-lg">{goalName}</h3>
+                    <span className="text-xs sm:text-sm text-muted-foreground ml-auto">
+                      {goalTasks.filter(t => t.completed).length}/{goalTasks.length} complete
+                    </span>
+                    {/* Bulk Complete Button */}
+                    {goalData && incompleteTasks.length > 1 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => setBulkCompleteGoal(goalData)}
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Bulk</span>
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {goalTasks.map(task => (
+                      <TaskItem
+                        key={task.id}
+                        id={task.id}
+                        title={task.title}
+                        goalName={task.goal?.name || 'No Goal'}
+                        goalEmoji={task.goal?.emoji || '📌'}
+                        timeEstimate={task.time_estimate || undefined}
+                        priority={task.priority as "high" | "medium" | "low"}
+                        completed={task.completed || false}
+                        onComplete={() => handleToggle(task.id, task.completed || false)}
+                        onEdit={() => setEditTask(task)}
+                        onDelete={() => setDeleteTaskId(task.id)}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {goalTasks.map(task => (
-                    <TaskItem
-                      key={task.id}
-                      id={task.id}
-                      title={task.title}
-                      goalName={task.goal?.name || 'No Goal'}
-                      goalEmoji={task.goal?.emoji || '📌'}
-                      timeEstimate={task.time_estimate || undefined}
-                      priority={task.priority as "high" | "medium" | "low"}
-                      completed={task.completed || false}
-                      onComplete={() => handleToggle(task.id, task.completed || false)}
-                      onEdit={() => setEditTask(task)}
-                      onDelete={() => setDeleteTaskId(task.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Completed Tasks */}
@@ -445,6 +471,18 @@ export default function Tasks() {
         onConfirm={handleDeleteTask}
         isLoading={isDeleting}
       />
+
+      {/* Bulk Task Completion Modal */}
+      {bulkCompleteGoal && (
+        <BulkTaskCompletion
+          open={!!bulkCompleteGoal}
+          onOpenChange={(open) => !open && setBulkCompleteGoal(null)}
+          tasks={tasks.filter(t => t.goal?.id === bulkCompleteGoal.id)}
+          goalName={bulkCompleteGoal.name}
+          goalEmoji={bulkCompleteGoal.emoji || '🎯'}
+          onComplete={handleBulkComplete}
+        />
+      )}
     </div>
   );
 }
