@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Loader2, Target, User } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Eye, EyeOff, Loader2, Target, User, AtSign, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,18 +25,47 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [showOnLeaderboard, setShowOnLeaderboard] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const { checkRateLimit, recordAttempt } = useRateLimiter();
+
+  const checkUsernameAvailability = async (value: string) => {
+    if (value.length < 3) return;
+    
+    setCheckingUsername(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', value.toLowerCase())
+        .maybeSingle();
+
+      if (data) {
+        setErrors(prev => ({ ...prev, username: "Username is already taken" }));
+      } else {
+        setErrors(prev => {
+          const { username, ...rest } = prev;
+          return rest;
+        });
+      }
+    } catch (error) {
+      // Ignore errors during availability check
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
 
   const validateForm = () => {
     setErrors({});
     
     try {
       if (tab === "signup") {
-        signupSchema.parse({ name, email, password, agreed });
+        signupSchema.parse({ name, username, email, password, agreed });
       } else {
         loginSchema.parse({ email, password });
       }
@@ -74,6 +104,19 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
 
     try {
       if (tab === "signup") {
+        // Check username availability one more time
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', username.toLowerCase())
+          .maybeSingle();
+
+        if (existingUser) {
+          setErrors(prev => ({ ...prev, username: "Username is already taken" }));
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -81,6 +124,8 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
               full_name: name.trim(),
+              username: username.toLowerCase().trim(),
+              show_on_leaderboard: showOnLeaderboard,
             },
           },
         });
@@ -96,6 +141,15 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         }
 
         if (data.user) {
+          // Update profile with username and leaderboard preference
+          await supabase
+            .from('profiles')
+            .update({
+              username: username.toLowerCase().trim(),
+              show_on_leaderboard: showOnLeaderboard,
+            })
+            .eq('user_id', data.user.id);
+
           toast.success("Account created successfully!");
           onSuccess({ name: name.trim(), email: email.trim() });
           onOpenChange(false);
@@ -144,7 +198,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
 
   const isFormValid = tab === "signin" 
     ? email && password.length >= 6 
-    : name && email && password.length >= 6 && agreed;
+    : name && username.length >= 3 && email && password.length >= 6 && agreed && !errors.username;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -193,23 +247,51 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
           {/* Email/Password Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {tab === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-foreground-secondary">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="bg-secondary border-border focus:border-primary h-12 pl-10"
-                disabled={isLoading}
-              />
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-            </div>
-                {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-foreground-secondary">Full Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="bg-secondary border-border focus:border-primary h-12 pl-10"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-foreground-secondary">Username</Label>
+                  <div className="relative">
+                    <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="FitWarrior23"
+                      value={username}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
+                        setUsername(value);
+                        if (value.length >= 3) {
+                          checkUsernameAvailability(value);
+                        }
+                      }}
+                      className="bg-secondary border-border focus:border-primary h-12 pl-10"
+                      disabled={isLoading}
+                    />
+                    {checkingUsername && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">This is your public display name on leaderboards</p>
+                  {errors.username && <p className="text-xs text-destructive">{errors.username}</p>}
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -223,6 +305,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
                 className="bg-secondary border-border focus:border-primary h-12"
                 disabled={isLoading}
               />
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -263,21 +346,47 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             </div>
 
             {tab === "signup" && (
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="terms"
-                  checked={agreed}
-                  onCheckedChange={(checked) => setAgreed(checked === true)}
-                  className="mt-0.5"
-                  disabled={isLoading}
-                />
-                <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed">
-                  I agree to the{" "}
-                  <button type="button" className="text-primary hover:underline">Terms of Service</button>
-                  {" "}and{" "}
-                  <button type="button" className="text-primary hover:underline">Privacy Policy</button>
-                </Label>
-              </div>
+              <>
+                {/* Leaderboard Opt-in */}
+                <div className="p-4 rounded-xl bg-secondary/50 border border-border">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-premium/20 flex items-center justify-center flex-shrink-0">
+                      <Trophy className="w-5 h-5 text-premium" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor="leaderboard" className="text-sm font-medium cursor-pointer">
+                          Compete on Global Leaderboard
+                        </Label>
+                        <Switch
+                          id="leaderboard"
+                          checked={showOnLeaderboard}
+                          onCheckedChange={setShowOnLeaderboard}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Your username will be visible to other users. You can change this anytime in settings.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="terms"
+                    checked={agreed}
+                    onCheckedChange={(checked) => setAgreed(checked === true)}
+                    className="mt-0.5"
+                    disabled={isLoading}
+                  />
+                  <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed">
+                    I agree to the{" "}
+                    <button type="button" className="text-primary hover:underline">Terms of Service</button>
+                    {" "}and{" "}
+                    <button type="button" className="text-primary hover:underline">Privacy Policy</button>
+                  </Label>
+                </div>
+              </>
             )}
 
             {tab === "signin" && (

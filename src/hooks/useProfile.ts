@@ -11,6 +11,8 @@ export interface Profile {
   email: string;
   avatar_url: string | null;
   preferred_currency: string | null;
+  username: string | null;
+  show_on_leaderboard: boolean;
   created_at: string;
   updated_at: string;
 }

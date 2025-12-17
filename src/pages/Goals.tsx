@@ -7,14 +7,16 @@ import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { EditGoalModal } from "@/components/EditGoalModal";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { GoalHabitCalendar } from "@/components/GoalHabitCalendar";
+import { PauseGoalModal } from "@/components/PauseGoalModal";
+import { WhyBehindModal } from "@/components/WhyBehindModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2 } from "lucide-react";
+import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2, Pause } from "lucide-react";
 import { useGoals, Goal } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
 import { toast } from "sonner";
 
 export default function Goals() {
-  const { goals, isLoading, addGoal, updateGoal, deleteGoal, duplicateGoal } = useGoals();
+  const { goals, isLoading, addGoal, updateGoal, deleteGoal, duplicateGoal, pauseGoal, resumeGoal } = useGoals();
   const { addTask } = useTasks();
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   const [editGoal, setEditGoal] = useState<Goal | null>(null);
@@ -22,6 +24,8 @@ export default function Goals() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [addTaskGoal, setAddTaskGoal] = useState<Goal | null>(null);
   const [calendarGoal, setCalendarGoal] = useState<Goal | null>(null);
+  const [pauseGoalTarget, setPauseGoalTarget] = useState<Goal | null>(null);
+  const [whyBehindGoal, setWhyBehindGoal] = useState<Goal | null>(null);
 
   const handleAddGoal = async (goalData: { 
     category: string; 
@@ -74,7 +78,8 @@ export default function Goals() {
 
   const goalToDelete = goals.find(g => g.id === deleteGoalId);
 
-  const activeGoals = goals.filter(g => g.status !== 'completed');
+  const activeGoals = goals.filter(g => g.status !== 'completed' && !g.is_paused);
+  const pausedGoals = goals.filter(g => g.is_paused);
   const completedGoals = goals.filter(g => g.status === 'completed');
   const avgProgress = activeGoals.length > 0 
     ? Math.round(activeGoals.reduce((acc, g) => acc + (g.progress || 0), 0) / activeGoals.length)
@@ -87,6 +92,17 @@ export default function Goals() {
   const nextDeadline = upcomingDeadlines[0]?.deadline 
     ? new Date(upcomingDeadlines[0].deadline).toLocaleDateString('en-US', { month: 'short' })
     : 'None';
+
+  // Calculate expected progress for "why behind" modal
+  const calculateExpectedProgress = (goal: Goal) => {
+    if (!goal.start_date || !goal.deadline) return goal.progress || 0;
+    const start = new Date(goal.start_date).getTime();
+    const end = new Date(goal.deadline).getTime();
+    const now = Date.now();
+    const totalDuration = end - start;
+    const elapsed = now - start;
+    return Math.min(100, Math.round((elapsed / totalDuration) * 100));
+  };
 
   if (isLoading) {
     return (
@@ -200,11 +216,49 @@ export default function Goals() {
                     tasksToday={{ completed: 0, total: 0 }}
                     startDate={goal.start_date || undefined}
                     endDate={goal.deadline || undefined}
+                    isPaused={goal.is_paused}
                     onEdit={() => setEditGoal(goal)}
                     onDelete={() => setDeleteGoalId(goal.id)}
                     onAddTask={() => setAddTaskGoal(goal)}
                     onViewCalendar={() => setCalendarGoal(goal)}
                     onDuplicate={() => duplicateGoal(goal.id)}
+                    onPauseToggle={() => setPauseGoalTarget(goal)}
+                    onWhyBehind={goal.status === 'behind' ? () => setWhyBehindGoal(goal) : undefined}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Paused Goals */}
+          {pausedGoals.length > 0 && (
+            <div className="mb-6 lg:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center gap-2">
+                <Pause className="w-5 h-5 text-muted-foreground" />
+                Paused Goals
+              </h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {pausedGoals.map((goal) => (
+                  <GoalCard 
+                    key={goal.id} 
+                    id={goal.id}
+                    name={goal.name}
+                    emoji={goal.emoji || '🎯'}
+                    progress={goal.progress || 0}
+                    currentValue={goal.current_value || '0'}
+                    targetValue={goal.target_value || 'Complete'}
+                    timeRemaining={goal.deadline 
+                      ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                      : 'No deadline'
+                    }
+                    status={goal.status as 'on-track' | 'ahead' | 'behind' | 'completed'}
+                    tasksToday={{ completed: 0, total: 0 }}
+                    startDate={goal.start_date || undefined}
+                    endDate={goal.deadline || undefined}
+                    isPaused={goal.is_paused}
+                    onEdit={() => setEditGoal(goal)}
+                    onDelete={() => setDeleteGoalId(goal.id)}
+                    onPauseToggle={() => setPauseGoalTarget(goal)}
                   />
                 ))}
               </div>
@@ -290,6 +344,47 @@ export default function Goals() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Pause Goal Modal */}
+      <PauseGoalModal
+        open={!!pauseGoalTarget}
+        onOpenChange={(open) => !open && setPauseGoalTarget(null)}
+        isPaused={pauseGoalTarget?.is_paused || false}
+        goalName={pauseGoalTarget?.name || ''}
+        pauseReason={pauseGoalTarget?.pause_reason}
+        pausedAt={pauseGoalTarget?.paused_at}
+        onPause={(reason) => {
+          if (pauseGoalTarget) {
+            pauseGoal(pauseGoalTarget.id, reason);
+            setPauseGoalTarget(null);
+          }
+        }}
+        onResume={() => {
+          if (pauseGoalTarget) {
+            resumeGoal(pauseGoalTarget.id);
+            setPauseGoalTarget(null);
+          }
+        }}
+      />
+
+      {/* Why Behind Modal */}
+      <WhyBehindModal
+        open={!!whyBehindGoal}
+        onOpenChange={(open) => !open && setWhyBehindGoal(null)}
+        goalName={whyBehindGoal?.name || ''}
+        progress={whyBehindGoal?.progress || 0}
+        expectedProgress={whyBehindGoal ? calculateExpectedProgress(whyBehindGoal) : 0}
+        daysRemaining={whyBehindGoal?.deadline 
+          ? Math.max(0, Math.ceil((new Date(whyBehindGoal.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+          : 0
+        }
+        missedTasks={0}
+        totalTasks={0}
+        onPauseGoal={() => {
+          setWhyBehindGoal(null);
+          if (whyBehindGoal) setPauseGoalTarget(whyBehindGoal);
+        }}
+      />
     </div>
   );
 }

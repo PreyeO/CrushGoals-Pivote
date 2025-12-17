@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { ProgressRing } from "@/components/ProgressRing";
 import { cn } from "@/lib/utils";
-import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus, CalendarDays, Copy } from "lucide-react";
+import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus, CalendarDays, Copy, Pause, Play, HelpCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,12 +22,15 @@ interface GoalCardProps {
   tasksToday: { completed: number; total: number };
   startDate?: string;
   endDate?: string;
+  isPaused?: boolean;
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onAddTask?: () => void;
   onViewCalendar?: () => void;
   onDuplicate?: () => void;
+  onPauseToggle?: () => void;
+  onWhyBehind?: () => void;
 }
 
 export function GoalCard({
@@ -41,21 +44,26 @@ export function GoalCard({
   tasksToday,
   startDate,
   endDate,
+  isPaused,
   onClick,
   onEdit,
   onDelete,
   onAddTask,
   onViewCalendar,
   onDuplicate,
+  onPauseToggle,
+  onWhyBehind,
 }: GoalCardProps) {
   const statusConfig = {
     "on-track": { label: "On Track", color: "text-success", bg: "bg-success/20" },
     "behind": { label: "Behind", color: "text-warning", bg: "bg-warning/20" },
     "ahead": { label: "Crushing It!", color: "text-primary", bg: "bg-primary/20" },
     "completed": { label: "Completed!", color: "text-premium", bg: "bg-premium/20" },
+    "paused": { label: "Paused", color: "text-muted-foreground", bg: "bg-muted" },
   };
 
-  const { label, color, bg } = statusConfig[status];
+  const displayStatus = isPaused ? "paused" : status;
+  const { label, color, bg } = statusConfig[displayStatus];
 
   const getVariant = () => {
     if (progress >= 75) return "success";
@@ -67,7 +75,10 @@ export function GoalCard({
   return (
     <Card
       variant="glass"
-      className="p-4 sm:p-5 hover-lift hover-glow cursor-pointer group relative overflow-hidden h-full"
+      className={cn(
+        "p-4 sm:p-5 hover-lift hover-glow cursor-pointer group relative overflow-hidden h-full",
+        isPaused && "opacity-70"
+      )}
       onClick={onClick}
     >
       {/* Background gradient accent */}
@@ -77,15 +88,25 @@ export function GoalCard({
         {/* Header with emoji, name and status */}
         <div className="flex items-start justify-between gap-2 mb-4">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="text-2xl flex-shrink-0">{emoji}</span>
-            <h3 className="text-base font-semibold truncate">{name}</h3>
+            <span className="text-2xl flex-shrink-0">{isPaused ? "⏸️" : emoji}</span>
+            <h3 className={cn("text-base font-semibold truncate", isPaused && "text-muted-foreground")}>{name}</h3>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {status === "behind" && !isPaused && onWhyBehind && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onWhyBehind(); }}
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors bg-warning/20 text-warning"
+                title="Why am I behind?"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            )}
             <span className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap", bg, color)}>
-              {status === "ahead" && <TrendingUp className="w-3 h-3" />}
+              {status === "ahead" && !isPaused && <TrendingUp className="w-3 h-3" />}
+              {isPaused && <Pause className="w-3 h-3" />}
               {label}
             </span>
-            {(onEdit || onDelete || onAddTask || onViewCalendar || onDuplicate) && (
+            {(onEdit || onDelete || onAddTask || onViewCalendar || onDuplicate || onPauseToggle) && (
               <DropdownMenu>
                 <DropdownMenuTrigger 
                   onClick={(e) => e.stopPropagation()}
@@ -112,7 +133,22 @@ export function GoalCard({
                       Duplicate Goal
                     </DropdownMenuItem>
                   )}
-                  {(onAddTask || onViewCalendar || onDuplicate) && (onEdit || onDelete) && <DropdownMenuSeparator />}
+                  {onPauseToggle && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPauseToggle(); }}>
+                      {isPaused ? (
+                        <>
+                          <Play className="w-4 h-4 mr-2 text-success" />
+                          Resume Goal
+                        </>
+                      ) : (
+                        <>
+                          <Pause className="w-4 h-4 mr-2 text-warning" />
+                          Pause Goal
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                  )}
+                  {(onAddTask || onViewCalendar || onDuplicate || onPauseToggle) && (onEdit || onDelete) && <DropdownMenuSeparator />}
                   {onEdit && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                       <Pencil className="w-4 h-4 mr-2" />
