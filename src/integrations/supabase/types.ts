@@ -378,6 +378,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_audit_logs: {
+        Args: { limit_count?: number }
+        Returns: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          new_values: Json
+          old_values: Json
+          target_id: string
+          target_table: string
+        }[]
+      }
+      admin_get_stats: {
+        Args: never
+        Returns: {
+          active_subscribers: number
+          total_goals: number
+          total_users: number
+          trial_users: number
+        }[]
+      }
+      admin_get_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          current_streak: number
+          email: string
+          full_name: string
+          goals_count: number
+          level: number
+          plan: string
+          subscription_status: string
+          total_xp: number
+          trial_ends_at: string
+          user_id: string
+        }[]
+      }
       check_admin_login_rate_limit: {
         Args: { check_email: string }
         Returns: number

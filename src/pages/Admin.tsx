@@ -70,11 +70,8 @@ export default function Admin() {
 
   const fetchAuditLogs = async () => {
     try {
-      const { data, error } = await supabase
-        .from('admin_audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Use secure server-side function that verifies admin role
+      const { data, error } = await supabase.rpc('admin_get_audit_logs', { limit_count: 50 });
 
       if (error) throw error;
       setAuditLogs(data || []);
@@ -85,31 +82,20 @@ export default function Admin() {
 
   const fetchStats = async () => {
     try {
-      const { count: usersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      // Use secure server-side function that verifies admin role
+      const { data, error } = await supabase.rpc('admin_get_stats');
 
-      const { count: subscribersCount } = await supabase
-        .from('subscriptions')
-        .select('*', { count: 'exact', head: true })
-        .in('plan', ['monthly', 'annual'])
-        .eq('status', 'active');
-
-      const { count: trialCount } = await supabase
-        .from('subscriptions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'trial');
-
-      const { count: goalsCount } = await supabase
-        .from('goals')
-        .select('*', { count: 'exact', head: true });
-
-      setStats({
-        totalUsers: usersCount || 0,
-        activeSubscribers: subscribersCount || 0,
-        trialUsers: trialCount || 0,
-        totalGoals: goalsCount || 0,
-      });
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const statsData = data[0];
+        setStats({
+          totalUsers: Number(statsData.total_users) || 0,
+          activeSubscribers: Number(statsData.active_subscribers) || 0,
+          trialUsers: Number(statsData.trial_users) || 0,
+          totalGoals: Number(statsData.total_goals) || 0,
+        });
+      }
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -118,43 +104,28 @@ export default function Admin() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use secure server-side function that verifies admin role
+      const { data, error } = await supabase.rpc('admin_get_users');
 
       if (error) throw error;
 
-      const usersWithData = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          const { data: subscription } = await supabase
-            .from('subscriptions')
-            .select('plan, status, trial_ends_at')
-            .eq('user_id', profile.user_id)
-            .maybeSingle();
-
-          const { data: userStats } = await supabase
-            .from('user_stats')
-            .select('total_xp, level, current_streak')
-            .eq('user_id', profile.user_id)
-            .maybeSingle();
-
-          const { count: goalsCount } = await supabase
-            .from('goals')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', profile.user_id);
-
-          return {
-            id: profile.user_id,
-            full_name: profile.full_name,
-            email: profile.email,
-            created_at: profile.created_at,
-            subscription: subscription || undefined,
-            stats: userStats || undefined,
-            goals_count: goalsCount || 0,
-          };
-        })
-      );
+      const usersWithData = (data || []).map((user: any) => ({
+        id: user.user_id,
+        full_name: user.full_name,
+        email: user.email,
+        created_at: user.created_at,
+        subscription: {
+          plan: user.plan,
+          status: user.subscription_status,
+          trial_ends_at: user.trial_ends_at,
+        },
+        stats: {
+          total_xp: user.total_xp,
+          level: user.level,
+          current_streak: user.current_streak,
+        },
+        goals_count: Number(user.goals_count) || 0,
+      }));
 
       setUsers(usersWithData);
     } catch (error) {
