@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/logger';
 
 export function useAdminRateLimiter() {
   const checkRateLimit = useCallback(async (email: string): Promise<{ allowed: boolean; remainingAttempts: number }> => {
@@ -9,7 +10,7 @@ export function useAdminRateLimiter() {
       });
 
       if (error) {
-        console.error('Admin rate limit check error:', error);
+        logError('Admin rate limit check error:', error);
         // Fail closed for admin - deny attempt if rate limit check fails
         return { allowed: false, remainingAttempts: 0 };
       }
@@ -29,7 +30,7 @@ export function useAdminRateLimiter() {
         attempt_success: success
       });
     } catch (error) {
-      console.error('Failed to record admin login attempt:', error);
+      logError('Failed to record admin login attempt:', error);
     }
   }, []);
 

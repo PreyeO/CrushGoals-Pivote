@@ -17,6 +17,7 @@ import { useTasks } from "@/hooks/useTasks";
 import { useStreakNotifications } from "@/hooks/useStreakNotifications";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { logError } from "@/lib/logger";
 
 const motivationalQuotes = [
   { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -87,7 +88,7 @@ export default function Dashboard() {
           });
         }
       } catch (error) {
-        console.error('Error fetching week data:', error);
+        logError('Error fetching week data:', error);
       }
 
       setWeekData(weekDates);

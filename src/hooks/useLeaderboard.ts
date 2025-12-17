@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logError } from '@/lib/logger';
 
 export interface LeaderboardEntry {
   rank: number;
@@ -62,7 +63,7 @@ export function useLeaderboard() {
         setUserRank(userEntry);
       }
     } catch (error) {
-      console.error('Error fetching leaderboard:', error);
+      logError('Error fetching leaderboard:', error);
     } finally {
       setIsLoading(false);
     }

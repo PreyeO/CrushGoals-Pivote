@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect } from 'react';
+import { logWarn } from '@/lib/logger';
 
 type SoundType = 'taskComplete' | 'perfectDay' | 'levelUp' | 'milestone' | 'xpGain' | 'error';
 
@@ -63,7 +64,7 @@ class AudioSynthesizer {
       oscillator.start(ctx.currentTime);
       oscillator.stop(ctx.currentTime + duration);
     } catch (e) {
-      console.warn('Audio playback failed:', e);
+      logWarn('Audio playback failed:', e);
     }
   }
 

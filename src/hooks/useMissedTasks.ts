@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from './useTasks';
+import { logError } from '@/lib/logger';
 
 export function useMissedTasks() {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ export function useMissedTasks() {
       if (error) throw error;
       setMissedTasks(data as Task[]);
     } catch (error) {
-      console.error('Error fetching missed tasks:', error);
+      logError('Error fetching missed tasks:', error);
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +53,7 @@ export function useMissedTasks() {
       setMissedTasks(prev => prev.filter(t => t.id !== taskId));
       return true;
     } catch (error) {
-      console.error('Error marking task complete:', error);
+      logError('Error marking task complete:', error);
       return false;
     }
   };

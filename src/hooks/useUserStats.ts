@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logError } from '@/lib/logger';
 
 export interface UserStats {
   id: string;
@@ -34,7 +35,7 @@ export function useUserStats() {
       if (error) throw error;
       setStats(data as UserStats);
     } catch (error) {
-      console.error('Error fetching user stats:', error);
+      logError('Error fetching user stats:', error);
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +56,7 @@ export function useUserStats() {
       setStats(data as UserStats);
       return data as UserStats;
     } catch (error) {
-      console.error('Error updating stats:', error);
+      logError('Error updating stats:', error);
       return null;
     }
   };

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/logger';
 
 export function useRateLimiter() {
   const checkRateLimit = useCallback(async (email: string): Promise<{ allowed: boolean; remainingAttempts: number }> => {
@@ -9,7 +10,7 @@ export function useRateLimiter() {
       });
 
       if (error) {
-        console.error('Rate limit check error:', error);
+        logError('Rate limit check error:', error);
         // Fail open - allow attempt if rate limit check fails
         return { allowed: true, remainingAttempts: 5 };
       }
@@ -28,7 +29,7 @@ export function useRateLimiter() {
         attempt_success: success
       });
     } catch (error) {
-      console.error('Failed to record login attempt:', error);
+      logError('Failed to record login attempt:', error);
     }
   }, []);
 

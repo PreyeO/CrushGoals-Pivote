@@ -7,6 +7,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { logError } from "@/lib/logger";
 
 type TimeRange = "week" | "month" | "year";
 
@@ -119,7 +120,7 @@ export default function Analytics() {
         setXpHistory(xpData);
 
       } catch (error) {
-        console.error('Error fetching chart data:', error);
+        logError('Error fetching chart data:', error);
       } finally {
         setIsLoadingChart(false);
       }
