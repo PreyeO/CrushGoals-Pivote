@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ALL_BADGES } from '@/hooks/useAchievements';
+import { logError } from '@/lib/logger';
 
 export interface Task {
   id: string;
@@ -126,7 +127,7 @@ export function useTasks(date?: string) {
         }
       }
     } catch (error) {
-      console.error('Error checking achievements:', error);
+      logError('Error checking achievements:', error);
     }
   };
 
@@ -152,7 +153,7 @@ export function useTasks(date?: string) {
       if (error) throw error;
       setTasks(data as Task[]);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      logError('Error fetching tasks:', error);
       toast.error('Failed to load tasks');
     } finally {
       setIsLoading(false);
@@ -191,7 +192,7 @@ export function useTasks(date?: string) {
       toast.success('Task added!');
       return data as Task;
     } catch (error) {
-      console.error('Error adding task:', error);
+      logError('Error adding task:', error);
       toast.error('Failed to add task');
       return null;
     }
@@ -254,7 +255,7 @@ export function useTasks(date?: string) {
         .eq('id', goalId);
 
     } catch (error) {
-      console.error('Error updating goal progress:', error);
+      logError('Error updating goal progress:', error);
     }
   };
 
@@ -318,7 +319,7 @@ export function useTasks(date?: string) {
             .single();
           
           if (createError) {
-            console.error('Error creating user stats:', createError);
+            logError('Error creating user stats:', createError);
           } else {
             currentStats = newStats;
           }
@@ -407,7 +408,7 @@ export function useTasks(date?: string) {
 
       return data as Task;
     } catch (error) {
-      console.error('Error toggling task:', error);
+      logError('Error toggling task:', error);
       toast.error('Failed to update task');
       return null;
     }
@@ -431,7 +432,7 @@ export function useTasks(date?: string) {
       toast.success('Task updated');
       return data as Task;
     } catch (error) {
-      console.error('Error updating task:', error);
+      logError('Error updating task:', error);
       toast.error('Failed to update task');
       return null;
     }
@@ -449,7 +450,7 @@ export function useTasks(date?: string) {
       setTasks(prev => prev.filter(t => t.id !== taskId));
       toast.success('Task deleted');
     } catch (error) {
-      console.error('Error deleting task:', error);
+      logError('Error deleting task:', error);
       toast.error('Failed to delete task');
     }
   };

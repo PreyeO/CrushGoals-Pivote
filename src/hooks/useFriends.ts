@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logError } from '@/lib/logger';
 
 export interface Friend {
   id: string;
@@ -129,7 +130,7 @@ export function useFriends() {
 
       setFriends([...(sentFriends || []), ...(receivedFriends || [])] as Friend[]);
     } catch (error) {
-      console.error('Error fetching friends:', error);
+      logError('Error fetching friends:', error);
     } finally {
       setIsLoading(false);
     }
@@ -188,7 +189,7 @@ export function useFriends() {
       toast.success('Friend request sent!', { description: `Sent to ${targetProfile.full_name}` });
       return true;
     } catch (error) {
-      console.error('Error sending friend request:', error);
+      logError('Error sending friend request:', error);
       toast.error('Failed to send friend request');
       return false;
     }
@@ -206,7 +207,7 @@ export function useFriends() {
       toast.success('Friend request accepted!');
       await fetchFriends();
     } catch (error) {
-      console.error('Error accepting friend request:', error);
+      logError('Error accepting friend request:', error);
       toast.error('Failed to accept request');
     }
   };
@@ -223,7 +224,7 @@ export function useFriends() {
       toast.success('Friend request declined');
       await fetchFriends();
     } catch (error) {
-      console.error('Error rejecting friend request:', error);
+      logError('Error rejecting friend request:', error);
       toast.error('Failed to decline request');
     }
   };
@@ -243,7 +244,7 @@ export function useFriends() {
       toast.success('Friend removed');
       await fetchFriends();
     } catch (error) {
-      console.error('Error removing friend:', error);
+      logError('Error removing friend:', error);
       toast.error('Failed to remove friend');
     }
   };
