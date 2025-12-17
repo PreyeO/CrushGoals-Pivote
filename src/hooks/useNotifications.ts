@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logError } from '@/lib/logger';
 
 interface NotificationSettings {
   dailyReminder: boolean;
@@ -61,7 +62,7 @@ export function useNotifications() {
       }
       return false;
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
+      logError('Error requesting notification permission:', error);
       return false;
     }
   }, []);

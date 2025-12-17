@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Trophy, Target, Flame, TrendingUp, Share2, Calendar } from "lucide-react";
 import { startOfWeek, endOfWeek, format, subWeeks } from "date-fns";
 import { toast } from "sonner";
+import { logError } from "@/lib/logger";
 
 interface WeeklySummaryData {
   tasksCompleted: number;
@@ -106,7 +107,7 @@ export function WeeklySummary({ open, onOpenChange }: WeeklySummaryProps) {
         weekEnd: format(weekEnd, 'MMM d, yyyy'),
       });
     } catch (error) {
-      console.error('Error fetching weekly summary:', error);
+      logError('Error fetching weekly summary:', error);
     } finally {
       setIsLoading(false);
     }

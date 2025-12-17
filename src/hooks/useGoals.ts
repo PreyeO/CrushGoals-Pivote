@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logError } from '@/lib/logger';
 
 export interface Goal {
   id: string;
@@ -90,7 +91,7 @@ export function useGoals() {
       if (error) throw error;
       setGoals(data as Goal[]);
     } catch (error) {
-      console.error('Error fetching goals:', error);
+      logError('Error fetching goals:', error);
       toast.error('Failed to load goals');
     } finally {
       setIsLoading(false);
@@ -153,7 +154,7 @@ export function useGoals() {
     if (tasks.length > 0) {
       const { error } = await supabase.from('tasks').insert(tasks);
       if (error) {
-        console.error('Error generating tasks:', error);
+        logError('Error generating tasks:', error);
       }
     }
   };
@@ -214,7 +215,7 @@ export function useGoals() {
       
       return data as Goal;
     } catch (error) {
-      console.error('Error adding goal:', error);
+      logError('Error adding goal:', error);
       toast.error('Failed to create goal');
       return null;
     }
@@ -234,7 +235,7 @@ export function useGoals() {
       setGoals(prev => prev.map(g => g.id === goalId ? data as Goal : g));
       return data as Goal;
     } catch (error) {
-      console.error('Error updating goal:', error);
+      logError('Error updating goal:', error);
       toast.error('Failed to update goal');
       return null;
     }
@@ -258,7 +259,7 @@ export function useGoals() {
       setGoals(prev => prev.filter(g => g.id !== goalId));
       toast.success('Goal and associated tasks deleted');
     } catch (error) {
-      console.error('Error deleting goal:', error);
+      logError('Error deleting goal:', error);
       toast.error('Failed to delete goal');
     }
   };
@@ -322,7 +323,7 @@ export function useGoals() {
       
       return data as Goal;
     } catch (error) {
-      console.error('Error duplicating goal:', error);
+      logError('Error duplicating goal:', error);
       toast.error('Failed to duplicate goal');
       return null;
     }

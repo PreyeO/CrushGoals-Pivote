@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Target } from "lucide-react";
 import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { logError } from "@/lib/logger";
 
 interface TaskDay {
   date: Date;
@@ -74,7 +75,7 @@ export function TaskCalendar({ onDateSelect, selectedDate }: TaskCalendarProps) 
 
         setTaskDays(dayMap);
       } catch (error) {
-        console.error('Error fetching tasks for calendar:', error);
+        logError('Error fetching tasks for calendar:', error);
       } finally {
         setIsLoading(false);
       }

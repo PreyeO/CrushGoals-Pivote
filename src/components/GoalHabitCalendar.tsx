@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckCircle2, Target, Calendar as CalendarIcon, TrendingUp } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, differenceInDays } from "date-fns";
+import { logError } from "@/lib/logger";
 
 interface GoalTaskDay {
   date: Date;
@@ -115,7 +116,7 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
           currentStreak: streak,
         });
       } catch (error) {
-        console.error('Error fetching goal tasks:', error);
+        logError('Error fetching goal tasks:', error);
       } finally {
         setIsLoading(false);
       }
