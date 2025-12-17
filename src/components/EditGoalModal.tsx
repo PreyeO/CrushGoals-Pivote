@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Target, Calendar } from "lucide-react";
+import { Target, Calendar, Shield, TrendingUp, History } from "lucide-react";
 import type { Goal } from "@/hooks/useGoals";
 
 interface EditGoalModalProps {
@@ -19,6 +19,9 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
   const [currentValue, setCurrentValue] = useState("");
   const [deadline, setDeadline] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const originalDeadline = goal?.deadline || "";
+  const originalTarget = goal?.target_value || "";
 
   useEffect(() => {
     if (goal) {
@@ -46,17 +49,31 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
     }
   };
 
+  const isDeadlineExtended = deadline && originalDeadline && new Date(deadline) > new Date(originalDeadline);
+  const isTargetModified = targetValue !== originalTarget;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-card border-white/10 backdrop-blur-xl">
+      <DialogContent className="sm:max-w-[500px] bg-card border-white/10 backdrop-blur-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <span className="text-2xl">{goal?.emoji}</span>
-            Edit Goal
+            Adjust Goal
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
+        {/* Progress Preservation Notice */}
+        <div className="flex items-start gap-3 p-3 rounded-xl bg-success/10 border border-success/20">
+          <Shield className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-success">Your progress is safe</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Adjusting deadlines or targets won't affect your completed tasks, XP, or streak history.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-2">
           <div className="space-y-2">
             <Label htmlFor="editName" className="flex items-center gap-2">
               <Target className="w-4 h-4 text-primary" />
@@ -72,7 +89,10 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="editCurrent">Current Progress</Label>
+              <Label htmlFor="editCurrent" className="flex items-center gap-2">
+                <History className="w-4 h-4 text-muted-foreground" />
+                Current Progress
+              </Label>
               <Input
                 id="editCurrent"
                 value={currentValue}
@@ -80,9 +100,13 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
                 className="bg-secondary border-border h-12"
                 placeholder="e.g., 5kg lost"
               />
+              <p className="text-[10px] text-muted-foreground">Your tracked progress so far</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="editTarget">Target</Label>
+              <Label htmlFor="editTarget" className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                Target
+              </Label>
               <Input
                 id="editTarget"
                 value={targetValue}
@@ -90,6 +114,9 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
                 className="bg-secondary border-border h-12"
                 placeholder="e.g., 20kg"
               />
+              {isTargetModified && (
+                <p className="text-[10px] text-warning">Target modified from: {originalTarget}</p>
+              )}
             </div>
           </div>
 
@@ -105,7 +132,27 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
               onChange={(e) => setDeadline(e.target.value)}
               className="bg-secondary border-border h-12"
             />
+            {isDeadlineExtended && (
+              <div className="flex items-center gap-2 text-xs text-primary">
+                <span>📅 Extending deadline from {new Date(originalDeadline).toLocaleDateString()}</span>
+              </div>
+            )}
           </div>
+
+          {/* Summary of changes */}
+          {(isDeadlineExtended || isTargetModified) && (
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+              <p className="text-xs font-medium text-primary mb-1">Summary of adjustments:</p>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                {isTargetModified && (
+                  <li>• Target: {originalTarget} → {targetValue}</li>
+                )}
+                {isDeadlineExtended && (
+                  <li>• Deadline: {new Date(originalDeadline).toLocaleDateString()} → {new Date(deadline).toLocaleDateString()}</li>
+                )}
+              </ul>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <Button
@@ -121,7 +168,7 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
               onClick={handleSave}
               disabled={!name || isLoading}
             >
-              {isLoading ? "Saving..." : "Save Changes"}
+              {isLoading ? "Saving..." : "Save Adjustments"}
             </Button>
           </div>
         </div>

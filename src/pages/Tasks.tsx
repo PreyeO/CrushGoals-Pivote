@@ -3,10 +3,11 @@ import { Sidebar } from "@/components/Sidebar";
 import { TaskItem } from "@/components/TaskItem";
 import { ProgressRing } from "@/components/ProgressRing";
 import { TaskCalendar } from "@/components/TaskCalendar";
+import { WeeklyGoalView } from "@/components/WeeklyGoalView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BulkTaskCompletion } from "@/components/BulkTaskCompletion";
-import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays, AlertTriangle, ChevronDown, ChevronUp, CheckSquare } from "lucide-react";
+import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays, AlertTriangle, ChevronDown, ChevronUp, CheckSquare, CalendarRange } from "lucide-react";
 import { useTasks, Task } from "@/hooks/useTasks";
 import { useMissedTasks } from "@/hooks/useMissedTasks";
 import { useGoals, Goal } from "@/hooks/useGoals";
@@ -59,8 +60,12 @@ export default function Tasks() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(getTimeLeftToday());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showWeeklyView, setShowWeeklyView] = useState(false);
   const [showMissed, setShowMissed] = useState(false);
   const [bulkCompleteGoal, setBulkCompleteGoal] = useState<Goal | null>(null);
+  
+  // Fetch all tasks for weekly view (no date filter)
+  const { tasks: allTasks, toggleTask: toggleAllTask } = useTasks();
   
   // Update time left every minute
   useEffect(() => {
@@ -172,9 +177,17 @@ export default function Tasks() {
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               <Button 
+                variant={showWeeklyView ? "default" : "outline"} 
+                className="gap-2"
+                onClick={() => { setShowWeeklyView(!showWeeklyView); setShowCalendar(false); }}
+              >
+                <CalendarRange className="w-4 h-4" />
+                <span className="hidden sm:inline">Weekly</span>
+              </Button>
+              <Button 
                 variant={showCalendar ? "default" : "outline"} 
                 className="gap-2"
-                onClick={() => setShowCalendar(!showCalendar)}
+                onClick={() => { setShowCalendar(!showCalendar); setShowWeeklyView(false); }}
               >
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendar</span>
@@ -241,6 +254,18 @@ export default function Tasks() {
             <div className="mb-6 glass-card rounded-2xl p-4 sm:p-6">
               <h3 className="font-semibold mb-4">Task Calendar</h3>
               <TaskCalendar selectedDate={new Date()} />
+            </div>
+          )}
+
+          {/* Weekly Goal View */}
+          {showWeeklyView && (
+            <div className="mb-6 glass-card rounded-2xl p-4 sm:p-6">
+              <h3 className="font-semibold mb-4">Weekly Goal Progress</h3>
+              <WeeklyGoalView 
+                tasks={allTasks} 
+                goals={goals}
+                onToggleTask={(id, completed) => toggleAllTask(id, !completed)}
+              />
             </div>
           )}
 
