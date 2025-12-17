@@ -116,7 +116,10 @@ export type Database = {
           deadline: string | null
           emoji: string | null
           id: string
+          is_paused: boolean | null
           name: string
+          pause_reason: string | null
+          paused_at: string | null
           progress: number | null
           start_date: string | null
           status: string | null
@@ -133,7 +136,10 @@ export type Database = {
           deadline?: string | null
           emoji?: string | null
           id?: string
+          is_paused?: boolean | null
           name: string
+          pause_reason?: string | null
+          paused_at?: string | null
           progress?: number | null
           start_date?: string | null
           status?: string | null
@@ -150,7 +156,10 @@ export type Database = {
           deadline?: string | null
           emoji?: string | null
           id?: string
+          is_paused?: boolean | null
           name?: string
+          pause_reason?: string | null
+          paused_at?: string | null
           progress?: number | null
           start_date?: string | null
           status?: string | null
@@ -190,8 +199,10 @@ export type Database = {
           full_name: string
           id: string
           preferred_currency: string | null
+          show_on_leaderboard: boolean | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -200,8 +211,10 @@ export type Database = {
           full_name: string
           id?: string
           preferred_currency?: string | null
+          show_on_leaderboard?: boolean | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -210,8 +223,10 @@ export type Database = {
           full_name?: string
           id?: string
           preferred_currency?: string | null
+          show_on_leaderboard?: boolean | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }

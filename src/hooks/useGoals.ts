@@ -20,6 +20,9 @@ export interface Goal {
   updated_at: string;
   completed_at: string | null;
   task_frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  is_paused: boolean;
+  paused_at: string | null;
+  pause_reason: string | null;
 }
 
 // Parse target value to extract number and unit
@@ -329,6 +332,72 @@ export function useGoals() {
     }
   };
 
+  const pauseGoal = async (goalId: string, reason: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('goals')
+        .update({
+          is_paused: true,
+          paused_at: new Date().toISOString(),
+          pause_reason: reason,
+        })
+        .eq('id', goalId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setGoals(prev => prev.map(g => g.id === goalId ? data as Goal : g));
+      toast.success('Goal paused! Your progress is safe 💪');
+      return data as Goal;
+    } catch (error) {
+      logError('Error pausing goal:', error);
+      toast.error('Failed to pause goal');
+      return null;
+    }
+  };
+
+  const resumeGoal = async (goalId: string) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal || !goal.paused_at) return null;
+
+    try {
+      // Calculate days paused and extend deadline
+      const pausedDays = Math.ceil(
+        (new Date().getTime() - new Date(goal.paused_at).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      let newDeadline = goal.deadline;
+      if (goal.deadline) {
+        const deadlineDate = new Date(goal.deadline);
+        deadlineDate.setDate(deadlineDate.getDate() + pausedDays);
+        newDeadline = deadlineDate.toISOString().split('T')[0];
+      }
+
+      const { data, error } = await supabase
+        .from('goals')
+        .update({
+          is_paused: false,
+          paused_at: null,
+          pause_reason: null,
+          deadline: newDeadline,
+        })
+        .eq('id', goalId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setGoals(prev => prev.map(g => g.id === goalId ? data as Goal : g));
+      toast.success(`Goal resumed! Deadline extended by ${pausedDays} days 🎯`);
+      return data as Goal;
+    } catch (error) {
+      logError('Error resuming goal:', error);
+      toast.error('Failed to resume goal');
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchGoals();
 
@@ -361,6 +430,8 @@ export function useGoals() {
     updateGoal,
     deleteGoal,
     duplicateGoal,
+    pauseGoal,
+    resumeGoal,
     refreshGoals: fetchGoals,
   };
 }
