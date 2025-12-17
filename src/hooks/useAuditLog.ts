@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Json } from '@/integrations/supabase/types';
+import { logError } from '@/lib/logger';
 
 interface AuditLogEntry {
   action: string;
@@ -29,7 +30,7 @@ export function useAuditLog() {
       
       await supabase.from('admin_audit_logs').insert(insertData);
     } catch (error) {
-      console.error('Failed to log audit action:', error);
+      logError('Failed to log audit action:', error);
     }
   };
 
@@ -43,7 +44,7 @@ export function useAuditLog() {
       .limit(limit);
 
     if (error) {
-      console.error('Failed to fetch audit logs:', error);
+      logError('Failed to fetch audit logs:', error);
       return [];
     }
 

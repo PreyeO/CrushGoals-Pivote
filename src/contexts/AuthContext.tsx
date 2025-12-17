@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
+import { logError } from '@/lib/logger';
 
 interface Profile {
   id: string;
@@ -116,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAdmin(!!roleData);
       setIsAdminLoaded(true);
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      logError('Error fetching user data:', error);
       setIsAdminLoaded(true);
     }
   };

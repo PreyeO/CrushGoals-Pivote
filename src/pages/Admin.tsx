@@ -12,6 +12,7 @@ import {
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuditLog } from "@/hooks/useAuditLog";
+import { logError } from "@/lib/logger";
 interface UserData {
   id: string;
   full_name: string;
@@ -76,7 +77,7 @@ export default function Admin() {
       if (error) throw error;
       setAuditLogs(data || []);
     } catch (error) {
-      console.error('Error fetching audit logs:', error);
+      logError('Error fetching audit logs:', error);
     }
   };
 
@@ -97,7 +98,7 @@ export default function Admin() {
         });
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      logError('Error fetching stats:', error);
     }
   };
 
@@ -129,7 +130,7 @@ export default function Admin() {
 
       setUsers(usersWithData);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logError('Error fetching users:', error);
     } finally {
       setIsLoading(false);
     }
