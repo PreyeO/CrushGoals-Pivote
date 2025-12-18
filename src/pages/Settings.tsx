@@ -480,7 +480,7 @@ export default function Settings() {
                   <div className="space-y-3 sm:space-y-4">
                     {[
                       { key: "shareProgress", label: "Share Progress Publicly", desc: "Allow others to view your goal progress" },
-                      { key: "analytics", label: "Usage Analytics", desc: "Help us improve Goal Crusher" },
+                      { key: "analytics", label: "Usage Analytics", desc: "Help us improve CrushGoals" },
                     ].map((item) => (
                       <div key={item.key} className="flex items-center justify-between p-3 sm:p-4 bg-white/5 rounded-xl gap-4">
                         <div className="min-w-0">
@@ -509,7 +509,7 @@ export default function Settings() {
                   <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Help & Support</h2>
                   <div className="space-y-3 sm:space-y-4">
                     {[
-                      { title: "Getting Started Guide", desc: "Learn how to use Goal Crusher" },
+                      { title: "Getting Started Guide", desc: "Learn how to use CrushGoals" },
                       { title: "FAQ", desc: "Frequently asked questions" },
                       { title: "Contact Support", desc: "Get help from our team" },
                     ].map((item) => (
@@ -524,7 +524,7 @@ export default function Settings() {
 
               {activeSection === "about" && (
                 <div className="space-y-6">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">About Goal Crusher</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">About CrushGoals</h2>
                   <div className="space-y-4">
                     <div className="p-4 bg-white/5 rounded-xl">
                       <p className="text-xs sm:text-sm text-muted-foreground mb-1">Version</p>
@@ -532,7 +532,7 @@ export default function Settings() {
                     </div>
                     <div className="p-4 bg-white/5 rounded-xl">
                       <p className="text-xs sm:text-sm text-muted-foreground mb-1">Description</p>
-                      <p className="text-sm sm:text-base">Goal Crusher helps you achieve your goals with gamification, streaks, and accountability.</p>
+                      <p className="text-sm sm:text-base">CrushGoals helps you achieve your goals with gamification, streaks, and accountability.</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="ghost" size="sm" className="text-xs sm:text-sm">Terms of Service</Button>

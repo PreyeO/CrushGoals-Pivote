@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { loginSchema, signupSchema } from "@/lib/validations";
 import { useRateLimiter } from "@/hooks/useRateLimiter";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
+import { useEmailService } from "@/hooks/useEmailService";
 
 interface AuthModalProps {
   open: boolean;
@@ -33,6 +34,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkingUsername, setCheckingUsername] = useState(false);
   const { checkRateLimit, recordAttempt } = useRateLimiter();
+  const { sendWelcomeEmail } = useEmailService();
 
   const checkUsernameAvailability = async (value: string) => {
     if (value.length < 3) return;
@@ -150,6 +152,11 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             })
             .eq('user_id', data.user.id);
 
+          // Send welcome email (non-blocking)
+          sendWelcomeEmail(email.trim(), name.trim()).catch(() => {
+            // Silent fail - don't block signup if email fails
+          });
+
           toast.success("Account created successfully!");
           onSuccess({ name: name.trim(), email: email.trim() });
           onOpenChange(false);
@@ -211,7 +218,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
                 <Target className="w-7 h-7 text-primary-foreground" />
               </div>
             </div>
-            <DialogTitle className="text-2xl font-bold">Welcome to Goal Crusher 🚀</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Welcome to CrushGoals 🚀</DialogTitle>
             <p className="text-muted-foreground mt-2">
               {tab === "signup" ? "Start crushing your goals today" : "Welcome back, champion!"}
             </p>
