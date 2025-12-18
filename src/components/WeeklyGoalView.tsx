@@ -52,7 +52,6 @@ export function WeeklyGoalView({ tasks, goals, onToggleTask }: WeeklyGoalViewPro
         // Calculate weekly target based on frequency
         let weeklyTarget = 7; // default daily
         if (goal?.task_frequency === 'weekly') weeklyTarget = 1;
-        else if (goal?.task_frequency === 'biweekly') weeklyTarget = 0.5;
         else if (goal?.task_frequency === 'monthly') weeklyTarget = 0.25;
 
         goalMap.set(goalId, {

@@ -43,7 +43,7 @@ export default function Goals() {
       target_value: goalData.target || undefined,
       start_date: goalData.startDate || undefined,
       deadline: goalData.deadline || undefined,
-      task_frequency: goalData.frequency,
+      task_frequency: goalData.frequency as 'daily' | 'weekly' | 'monthly',
     });
     
     if (result) {

@@ -19,7 +19,7 @@ export interface Goal {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
-  task_frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  task_frequency: 'daily' | 'weekly' | 'monthly';
   is_paused: boolean;
   paused_at: string | null;
   pause_reason: string | null;
@@ -108,7 +108,7 @@ export function useGoals() {
     targetValue: string, 
     startDate: string, 
     deadline: string,
-    frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' = 'daily'
+    frequency: 'daily' | 'weekly' | 'monthly' = 'daily'
   ) => {
     if (!user) return;
 
@@ -119,7 +119,6 @@ export function useGoals() {
     let taskInterval: number;
     switch (frequency) {
       case 'weekly': taskInterval = 7; break;
-      case 'biweekly': taskInterval = 14; break;
       case 'monthly': taskInterval = 30; break;
       default: taskInterval = 1; // daily
     }
@@ -169,7 +168,7 @@ export function useGoals() {
     target_value?: string;
     start_date?: string;
     deadline?: string;
-    task_frequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+    task_frequency?: 'daily' | 'weekly' | 'monthly';
   }) => {
     if (!user) return null;
 
@@ -208,7 +207,7 @@ export function useGoals() {
           frequency
         );
         
-        const freqLabel = frequency === 'daily' ? 'daily' : frequency === 'weekly' ? 'weekly' : frequency === 'biweekly' ? 'bi-weekly' : 'monthly';
+        const freqLabel = frequency === 'daily' ? 'daily' : frequency === 'weekly' ? 'weekly' : 'monthly';
         toast.success(`Goal created with ${freqLabel} tasks! 🎯`, {
           description: 'Check your Tasks page to see your missions.'
         });
