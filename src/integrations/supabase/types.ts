@@ -230,6 +230,124 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_goal_invites: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          invite_token: string
+          invitee_email: string
+          invitee_user_id: string | null
+          inviter_id: string
+          shared_goal_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          invitee_email: string
+          invitee_user_id?: string | null
+          inviter_id: string
+          shared_goal_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          invitee_email?: string
+          invitee_user_id?: string | null
+          inviter_id?: string
+          shared_goal_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_goal_invites_shared_goal_id_fkey"
+            columns: ["shared_goal_id"]
+            isOneToOne: false
+            referencedRelation: "shared_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_goal_members: {
+        Row: {
+          goal_id: string | null
+          id: string
+          joined_at: string
+          shared_goal_id: string
+          user_id: string
+        }
+        Insert: {
+          goal_id?: string | null
+          id?: string
+          joined_at?: string
+          shared_goal_id: string
+          user_id: string
+        }
+        Update: {
+          goal_id?: string | null
+          id?: string
+          joined_at?: string
+          shared_goal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_goal_members_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_goal_members_shared_goal_id_fkey"
+            columns: ["shared_goal_id"]
+            isOneToOne: false
+            referencedRelation: "shared_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_goals: {
+        Row: {
+          created_at: string
+          goal_id: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          goal_id: string
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          goal_id?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_goals_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           amount_paid: number | null
@@ -445,6 +563,28 @@ export type Database = {
           tasks_completed: number
           total_xp: number
           user_id: string
+        }[]
+      }
+      get_leaderboard_data_filtered: {
+        Args: { limit_count?: number; time_filter?: string }
+        Returns: {
+          current_streak: number
+          display_name: string
+          level: number
+          tasks_completed: number
+          total_xp: number
+          user_id: string
+        }[]
+      }
+      get_shared_goal_progress: {
+        Args: { p_shared_goal_id: string }
+        Returns: {
+          current_streak: number
+          goal_progress: number
+          tasks_completed_today: number
+          tasks_completed_week: number
+          user_id: string
+          username: string
         }[]
       }
       has_role: {

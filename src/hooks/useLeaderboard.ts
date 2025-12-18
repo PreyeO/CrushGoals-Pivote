@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logError } from '@/lib/logger';
@@ -15,27 +15,30 @@ export interface LeaderboardEntry {
   change: number;
 }
 
-export function useLeaderboard() {
+export function useLeaderboard(timeFilter: 'week' | 'alltime' = 'alltime') {
   const { user } = useAuth();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [userRank, setUserRank] = useState<LeaderboardEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     if (!user) {
       setIsLoading(false);
       return;
     }
 
     try {
-      // Use the secure database function to get leaderboard data
-      const { data, error } = await supabase.rpc('get_leaderboard_data', {
-        limit_count: 50
+      // Use the secure database function with time filter
+      const { data, error } = await supabase.rpc('get_leaderboard_data_filtered', {
+        limit_count: 50,
+        time_filter: timeFilter
       });
 
       if (error) throw error;
 
       if (!data || data.length === 0) {
+        setEntries([]);
+        setUserRank(null);
         setIsLoading(false);
         return;
       }
@@ -51,7 +54,7 @@ export function useLeaderboard() {
           current_streak: entry.current_streak || 0,
           total_xp: entry.total_xp || 0,
           level: entry.level || 1,
-          change: 0, // Would need historical data to calculate
+          change: 0,
         };
       });
 
@@ -61,13 +64,15 @@ export function useLeaderboard() {
       const userEntry = leaderboardEntries.find(e => e.user_id === user.id);
       if (userEntry) {
         setUserRank(userEntry);
+      } else {
+        setUserRank(null);
       }
     } catch (error) {
       logError('Error fetching leaderboard:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id, timeFilter]);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -91,7 +96,7 @@ export function useLeaderboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [fetchLeaderboard]);
 
   return {
     entries,

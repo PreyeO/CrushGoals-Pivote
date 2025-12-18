@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { ProgressRing } from "@/components/ProgressRing";
 import { cn } from "@/lib/utils";
-import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus, CalendarDays, Copy, Pause, Play, HelpCircle } from "lucide-react";
+import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus, CalendarDays, Copy, Pause, Play, HelpCircle, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,7 @@ interface GoalCardProps {
   onDuplicate?: () => void;
   onPauseToggle?: () => void;
   onWhyBehind?: () => void;
+  onShare?: () => void;
 }
 
 export function GoalCard({
@@ -53,6 +54,7 @@ export function GoalCard({
   onDuplicate,
   onPauseToggle,
   onWhyBehind,
+  onShare,
 }: GoalCardProps) {
   const statusConfig = {
     "on-track": { label: "On Track", color: "text-success", bg: "bg-success/20" },
@@ -106,7 +108,7 @@ export function GoalCard({
               {isPaused && <Pause className="w-3 h-3" />}
               {label}
             </span>
-            {(onEdit || onDelete || onAddTask || onViewCalendar || onDuplicate || onPauseToggle) && (
+            {(onEdit || onDelete || onAddTask || onViewCalendar || onDuplicate || onPauseToggle || onShare) && (
               <DropdownMenu>
                 <DropdownMenuTrigger 
                   onClick={(e) => e.stopPropagation()}
@@ -125,6 +127,12 @@ export function GoalCard({
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewCalendar(); }}>
                       <CalendarDays className="w-4 h-4 mr-2" />
                       View Calendar
+                    </DropdownMenuItem>
+                  )}
+                  {onShare && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(); }}>
+                      <Users className="w-4 h-4 mr-2 text-primary" />
+                      Share with Friends
                     </DropdownMenuItem>
                   )}
                   {onDuplicate && (
@@ -148,7 +156,7 @@ export function GoalCard({
                       )}
                     </DropdownMenuItem>
                   )}
-                  {(onAddTask || onViewCalendar || onDuplicate || onPauseToggle) && (onEdit || onDelete) && <DropdownMenuSeparator />}
+                  {(onAddTask || onViewCalendar || onDuplicate || onPauseToggle || onShare) && (onEdit || onDelete) && <DropdownMenuSeparator />}
                   {onEdit && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                       <Pencil className="w-4 h-4 mr-2" />

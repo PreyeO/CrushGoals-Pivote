@@ -1,21 +1,28 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { Crown, Medal, Trophy, TrendingUp, Users, Loader2, Globe, UserPlus, Bell } from "lucide-react";
+import { Crown, Medal, Trophy, TrendingUp, Users, Loader2, Globe, UserPlus, Bell, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { useFriends } from "@/hooks/useFriends";
+import { useSharedGoals } from "@/hooks/useSharedGoals";
 import { AddFriendModal } from "@/components/AddFriendModal";
 import { FriendRequestCard } from "@/components/FriendRequestCard";
+import { SharedGoalModal } from "@/components/SharedGoalModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 type ViewFilter = "global" | "friends";
 type TimeFilter = "week" | "alltime";
 
 export default function Leaderboard() {
-  const { entries, userRank, isLoading } = useLeaderboard();
-  const { friendsWithStats, pendingRequests, isLoading: friendsLoading, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useFriends();
+  const { user } = useAuth();
   const [viewFilter, setViewFilter] = useState<ViewFilter>("global");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("alltime");
   const [addFriendOpen, setAddFriendOpen] = useState(false);
+  const [selectedSharedGoal, setSelectedSharedGoal] = useState<{ id: string; name: string; isOwner: boolean } | null>(null);
+  
+  const { entries, userRank, isLoading } = useLeaderboard(timeFilter);
+  const { friendsWithStats, pendingRequests, isLoading: friendsLoading, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useFriends();
+  const { sharedGoals, pendingInvites, acceptInvite, declineInvite, isLoading: sharedLoading } = useSharedGoals();
 
   if (isLoading || friendsLoading) {
     return (
@@ -43,12 +50,8 @@ export default function Leaderboard() {
       }))
     : entries;
 
-  // TODO: Implement actual time filtering on backend
-  // For now, show all data (alltime behavior)
-  // When "week" is selected, would need to filter by last 7 days of activity
-
   const top3 = displayEntries.slice(0, 3);
-  const rest = displayEntries.slice(3, 10); // Show positions 4-10
+  const top10List = displayEntries.slice(0, 10); // Show all top 10 in list
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,12 +63,12 @@ export default function Leaderboard() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-                {viewFilter === "global" ? "Global Leaderboard 🏆" : "Friends Leaderboard 👥"}
+                {viewFilter === "global" ? "Global Leaderboard 🏆" : "Friends & Groups 👥"}
               </h1>
               <p className="text-muted-foreground">
                 {viewFilter === "global" 
                   ? "Top 10 goal crushers worldwide" 
-                  : "See how you rank among friends"}
+                  : "Compete with friends and track shared goals"}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -86,9 +89,9 @@ export default function Leaderboard() {
               >
                 <Users className="w-4 h-4" />
                 <span className="hidden sm:inline">Friends</span>
-                {pendingRequests.length > 0 && (
+                {(pendingRequests.length > 0 || pendingInvites.length > 0) && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-danger text-[10px] rounded-full flex items-center justify-center">
-                    {pendingRequests.length}
+                    {pendingRequests.length + pendingInvites.length}
                   </span>
                 )}
               </Button>
@@ -132,6 +135,82 @@ export default function Leaderboard() {
             </div>
           )}
 
+          {/* Pending Shared Goal Invites */}
+          {viewFilter === "friends" && pendingInvites.length > 0 && (
+            <div className="glass-card p-4 rounded-2xl mb-6 border-2 border-primary/30">
+              <div className="flex items-center gap-2 mb-3">
+                <Target className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">Shared Goal Invitations ({pendingInvites.length})</h3>
+              </div>
+              <div className="space-y-3">
+                {pendingInvites.map((invite) => (
+                  <div key={invite.id} className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-2xl">{invite.shared_goal?.goal?.emoji || '🎯'}</span>
+                      <div className="flex-1">
+                        <p className="font-medium">{invite.shared_goal?.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Goal: {invite.shared_goal?.goal?.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => acceptInvite(
+                          invite.id, 
+                          invite.shared_goal_id, 
+                          invite.shared_goal?.goal
+                        )}
+                      >
+                        Join Goal
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => declineInvite(invite.id)}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Shared Goals Section */}
+          {viewFilter === "friends" && sharedGoals.length > 0 && (
+            <div className="glass-card p-4 rounded-2xl mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4 text-success" />
+                <h3 className="font-semibold text-sm">Your Shared Goals ({sharedGoals.length})</h3>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {sharedGoals.map((sg) => (
+                  <button
+                    key={sg.id}
+                    onClick={() => setSelectedSharedGoal({ 
+                      id: sg.id, 
+                      name: sg.name, 
+                      isOwner: sg.owner_id === user?.id 
+                    })}
+                    className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{sg.goal?.emoji || '🎯'}</span>
+                      <div>
+                        <p className="font-medium">{sg.name}</p>
+                        <p className="text-xs text-muted-foreground">{sg.goal?.name}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Add Friend Button for Friends Tab */}
           {viewFilter === "friends" && (
             <div className="mb-6">
@@ -155,8 +234,14 @@ export default function Leaderboard() {
           ) : displayEntries.length === 0 ? (
             <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
               <div className="text-5xl sm:text-6xl mb-4">🏆</div>
-              <h3 className="text-xl font-semibold mb-2">Leaderboard is empty</h3>
-              <p className="text-muted-foreground">Be the first to start crushing goals!</p>
+              <h3 className="text-xl font-semibold mb-2">
+                {timeFilter === "week" ? "No activity this week" : "Leaderboard is empty"}
+              </h3>
+              <p className="text-muted-foreground">
+                {timeFilter === "week" 
+                  ? "Complete tasks to appear on the weekly leaderboard!"
+                  : "Be the first to start crushing goals!"}
+              </p>
             </div>
           ) : (
             <>
@@ -213,11 +298,11 @@ export default function Leaderboard() {
                 </div>
               )}
 
-              {/* Rankings List - Positions 4-10 */}
-              {rest.length > 0 && (
+              {/* Full Top 10 Rankings List */}
+              {top10List.length > 0 && (
                 <div className="glass-card rounded-2xl overflow-hidden mb-6 lg:mb-8 overflow-x-auto">
                   <div className="p-4 border-b border-white/10">
-                    <h3 className="font-semibold">Rankings #4 - #10</h3>
+                    <h3 className="font-semibold">Top 10 Rankings</h3>
                   </div>
                   <table className="w-full min-w-[500px]">
                     <thead>
@@ -230,22 +315,42 @@ export default function Leaderboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {rest.map((entry) => (
-                        <tr key={entry.rank} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                          <td className="p-3 sm:p-4 font-bold text-base sm:text-lg">#{entry.rank}</td>
+                      {top10List.map((entry) => (
+                        <tr 
+                          key={entry.rank} 
+                          className={`border-b border-white/5 hover:bg-white/5 transition-colors ${
+                            entry.user_id === user?.id ? 'bg-primary/10' : ''
+                          }`}
+                        >
+                          <td className="p-3 sm:p-4">
+                            <div className="flex items-center gap-2">
+                              {entry.rank === 1 && <Crown className="w-4 h-4 text-premium" />}
+                              {entry.rank === 2 && <Medal className="w-4 h-4 text-slate-300" />}
+                              {entry.rank === 3 && <Trophy className="w-4 h-4 text-amber-600" />}
+                              <span className="font-bold text-base sm:text-lg">#{entry.rank}</span>
+                            </div>
+                          </td>
                           <td className="p-3 sm:p-4">
                             <div className="flex items-center gap-2 sm:gap-3">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-primary flex items-center justify-center font-bold text-sm sm:text-base">
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${
+                                entry.rank === 1 ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-amber-900' :
+                                entry.rank === 2 ? 'bg-gradient-to-br from-slate-300 to-slate-400 text-slate-800' :
+                                entry.rank === 3 ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-amber-100' :
+                                'bg-gradient-primary'
+                              }`}>
                                 {entry.avatar}
                               </div>
-                              <span className="font-medium text-sm sm:text-base">{entry.name}</span>
+                              <div>
+                                <span className="font-medium text-sm sm:text-base block">{entry.name}</span>
+                                <span className="text-xs text-muted-foreground">Level {entry.level}</span>
+                              </div>
                             </div>
                           </td>
                           <td className="p-3 sm:p-4 text-right font-semibold text-sm sm:text-base">{entry.tasks_completed}</td>
                           <td className="p-3 sm:p-4 text-right">
                             <span className="text-orange-400 text-sm sm:text-base">🔥 {entry.current_streak}</span>
                           </td>
-                          <td className="p-3 sm:p-4 text-right text-primary text-sm sm:text-base">{entry.total_xp.toLocaleString()}</td>
+                          <td className="p-3 sm:p-4 text-right text-primary font-medium text-sm sm:text-base">{entry.total_xp.toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -253,8 +358,8 @@ export default function Leaderboard() {
                 </div>
               )}
 
-              {/* Your Rank Card - Always show if user has rank */}
-              {userRank && viewFilter === "global" && (
+              {/* Your Rank Card - Show if user is not in top 10 */}
+              {userRank && userRank.rank > 10 && viewFilter === "global" && (
                 <div className="glass-card p-4 sm:p-6 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-transparent">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3 sm:gap-4">
@@ -270,26 +375,9 @@ export default function Leaderboard() {
                       </div>
                     </div>
                     <div className="text-center sm:text-right">
-                      {userRank.change > 0 && (
-                        <p className="text-success flex items-center gap-1 justify-center sm:justify-end mb-1 text-sm">
-                          <TrendingUp className="w-4 h-4" /> Moved up {userRank.change} spots!
-                        </p>
-                      )}
-                      {userRank.rank > 10 && (
-                        <p className="text-xs sm:text-sm text-muted-foreground">
-                          {userRank.rank - 10} spots away from top 10! 🔥
-                        </p>
-                      )}
-                      {userRank.rank <= 10 && userRank.rank > 1 && (
-                        <p className="text-xs sm:text-sm text-muted-foreground">
-                          You're in the top 10! Keep crushing it! 🔥
-                        </p>
-                      )}
-                      {userRank.rank === 1 && (
-                        <p className="text-xs sm:text-sm text-premium font-medium">
-                          You're #1! 👑
-                        </p>
-                      )}
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        {userRank.rank - 10} spots away from top 10! 🔥
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -304,6 +392,16 @@ export default function Leaderboard() {
         onOpenChange={setAddFriendOpen}
         onSendRequest={sendFriendRequest}
       />
+
+      {selectedSharedGoal && (
+        <SharedGoalModal
+          open={!!selectedSharedGoal}
+          onOpenChange={(open) => !open && setSelectedSharedGoal(null)}
+          sharedGoalId={selectedSharedGoal.id}
+          sharedGoalName={selectedSharedGoal.name}
+          isOwner={selectedSharedGoal.isOwner}
+        />
+      )}
     </div>
   );
 }
