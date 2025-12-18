@@ -12,6 +12,7 @@ interface Profile {
   email: string;
   avatar_url: string | null;
   preferred_currency: string;
+  username: string | null;
 }
 
 interface UserStats {

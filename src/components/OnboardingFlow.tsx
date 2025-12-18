@@ -72,7 +72,7 @@ export function OnboardingFlow({ open, onOpenChange, onComplete }: OnboardingFlo
               </div>
 
               <p className="text-center text-sm text-muted-foreground">
-                Goal Crusher helps you achieve your dreams by breaking big goals into daily tasks. 
+                CrushGoals helps you achieve your dreams by breaking big goals into daily tasks. 
                 Complete tasks, earn XP, and climb the leaderboard!
               </p>
 

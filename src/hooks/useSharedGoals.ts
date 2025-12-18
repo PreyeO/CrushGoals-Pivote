@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logError } from '@/lib/logger';
+import { useEmailService } from '@/hooks/useEmailService';
 
 export interface SharedGoal {
   id: string;
@@ -41,10 +42,11 @@ export interface SharedGoalInvite {
 }
 
 export function useSharedGoals() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [sharedGoals, setSharedGoals] = useState<SharedGoal[]>([]);
   const [pendingInvites, setPendingInvites] = useState<SharedGoalInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { sendSharedGoalInviteEmail } = useEmailService();
 
   const fetchSharedGoals = async () => {
     if (!user) return;
@@ -167,6 +169,16 @@ export function useSharedGoals() {
         .eq('email', email.toLowerCase().trim())
         .maybeSingle();
 
+      // Get shared goal details for the email
+      const { data: sharedGoalData } = await supabase
+        .from('shared_goals')
+        .select(`
+          name,
+          goal:goals(name, emoji)
+        `)
+        .eq('id', sharedGoalId)
+        .single();
+
       const { error } = await supabase
         .from('shared_goal_invites')
         .insert({
@@ -177,6 +189,19 @@ export function useSharedGoals() {
         });
 
       if (error) throw error;
+
+      // Send invite email (non-blocking)
+      const goalInfo = sharedGoalData?.goal as { name: string; emoji: string } | null;
+      const inviterName = profile?.full_name || profile?.username || 'A CrushGoals user';
+      sendSharedGoalInviteEmail(
+        email.toLowerCase().trim(),
+        inviterName,
+        goalInfo?.name || sharedGoalData?.name || 'a shared goal',
+        goalInfo?.emoji || '🎯',
+        !!existingUser
+      ).catch(() => {
+        // Silent fail - invitation already created in DB
+      });
 
       toast.success('Invitation sent!', { description: `Sent to ${email}` });
       return true;

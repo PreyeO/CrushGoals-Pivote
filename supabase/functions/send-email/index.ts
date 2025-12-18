@@ -40,8 +40,8 @@ const handler = async (req: Request): Promise<Response> => {
       },
       body: JSON.stringify({
         sender: {
-          name: "Goal Crusher",
-          email: "noreply@goalcrusher.app", // Update this to your verified sender email
+          name: "CrushGoals",
+          email: "team@crushgoals.app",
         },
         to: [
           {
