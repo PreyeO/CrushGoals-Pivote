@@ -59,7 +59,11 @@ export function ProtectedRoute({
     return (
       <div className="min-h-screen bg-background">
         <div className="container max-w-4xl mx-auto p-4 pt-8">
-          <EmailVerificationBanner email={profile?.email || user?.email || ''} />
+          <EmailVerificationBanner
+            email={profile?.email || user?.email || ''}
+            userId={user.id}
+            name={profile?.full_name || profile?.username || user.email?.split('@')[0] || 'User'}
+          />
           <div className="opacity-50 pointer-events-none">
             {children}
           </div>

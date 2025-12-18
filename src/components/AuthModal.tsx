@@ -454,16 +454,12 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         onBack={() => setShowForgotPassword(false)}
       />
 
-      {pendingUserId && pendingUserData && (
+        {pendingUserId && pendingUserData && (
         <OtpVerificationModal
           open={showOtpModal}
           onOpenChange={(open) => {
+            // Closing is blocked inside the modal until verification succeeds
             setShowOtpModal(open);
-            if (!open) {
-              // User closed modal without verifying - they can still log in later
-              setPendingUserId(null);
-              setPendingUserData(null);
-            }
           }}
           email={pendingUserData.email}
           name={pendingUserData.name}

@@ -85,6 +85,17 @@ export default function Landing() {
   const { getPricing, currentCurrency } = useCurrency();
   const pricing = getPricing();
 
+  // If user comes from a password recovery link, route them to the reset screen
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+
+    if (type === 'recovery' && accessToken) {
+      navigate(`/reset-password${window.location.hash}`);
+    }
+  }, [navigate]);
+
   // Redirect if already logged in - admins go to /admin, regular users to /dashboard
   useEffect(() => {
     if (user && isAdminLoaded) {

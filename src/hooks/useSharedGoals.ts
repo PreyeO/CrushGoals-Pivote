@@ -162,12 +162,13 @@ export function useSharedGoals() {
     if (!user) return false;
 
     try {
-      // Check if user exists
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', email.toLowerCase().trim())
-        .maybeSingle();
+      // Check if user exists (server-side lookup to avoid RLS/PII exposure)
+      const { data: lookupData, error: lookupError } = await supabase.functions.invoke('lookup-user-by-email', {
+        body: { email: email.toLowerCase().trim() },
+      });
+
+      if (lookupError) throw lookupError;
+      const existingUserId: string | null = lookupData?.userId ?? null;
 
       // Get shared goal details for the email
       const { data: sharedGoalData } = await supabase
@@ -185,7 +186,7 @@ export function useSharedGoals() {
           shared_goal_id: sharedGoalId,
           inviter_id: user.id,
           invitee_email: email.toLowerCase().trim(),
-          invitee_user_id: existingUser?.user_id || null,
+          invitee_user_id: existingUserId,
         });
 
       if (error) throw error;
@@ -198,7 +199,7 @@ export function useSharedGoals() {
         inviterName,
         goalInfo?.name || sharedGoalData?.name || 'a shared goal',
         goalInfo?.emoji || '🎯',
-        !!existingUser
+        !!existingUserId
       ).catch(() => {
         // Silent fail - invitation already created in DB
       });
