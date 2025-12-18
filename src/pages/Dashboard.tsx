@@ -160,7 +160,7 @@ export default function Dashboard() {
       target_value: goalData.target,
       start_date: goalData.startDate,
       deadline: goalData.deadline,
-      task_frequency: goalData.frequency,
+      task_frequency: goalData.frequency as 'daily' | 'weekly' | 'monthly',
     });
   };
 

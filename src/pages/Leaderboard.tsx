@@ -43,8 +43,12 @@ export default function Leaderboard() {
       }))
     : entries;
 
+  // TODO: Implement actual time filtering on backend
+  // For now, show all data (alltime behavior)
+  // When "week" is selected, would need to filter by last 7 days of activity
+
   const top3 = displayEntries.slice(0, 3);
-  const rest = displayEntries.slice(3, 10);
+  const rest = displayEntries.slice(3, 10); // Show positions 4-10
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,7 +64,7 @@ export default function Leaderboard() {
               </h1>
               <p className="text-muted-foreground">
                 {viewFilter === "global" 
-                  ? "Compete with goal crushers worldwide" 
+                  ? "Top 10 goal crushers worldwide" 
                   : "See how you rank among friends"}
               </p>
             </div>
@@ -156,7 +160,7 @@ export default function Leaderboard() {
             </div>
           ) : (
             <>
-              {/* Podium - show when 1+ entries */}
+              {/* Podium - Top 3 */}
               {top3.length >= 1 && (
                 <div className="glass-card p-4 sm:p-8 rounded-2xl mb-6 lg:mb-8">
                   <div className="flex items-end justify-center gap-2 sm:gap-4">
@@ -209,9 +213,12 @@ export default function Leaderboard() {
                 </div>
               )}
 
-              {/* Rankings List */}
+              {/* Rankings List - Positions 4-10 */}
               {rest.length > 0 && (
                 <div className="glass-card rounded-2xl overflow-hidden mb-6 lg:mb-8 overflow-x-auto">
+                  <div className="p-4 border-b border-white/10">
+                    <h3 className="font-semibold">Rankings #4 - #10</h3>
+                  </div>
                   <table className="w-full min-w-[500px]">
                     <thead>
                       <tr className="border-b border-white/10">
@@ -246,7 +253,7 @@ export default function Leaderboard() {
                 </div>
               )}
 
-              {/* Your Rank Card */}
+              {/* Your Rank Card - Always show if user has rank */}
               {userRank && viewFilter === "global" && (
                 <div className="glass-card p-4 sm:p-6 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-transparent">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -268,9 +275,19 @@ export default function Leaderboard() {
                           <TrendingUp className="w-4 h-4" /> Moved up {userRank.change} spots!
                         </p>
                       )}
-                      {userRank.rank > 1 && (
+                      {userRank.rank > 10 && (
                         <p className="text-xs sm:text-sm text-muted-foreground">
-                          Keep crushing goals to climb higher! 🔥
+                          {userRank.rank - 10} spots away from top 10! 🔥
+                        </p>
+                      )}
+                      {userRank.rank <= 10 && userRank.rank > 1 && (
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          You're in the top 10! Keep crushing it! 🔥
+                        </p>
+                      )}
+                      {userRank.rank === 1 && (
+                        <p className="text-xs sm:text-sm text-premium font-medium">
+                          You're #1! 👑
                         </p>
                       )}
                     </div>
