@@ -596,7 +596,9 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                 <div className="p-4 rounded-xl bg-success/10 border border-success/30">
                   <div className="flex items-center gap-2 mb-2">
                     <Target className="w-5 h-5 text-success" />
-                    <span className="font-semibold">Your Daily Mission</span>
+                    <span className="font-semibold">
+                      Your {frequency === 'daily' ? 'Daily' : frequency === 'weekly' ? 'Weekly' : 'Monthly'} Mission
+                    </span>
                   </div>
                   <p className="text-lg font-bold">{breakdownPreview}</p>
                   <p className="text-sm text-muted-foreground mt-1">

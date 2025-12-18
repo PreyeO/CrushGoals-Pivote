@@ -9,15 +9,21 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { GoalHabitCalendar } from "@/components/GoalHabitCalendar";
 import { PauseGoalModal } from "@/components/PauseGoalModal";
 import { WhyBehindModal } from "@/components/WhyBehindModal";
+import { CreateSharedGoalModal } from "@/components/CreateSharedGoalModal";
+import { SharedGoalModal } from "@/components/SharedGoalModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2, Pause } from "lucide-react";
 import { useGoals, Goal } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
+import { useSharedGoals } from "@/hooks/useSharedGoals";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Goals() {
+  const { user } = useAuth();
   const { goals, isLoading, addGoal, updateGoal, deleteGoal, duplicateGoal, pauseGoal, resumeGoal } = useGoals();
   const { addTask } = useTasks();
+  const { sharedGoals } = useSharedGoals();
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   const [editGoal, setEditGoal] = useState<Goal | null>(null);
   const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null);
@@ -26,6 +32,8 @@ export default function Goals() {
   const [calendarGoal, setCalendarGoal] = useState<Goal | null>(null);
   const [pauseGoalTarget, setPauseGoalTarget] = useState<Goal | null>(null);
   const [whyBehindGoal, setWhyBehindGoal] = useState<Goal | null>(null);
+  const [shareGoal, setShareGoal] = useState<Goal | null>(null);
+  const [viewSharedGoal, setViewSharedGoal] = useState<{ id: string; name: string; isOwner: boolean } | null>(null);
 
   const handleAddGoal = async (goalData: { 
     category: string; 
@@ -199,33 +207,49 @@ export default function Goals() {
             <div className="mb-6 lg:mb-8">
               <h2 className="text-lg sm:text-xl font-semibold mb-4">Active Goals</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {activeGoals.map((goal) => (
-                  <GoalCard 
-                    key={goal.id} 
-                    id={goal.id}
-                    name={goal.name}
-                    emoji={goal.emoji || '🎯'}
-                    progress={goal.progress || 0}
-                    currentValue={goal.current_value || '0'}
-                    targetValue={goal.target_value || 'Complete'}
-                    timeRemaining={goal.deadline 
-                      ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
-                      : 'No deadline'
-                    }
-                    status={goal.status as 'on-track' | 'ahead' | 'behind' | 'completed'}
-                    tasksToday={{ completed: 0, total: 0 }}
-                    startDate={goal.start_date || undefined}
-                    endDate={goal.deadline || undefined}
-                    isPaused={goal.is_paused}
-                    onEdit={() => setEditGoal(goal)}
-                    onDelete={() => setDeleteGoalId(goal.id)}
-                    onAddTask={() => setAddTaskGoal(goal)}
-                    onViewCalendar={() => setCalendarGoal(goal)}
-                    onDuplicate={() => duplicateGoal(goal.id)}
-                    onPauseToggle={() => setPauseGoalTarget(goal)}
-                    onWhyBehind={goal.status === 'behind' ? () => setWhyBehindGoal(goal) : undefined}
-                  />
-                ))}
+                {activeGoals.map((goal) => {
+                  // Check if this goal is already shared
+                  const existingSharedGoal = sharedGoals.find(sg => sg.goal_id === goal.id);
+                  
+                  return (
+                    <GoalCard 
+                      key={goal.id} 
+                      id={goal.id}
+                      name={goal.name}
+                      emoji={goal.emoji || '🎯'}
+                      progress={goal.progress || 0}
+                      currentValue={goal.current_value || '0'}
+                      targetValue={goal.target_value || 'Complete'}
+                      timeRemaining={goal.deadline 
+                        ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                        : 'No deadline'
+                      }
+                      status={goal.status as 'on-track' | 'ahead' | 'behind' | 'completed'}
+                      tasksToday={{ completed: 0, total: 0 }}
+                      startDate={goal.start_date || undefined}
+                      endDate={goal.deadline || undefined}
+                      isPaused={goal.is_paused}
+                      onEdit={() => setEditGoal(goal)}
+                      onDelete={() => setDeleteGoalId(goal.id)}
+                      onAddTask={() => setAddTaskGoal(goal)}
+                      onViewCalendar={() => setCalendarGoal(goal)}
+                      onDuplicate={() => duplicateGoal(goal.id)}
+                      onPauseToggle={() => setPauseGoalTarget(goal)}
+                      onWhyBehind={goal.status === 'behind' ? () => setWhyBehindGoal(goal) : undefined}
+                      onShare={() => {
+                        if (existingSharedGoal) {
+                          setViewSharedGoal({
+                            id: existingSharedGoal.id,
+                            name: existingSharedGoal.name,
+                            isOwner: existingSharedGoal.owner_id === user?.id
+                          });
+                        } else {
+                          setShareGoal(goal);
+                        }
+                      }}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -385,6 +409,31 @@ export default function Goals() {
           if (whyBehindGoal) setPauseGoalTarget(whyBehindGoal);
         }}
       />
+
+      {/* Create Shared Goal Modal */}
+      <CreateSharedGoalModal
+        open={!!shareGoal}
+        onOpenChange={(open) => !open && setShareGoal(null)}
+        goal={shareGoal ? { id: shareGoal.id, name: shareGoal.name, emoji: shareGoal.emoji || '🎯' } : null}
+        onSuccess={(sharedGoalId) => {
+          setViewSharedGoal({
+            id: sharedGoalId,
+            name: shareGoal?.name || '',
+            isOwner: true
+          });
+        }}
+      />
+
+      {/* View Shared Goal Modal */}
+      {viewSharedGoal && (
+        <SharedGoalModal
+          open={!!viewSharedGoal}
+          onOpenChange={(open) => !open && setViewSharedGoal(null)}
+          sharedGoalId={viewSharedGoal.id}
+          sharedGoalName={viewSharedGoal.name}
+          isOwner={viewSharedGoal.isOwner}
+        />
+      )}
     </div>
   );
 }
