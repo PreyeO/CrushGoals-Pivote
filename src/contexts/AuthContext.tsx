@@ -54,9 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminLoaded, setIsAdminLoaded] = useState(false);
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  const isEmailVerified = user?.email_confirmed_at != null;
 
   const handleSessionTimeout = useCallback(() => {
     setUser(null);
@@ -106,18 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSubscription(subData as Subscription);
       }
 
-      // Email verification: require verified OTP
-      const { data: verifiedOtp } = await supabase
-        .from('email_verification_otps')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('verified', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      setIsEmailVerified(!!verifiedOtp);
-
       // Check if admin
       const { data: roleData } = await supabase
         .from('user_roles')
@@ -160,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setStats(null);
           setSubscription(null);
           setIsAdmin(false);
-          setIsEmailVerified(false);
           setIsAdminLoaded(true);
         }
         setIsLoading(false);
@@ -193,7 +181,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStats(null);
     setSubscription(null);
     setIsAdmin(false);
-    setIsEmailVerified(false);
     setIsAdminLoaded(false);
   };
 

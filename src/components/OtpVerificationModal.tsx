@@ -134,23 +134,9 @@ export function OtpVerificationModal({
     generateAndSendOtp();
   };
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    // Do not allow closing until verified
-    if (!nextOpen && verificationStatus !== "success") return;
-    onOpenChange(nextOpen);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="sm:max-w-[400px] w-[95vw] bg-card border-white/10 backdrop-blur-xl p-0"
-        onInteractOutside={(e) => {
-          if (verificationStatus !== "success") e.preventDefault();
-        }}
-        onEscapeKeyDown={(e) => {
-          if (verificationStatus !== "success") e.preventDefault();
-        }}
-      >
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[400px] w-[95vw] bg-card border-white/10 backdrop-blur-xl p-0">
         <div className="p-6 sm:p-8">
           <DialogHeader className="text-center mb-6">
             <div className="flex justify-center mb-4">
