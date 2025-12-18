@@ -35,7 +35,7 @@ const exchangeRates: Record<Currency, number> = {
 };
 
 export function useCurrency() {
-  const [currency, setCurrency] = useState<Currency>('USD');
+  const [currency, setCurrency] = useState<Currency>('NGN');
 
   useEffect(() => {
     // Try to detect user's location/currency
@@ -45,10 +45,10 @@ export function useCurrency() {
       return;
     }
 
-    // Try to detect from timezone/locale
+    // Default is NGN, but detect other locales
     const locale = navigator.language;
-    if (locale.includes('NG') || locale === 'en-NG') {
-      setCurrency('NGN');
+    if (locale.includes('US') || locale === 'en-US') {
+      setCurrency('USD');
     } else if (locale.includes('GB') || locale === 'en-GB') {
       setCurrency('GBP');
     } else if (locale.includes('EU') || ['de', 'fr', 'es', 'it', 'nl'].some(l => locale.startsWith(l))) {
@@ -58,6 +58,7 @@ export function useCurrency() {
     } else if (locale.includes('AU') || locale === 'en-AU') {
       setCurrency('AUD');
     }
+    // NGN remains default for unrecognized locales
   }, []);
 
   const changeCurrency = (newCurrency: Currency) => {

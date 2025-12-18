@@ -137,7 +137,6 @@ export default function Landing() {
           
           {/* Desktop Menu */}
           <div className="hidden sm:flex items-center gap-4">
-            <CurrencySelector />
             <Button variant="ghost" onClick={() => setAuthOpen(true)}>
               Sign In
             </Button>
@@ -159,9 +158,6 @@ export default function Landing() {
         {mobileMenuOpen && (
           <div className="sm:hidden absolute top-full left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-white/10">
             <div className="flex flex-col gap-3">
-              <div className="flex justify-center mb-2">
-                <CurrencySelector />
-              </div>
               <Button variant="ghost" onClick={() => { setAuthOpen(true); setMobileMenuOpen(false); }}>
                 Sign In
               </Button>
