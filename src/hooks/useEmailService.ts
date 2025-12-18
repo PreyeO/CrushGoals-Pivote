@@ -399,11 +399,93 @@ export function useEmailService() {
     });
   };
 
+  const sendOtpEmail = async (email: string, name: string, otpCode: string) => {
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0F172A; padding: 40px 20px;">
+          <tr>
+            <td align="center">
+              <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border-radius: 16px; border: 1px solid rgba(139, 92, 246, 0.3); overflow: hidden;">
+                <!-- Header -->
+                <tr>
+                  <td style="padding: 40px 40px 20px; text-align: center;">
+                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%); border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                      <span style="font-size: 40px;">🔐</span>
+                    </div>
+                    <h1 style="color: #FFFFFF; font-size: 28px; margin: 0 0 8px; font-weight: 700;">Verify Your Email</h1>
+                    <p style="color: #94A3B8; font-size: 16px; margin: 0;">Enter this code to complete your registration</p>
+                  </td>
+                </tr>
+                
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 20px 40px;">
+                    <p style="color: #E2E8F0; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                      Hey ${name}! 👋
+                    </p>
+                    <p style="color: #CBD5E1; font-size: 15px; line-height: 1.6; margin: 0 0 30px;">
+                      Thanks for signing up for CrushGoals! Use the verification code below to confirm your email address.
+                    </p>
+                    
+                    <!-- OTP Code Box -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+                      <tr>
+                        <td align="center">
+                          <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%); border: 2px solid rgba(139, 92, 246, 0.5); border-radius: 16px; padding: 24px 48px; display: inline-block;">
+                            <p style="color: #94A3B8; font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 2px;">Your Verification Code</p>
+                            <p style="color: #FFFFFF; font-size: 40px; font-weight: 700; letter-spacing: 12px; margin: 0; font-family: 'Courier New', monospace;">${otpCode}</p>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <p style="color: #64748B; font-size: 14px; line-height: 1.6; margin: 30px 0 0; text-align: center;">
+                      ⏱️ This code expires in <strong style="color: #F59E0B;">10 minutes</strong>
+                    </p>
+                    
+                    <p style="color: #64748B; font-size: 13px; line-height: 1.6; margin: 20px 0 0; text-align: center;">
+                      If you didn't create an account with CrushGoals, you can safely ignore this email.
+                    </p>
+                  </td>
+                </tr>
+                
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 30px 40px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
+                    <p style="color: #64748B; font-size: 13px; text-align: center; margin: 0;">
+                      © 2024 CrushGoals. All rights reserved.<br>
+                      <a href="https://crushgoals.app" style="color: #8B5CF6; text-decoration: none;">crushgoals.app</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    return sendEmail({
+      to: email,
+      toName: name,
+      subject: `${otpCode} is your CrushGoals verification code 🔐`,
+      htmlContent,
+    });
+  };
+
   return {
     sendEmail,
     sendWelcomeEmail,
     sendSharedGoalInviteEmail,
     sendPasswordResetEmail,
     sendStreakReminderEmail,
+    sendOtpEmail,
   };
 }

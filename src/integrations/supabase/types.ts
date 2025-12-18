@@ -80,6 +80,39 @@ export type Database = {
         }
         Relationships: []
       }
+      email_verification_otps: {
+        Row: {
+          attempts: number | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          otp_code: string
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          otp_code: string
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          otp_code?: string
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           created_at: string
@@ -554,6 +587,10 @@ export type Database = {
         Returns: number
       }
       check_login_rate_limit: { Args: { check_email: string }; Returns: number }
+      generate_email_otp: {
+        Args: { p_email: string; p_user_id: string }
+        Returns: string
+      }
       get_leaderboard_data: {
         Args: { limit_count?: number }
         Returns: {
@@ -597,6 +634,10 @@ export type Database = {
       record_login_attempt: {
         Args: { attempt_email: string; attempt_success: boolean }
         Returns: undefined
+      }
+      verify_email_otp: {
+        Args: { p_otp: string; p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
