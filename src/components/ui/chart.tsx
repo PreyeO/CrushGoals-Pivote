@@ -58,10 +58,47 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
+// Validate CSS color values to prevent CSS injection attacks
+const isValidCSSColor = (color: string): boolean => {
+  // Allow only safe CSS color formats: hex, rgb, rgba, hsl, hsla, and named colors
+  const hexPattern = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
+  const rgbPattern = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+)?\s*\)$/;
+  const hslPattern = /^hsla?\(\s*[\d.]+\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*(,\s*[\d.]+)?\s*\)$/;
+  const namedColorPattern = /^[a-zA-Z]+$/;
+  const cssVarPattern = /^var\(--[a-zA-Z0-9-]+\)$/;
+  
+  return (
+    hexPattern.test(color) ||
+    rgbPattern.test(color) ||
+    hslPattern.test(color) ||
+    namedColorPattern.test(color) ||
+    cssVarPattern.test(color)
+  );
+};
+
+// Escape CSS identifier to prevent injection
+const escapeCSSIdentifier = (str: string): string => {
+  return str.replace(/[^a-zA-Z0-9_-]/g, '');
+};
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
   if (!colorConfig.length) {
+    return null;
+  }
+
+  // Escape the chart ID to prevent CSS injection
+  const safeId = escapeCSSIdentifier(id);
+  
+  // Filter and validate colors before injection
+  const safeColorConfig = colorConfig.filter(([key, itemConfig]) => {
+    const themeColors = itemConfig.theme ? Object.values(itemConfig.theme) : [];
+    const allColors = itemConfig.color ? [itemConfig.color, ...themeColors] : themeColors;
+    return allColors.every(color => isValidCSSColor(color));
+  });
+
+  if (!safeColorConfig.length) {
     return null;
   }
 
@@ -71,12 +108,14 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
         __html: Object.entries(THEMES)
           .map(
             ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
+${prefix} [data-chart=${safeId}] {
+${safeColorConfig
   .map(([key, itemConfig]) => {
     const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    const safeKey = escapeCSSIdentifier(key);
+    return color && isValidCSSColor(color) ? `  --color-${safeKey}: ${color};` : null;
   })
+  .filter(Boolean)
   .join("\n")}
 }
 `,
