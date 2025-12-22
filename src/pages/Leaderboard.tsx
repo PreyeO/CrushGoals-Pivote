@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { Crown, Medal, Trophy, TrendingUp, Users, Loader2, Globe, UserPlus, Bell, Target } from "lucide-react";
+import { Crown, Medal, Trophy, TrendingUp, Users, Loader2, Globe, UserPlus, Bell, Target, CheckCircle, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { useFriends } from "@/hooks/useFriends";
-import { useSharedGoals } from "@/hooks/useSharedGoals";
+import { useSharedGoals, SharedGoalMember } from "@/hooks/useSharedGoals";
 import { InviteFriendModal } from "@/components/InviteFriendModal";
 import { FriendRequestCard } from "@/components/FriendRequestCard";
 import { SharedGoalModal } from "@/components/SharedGoalModal";
@@ -19,10 +19,27 @@ export default function Leaderboard() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("alltime");
   const [addFriendOpen, setAddFriendOpen] = useState(false);
   const [selectedSharedGoal, setSelectedSharedGoal] = useState<{ id: string; name: string; isOwner: boolean } | null>(null);
+  const [sharedGoalProgress, setSharedGoalProgress] = useState<Record<string, SharedGoalMember[]>>({});
   
   const { entries, userRank, isLoading } = useLeaderboard(timeFilter);
   const { friendsWithStats, pendingRequests, isLoading: friendsLoading, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useFriends();
-  const { sharedGoals, pendingInvites, acceptInvite, declineInvite, isLoading: sharedLoading } = useSharedGoals();
+  const { sharedGoals, pendingInvites, acceptInvite, declineInvite, getSharedGoalProgress, isLoading: sharedLoading } = useSharedGoals();
+  
+  // Fetch progress for all shared goals when viewing friends tab
+  useEffect(() => {
+    const fetchAllProgress = async () => {
+      if (viewFilter !== "friends" || sharedGoals.length === 0) return;
+      
+      const progressMap: Record<string, SharedGoalMember[]> = {};
+      for (const sg of sharedGoals) {
+        const progress = await getSharedGoalProgress(sg.id);
+        progressMap[sg.id] = progress;
+      }
+      setSharedGoalProgress(progressMap);
+    };
+    
+    fetchAllProgress();
+  }, [viewFilter, sharedGoals]);
 
   if (isLoading || friendsLoading) {
     return (
@@ -180,33 +197,73 @@ export default function Leaderboard() {
             </div>
           )}
 
-          {/* Shared Goals Section */}
+          {/* Shared Goals Section with Inline Progress */}
           {viewFilter === "friends" && sharedGoals.length > 0 && (
             <div className="glass-card p-4 rounded-2xl mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-success" />
+              <div className="flex items-center gap-2 mb-4">
+                <Target className="w-4 h-4 text-success" />
                 <h3 className="font-semibold text-sm">Your Shared Goals ({sharedGoals.length})</h3>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {sharedGoals.map((sg) => (
-                  <button
-                    key={sg.id}
-                    onClick={() => setSelectedSharedGoal({ 
-                      id: sg.id, 
-                      name: sg.name, 
-                      isOwner: sg.owner_id === user?.id 
-                    })}
-                    className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all text-left"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{sg.goal?.emoji || '🎯'}</span>
-                      <div>
-                        <p className="font-medium">{sg.name}</p>
-                        <p className="text-xs text-muted-foreground">{sg.goal?.name}</p>
-                      </div>
+              <div className="space-y-4">
+                {sharedGoals.map((sg) => {
+                  const members = sharedGoalProgress[sg.id] || [];
+                  return (
+                    <div key={sg.id} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                      <button
+                        onClick={() => setSelectedSharedGoal({ 
+                          id: sg.id, 
+                          name: sg.name, 
+                          isOwner: sg.owner_id === user?.id 
+                        })}
+                        className="w-full text-left mb-3 hover:opacity-80 transition-opacity"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{sg.goal?.emoji || '🎯'}</span>
+                          <div className="flex-1">
+                            <p className="font-medium">{sg.name}</p>
+                            <p className="text-xs text-muted-foreground">{sg.goal?.name} • {members.length} members</p>
+                          </div>
+                          <span className="text-xs text-primary">View details →</span>
+                        </div>
+                      </button>
+                      
+                      {/* Inline member progress */}
+                      {members.length > 0 && (
+                        <div className="space-y-2 pt-3 border-t border-white/10">
+                          {members.slice(0, 3).map((member, idx) => (
+                            <div key={member.user_id} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  idx === 0 ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-amber-900' : 'bg-gradient-primary'
+                                }`}>
+                                  {member.username?.charAt(0).toUpperCase() || '?'}
+                                </div>
+                                <span className="font-medium">{member.username || 'Anonymous'}</span>
+                                {member.tasks_completed_today > 0 && (
+                                  <span className="flex items-center gap-1 text-xs text-success">
+                                    <CheckCircle className="w-3 h-3" /> Done today
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 text-xs">
+                                <span className="flex items-center gap-1 text-muted-foreground">
+                                  <Flame className="w-3 h-3 text-orange-400" />
+                                  {member.current_streak}
+                                </span>
+                                <span className="font-bold text-primary">{member.goal_progress}%</span>
+                              </div>
+                            </div>
+                          ))}
+                          {members.length > 3 && (
+                            <p className="text-xs text-muted-foreground text-center pt-1">
+                              +{members.length - 3} more members
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -216,22 +273,22 @@ export default function Leaderboard() {
             <div className="mb-6">
               <Button onClick={() => setAddFriendOpen(true)} className="gap-2">
                 <UserPlus className="w-4 h-4" />
-                Add Friend
+                Invite Friend to Grow Together
               </Button>
             </div>
           )}
 
-          {viewFilter === "friends" && friendsWithStats.length === 0 ? (
+          {viewFilter === "friends" && friendsWithStats.length === 0 && sharedGoals.length === 0 ? (
             <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
               <div className="text-5xl sm:text-6xl mb-4">👥</div>
               <h3 className="text-xl font-semibold mb-2">No Friends Yet</h3>
-              <p className="text-muted-foreground mb-4">Add friends to compete on your own leaderboard!</p>
+              <p className="text-muted-foreground mb-4">Invite friends to grow together and compete on shared goals!</p>
               <Button onClick={() => setAddFriendOpen(true)}>
                 <UserPlus className="w-4 h-4 mr-2" />
-                Add Your First Friend
+                Invite Your First Friend
               </Button>
             </div>
-          ) : displayEntries.length === 0 ? (
+          ) : displayEntries.length === 0 && viewFilter === "global" ? (
             <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
               <div className="text-5xl sm:text-6xl mb-4">🏆</div>
               <h3 className="text-xl font-semibold mb-2">

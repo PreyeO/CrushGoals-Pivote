@@ -196,6 +196,14 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
           }
 
           toast.success("Account created! Please verify your email.");
+          
+          // Store pending invite token if exists (for after verification)
+          const urlParams = new URLSearchParams(window.location.search);
+          const inviteToken = urlParams.get('invite');
+          if (inviteToken) {
+            localStorage.setItem('pendingInviteToken', inviteToken);
+          }
+          
           onOpenChange(false);
           
           // Redirect to verification page
