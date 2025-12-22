@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -16,6 +17,9 @@ interface EmailRequest {
   from?: string;
 }
 
+// Email validation regex
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -23,19 +27,63 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Verify JWT authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("No authorization header provided");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log(`Authenticated user: ${user.id}`);
+
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
     }
 
     const { to, subject, html, text, from }: EmailRequest = await req.json();
 
-    if (!to || !subject || !html) {
+    // Input validation
+    if (!to || !emailRegex.test(to)) {
+      console.error("Invalid email address:", to);
       return new Response(
-        JSON.stringify({ error: "Missing required fields: to, subject, html" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        JSON.stringify({ error: "Invalid email address" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!subject || subject.length === 0 || subject.length > 200) {
+      console.error("Invalid subject length:", subject?.length);
+      return new Response(
+        JSON.stringify({ error: "Subject must be between 1 and 200 characters" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!html || html.length === 0 || html.length > 100000) {
+      console.error("Invalid html content length:", html?.length);
+      return new Response(
+        JSON.stringify({ error: "HTML content must be between 1 and 100,000 characters" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
