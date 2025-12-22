@@ -27,34 +27,34 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Verify JWT authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error("No authorization header provided");
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+    // Optional authentication: this function can be called without a JWT (e.g. during signup OTP flow)
+    const authHeader = req.headers.get("Authorization");
+
+    if (authHeader) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (!authError && user) {
+          console.log(`Authenticated user: ${user.id}`);
+        } else {
+          console.warn("Auth header provided but user could not be resolved:", authError?.message);
+        }
+      } catch (e) {
+        console.warn("Auth check failed (continuing as unauthenticated):", e);
+      }
+    } else {
+      console.log("No Authorization header (continuing as unauthenticated)");
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      console.error("Authentication failed:", authError?.message);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    console.log(`Authenticated user: ${user.id}`);
 
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
