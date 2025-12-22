@@ -8,6 +8,15 @@ interface SendEmailParams {
   from?: string;
 }
 
+function escapeHtml(input: string) {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function useResendEmail() {
   const sendEmail = async (params: SendEmailParams): Promise<boolean> => {
     try {
@@ -29,6 +38,9 @@ export function useResendEmail() {
   };
 
   const sendWelcomeEmail = async (email: string, name: string): Promise<boolean> => {
+    const safeName = escapeHtml(name);
+    const baseUrl = window.location.origin;
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -44,7 +56,7 @@ export function useResendEmail() {
             </div>
             
             <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
-              Hey ${name}! 👋
+              Hey ${safeName}! 👋
             </p>
             
             <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
@@ -62,7 +74,7 @@ export function useResendEmail() {
             </div>
             
             <div style="text-align: center; margin-bottom: 24px;">
-              <a href="${window.location.origin}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Start Crushing Goals →</a>
+              <a href="${baseUrl}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Start Crushing Goals →</a>
             </div>
             
             <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
@@ -88,6 +100,12 @@ export function useResendEmail() {
     goalEmoji?: string
   ): Promise<boolean> => {
     const hasGoal = goalName && goalEmoji;
+    const baseUrl = window.location.origin;
+
+    const safeInviterName = escapeHtml(inviterName);
+    const safeGoalName = goalName ? escapeHtml(goalName) : undefined;
+    const safeGoalEmoji = goalEmoji ? escapeHtml(goalEmoji) : undefined;
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -98,22 +116,22 @@ export function useResendEmail() {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0b; color: #ffffff; margin: 0; padding: 40px 20px;">
           <div style="max-width: 560px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1f 0%, #0d0d10 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1);">
             <div style="text-align: center; margin-bottom: 32px;">
-              <div style="font-size: 48px; margin-bottom: 16px;">${hasGoal ? goalEmoji : '👋'}</div>
-              <h1 style="margin: 0; font-size: 28px; color: #ffffff;">${hasGoal ? `${inviterName} challenged you!` : `${inviterName} wants to crush goals with you!`}</h1>
+              <div style="font-size: 48px; margin-bottom: 16px;">${hasGoal ? safeGoalEmoji : '👋'}</div>
+              <h1 style="margin: 0; font-size: 28px; color: #ffffff;">${hasGoal ? `${safeInviterName} challenged you!` : `${safeInviterName} wants to crush goals with you!`}</h1>
             </div>
             
             ${hasGoal ? `
             <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(99, 102, 241, 0.2); text-align: center;">
-              <div style="font-size: 32px; margin-bottom: 8px;">${goalEmoji}</div>
-              <h2 style="margin: 0; color: #6366f1; font-size: 20px;">${goalName}</h2>
+              <div style="font-size: 32px; margin-bottom: 8px;">${safeGoalEmoji}</div>
+              <h2 style="margin: 0; color: #6366f1; font-size: 20px;">${safeGoalName}</h2>
               <p style="margin: 8px 0 0 0; color: #a1a1aa; font-size: 14px;">Compete on the leaderboard!</p>
             </div>
             ` : ''}
             
             <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
               ${hasGoal 
-                ? `${inviterName} wants you to join them in crushing this goal together on CrushGoals.`
-                : `Your friend ${inviterName} has invited you to join them on CrushGoals — the app that makes achieving your goals fun and social.`
+                ? `${safeInviterName} wants you to join them in crushing this goal together on CrushGoals.`
+                : `Your friend ${safeInviterName} has invited you to join them on CrushGoals — the app that makes achieving your goals fun and social.`
               }
             </p>
             
@@ -127,7 +145,7 @@ export function useResendEmail() {
             </div>
             
             <div style="text-align: center; margin-bottom: 24px;">
-              <a href="${window.location.origin}" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">${hasGoal ? 'Accept Challenge' : `Join ${inviterName} on CrushGoals`} →</a>
+              <a href="${baseUrl}" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">${hasGoal ? 'Accept Challenge' : `Join ${safeInviterName} on CrushGoals`} →</a>
             </div>
             
             <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
@@ -141,8 +159,8 @@ export function useResendEmail() {
     return sendEmail({
       to: inviteeEmail,
       subject: hasGoal 
-        ? `${inviterName} challenged you to crush "${goalName}"! ${goalEmoji}`
-        : `${inviterName} invited you to CrushGoals! 🎯`,
+        ? `${safeInviterName} challenged you to crush "${safeGoalName}"! ${safeGoalEmoji}`
+        : `${safeInviterName} invited you to CrushGoals! 🎯`,
       html,
     });
   };
@@ -153,6 +171,11 @@ export function useResendEmail() {
     goalName: string,
     goalEmoji: string
   ): Promise<boolean> => {
+    const baseUrl = window.location.origin;
+    const safeInviterName = escapeHtml(inviterName);
+    const safeGoalName = escapeHtml(goalName);
+    const safeGoalEmoji = escapeHtml(goalEmoji);
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -163,17 +186,17 @@ export function useResendEmail() {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0b; color: #ffffff; margin: 0; padding: 40px 20px;">
           <div style="max-width: 560px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1f 0%, #0d0d10 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1);">
             <div style="text-align: center; margin-bottom: 32px;">
-              <div style="font-size: 48px; margin-bottom: 16px;">${goalEmoji}</div>
+              <div style="font-size: 48px; margin-bottom: 16px;">${safeGoalEmoji}</div>
               <h1 style="margin: 0; font-size: 24px; color: #ffffff;">You're invited to join a shared goal!</h1>
             </div>
             
             <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
-              <strong style="color: #ffffff;">${inviterName}</strong> wants you to join them in crushing:
+              <strong style="color: #ffffff;">${safeInviterName}</strong> wants you to join them in crushing:
             </p>
             
             <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(99, 102, 241, 0.2); text-align: center;">
-              <div style="font-size: 32px; margin-bottom: 8px;">${goalEmoji}</div>
-              <h2 style="margin: 0; color: #6366f1; font-size: 20px;">${goalName}</h2>
+              <div style="font-size: 32px; margin-bottom: 8px;">${safeGoalEmoji}</div>
+              <h2 style="margin: 0; color: #6366f1; font-size: 20px;">${safeGoalName}</h2>
             </div>
             
             <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
@@ -181,7 +204,7 @@ export function useResendEmail() {
             </p>
             
             <div style="text-align: center; margin-bottom: 24px;">
-              <a href="${window.location.origin}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Accept Invitation →</a>
+              <a href="${baseUrl}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Accept Invitation →</a>
             </div>
             
             <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
@@ -194,7 +217,7 @@ export function useResendEmail() {
 
     return sendEmail({
       to: inviteeEmail,
-      subject: `${inviterName} invited you to join "${goalName}" ${goalEmoji}`,
+      subject: `${safeInviterName} invited you to join "${safeGoalName}" ${safeGoalEmoji}`,
       html,
     });
   };
@@ -204,6 +227,9 @@ export function useResendEmail() {
     name: string,
     currentStreak: number
   ): Promise<boolean> => {
+    const safeName = escapeHtml(name);
+    const baseUrl = window.location.origin;
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -219,7 +245,7 @@ export function useResendEmail() {
             </div>
             
             <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
-              Hey ${name}! Your <strong style="color: #f97316;">${currentStreak}-day streak</strong> is at risk!
+              Hey ${safeName}! Your <strong style="color: #f97316;">${currentStreak}-day streak</strong> is at risk!
             </p>
             
             <div style="background: rgba(249, 115, 22, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(249, 115, 22, 0.2); text-align: center;">
@@ -232,7 +258,7 @@ export function useResendEmail() {
             </p>
             
             <div style="text-align: center; margin-bottom: 24px;">
-              <a href="${window.location.origin}/tasks" style="display: inline-block; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Complete a Task Now →</a>
+              <a href="${baseUrl}/tasks" style="display: inline-block; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Complete a Task Now →</a>
             </div>
             
             <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
