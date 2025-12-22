@@ -386,58 +386,60 @@ export default function Dashboard() {
           )}
         </section>
 
-        {/* Recent Achievements */}
-        <section className="mt-6 lg:mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-premium" />
-              Recent Achievements
-            </h2>
-          </div>
+        {/* Recent Achievements - Only show after tour is completed */}
+        {localStorage.getItem('hasSeenProductTour') && (
+          <section className="mt-6 lg:mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-premium" />
+                Recent Achievements
+              </h2>
+            </div>
 
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
-            {stats && stats.tasks_completed > 0 ? (
-              <>
-                {stats.tasks_completed >= 1 && (
-                  <Card
-                    variant="glass"
-                    className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
-                  >
-                    <div className="text-3xl sm:text-4xl mb-2">🎯</div>
-                    <p className="font-semibold mb-1 text-sm sm:text-base">First Task</p>
-                    <p className="text-xs text-muted-foreground">Completed your first task</p>
-                  </Card>
-                )}
-                {stats.current_streak >= 3 && (
-                  <Card
-                    variant="glass"
-                    className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
-                    style={{ animationDelay: '100ms' }}
-                  >
-                    <div className="text-3xl sm:text-4xl mb-2">🔥</div>
-                    <p className="font-semibold mb-1 text-sm sm:text-base">On Fire</p>
-                    <p className="text-xs text-muted-foreground">3 day streak</p>
-                  </Card>
-                )}
-                {stats.tasks_completed >= 10 && (
-                  <Card
-                    variant="glass"
-                    className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
-                    style={{ animationDelay: '200ms' }}
-                  >
-                    <div className="text-3xl sm:text-4xl mb-2">💪</div>
-                    <p className="font-semibold mb-1 text-sm sm:text-base">Task Master</p>
-                    <p className="text-xs text-muted-foreground">10 tasks completed</p>
-                  </Card>
-                )}
-              </>
-            ) : (
-              <Card variant="glass" className="p-6 w-full text-center">
-                <p className="text-muted-foreground">Complete tasks to earn achievements!</p>
-              </Card>
-            )}
-          </div>
-        </section>
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
+              {stats && stats.tasks_completed > 0 ? (
+                <>
+                  {stats.tasks_completed >= 1 && (
+                    <Card
+                      variant="glass"
+                      className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
+                    >
+                      <div className="text-3xl sm:text-4xl mb-2">🎯</div>
+                      <p className="font-semibold mb-1 text-sm sm:text-base">First Task</p>
+                      <p className="text-xs text-muted-foreground">Completed your first task</p>
+                    </Card>
+                  )}
+                  {stats.current_streak >= 3 && (
+                    <Card
+                      variant="glass"
+                      className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
+                      style={{ animationDelay: '100ms' }}
+                    >
+                      <div className="text-3xl sm:text-4xl mb-2">🔥</div>
+                      <p className="font-semibold mb-1 text-sm sm:text-base">On Fire</p>
+                      <p className="text-xs text-muted-foreground">3 day streak</p>
+                    </Card>
+                  )}
+                  {stats.tasks_completed >= 10 && (
+                    <Card
+                      variant="glass"
+                      className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
+                      style={{ animationDelay: '200ms' }}
+                    >
+                      <div className="text-3xl sm:text-4xl mb-2">💪</div>
+                      <p className="font-semibold mb-1 text-sm sm:text-base">Task Master</p>
+                      <p className="text-xs text-muted-foreground">10 tasks completed</p>
+                    </Card>
+                  )}
+                </>
+              ) : (
+                <Card variant="glass" className="p-6 w-full text-center">
+                  <p className="text-muted-foreground">Complete tasks to earn achievements!</p>
+                </Card>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* This Week at a Glance */}
         <section className="mt-6 lg:mt-8">
