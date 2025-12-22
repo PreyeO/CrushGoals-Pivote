@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { loginSchema, signupSchema } from "@/lib/validations";
 import { useRateLimiter } from "@/hooks/useRateLimiter";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
-import { OtpVerificationModal } from "./OtpVerificationModal";
 import { useEmailService } from "@/hooks/useEmailService";
 
 interface AuthModalProps {
@@ -26,9 +25,6 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
-  const [pendingUserData, setPendingUserData] = useState<{ name: string; email: string } | null>(null);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -156,12 +152,22 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             })
             .eq('user_id', data.user.id);
 
-          // Store pending user data and show OTP verification modal
-          setPendingUserId(data.user.id);
-          setPendingUserData({ name: name.trim(), email: email.trim() });
-          setShowOtpModal(true);
-          setIsLoading(false);
+          // Send welcome email
+          sendWelcomeEmail(email.trim(), name.trim()).catch(() => {});
+          
+          toast.success("Account created successfully!");
+          onSuccess({ name: name.trim(), email: email.trim() });
+          onOpenChange(false);
+          
+          // Reset form
+          setName("");
+          setUsername("");
+          setEmail("");
+          setPassword("");
+          setAgreed(false);
+          setShowOnLeaderboard(false);
         }
+        setIsLoading(false);
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
@@ -453,42 +459,6 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         onOpenChange={setShowForgotPassword}
         onBack={() => setShowForgotPassword(false)}
       />
-
-      {pendingUserId && pendingUserData && (
-        <OtpVerificationModal
-          open={showOtpModal}
-          onOpenChange={(open) => {
-            setShowOtpModal(open);
-            if (!open) {
-              // User closed modal without verifying - they can still log in later
-              setPendingUserId(null);
-              setPendingUserData(null);
-            }
-          }}
-          email={pendingUserData.email}
-          name={pendingUserData.name}
-          userId={pendingUserId}
-          onVerified={() => {
-            // Send welcome email after verification
-            sendWelcomeEmail(pendingUserData.email, pendingUserData.name).catch(() => {});
-            
-            toast.success("Account created successfully!");
-            onSuccess(pendingUserData);
-            onOpenChange(false);
-            setShowOtpModal(false);
-            setPendingUserId(null);
-            setPendingUserData(null);
-            
-            // Reset form
-            setName("");
-            setUsername("");
-            setEmail("");
-            setPassword("");
-            setAgreed(false);
-            setShowOnLeaderboard(false);
-          }}
-        />
-      )}
     </Dialog>
   );
 }

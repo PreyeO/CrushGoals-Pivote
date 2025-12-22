@@ -1,20 +1,17 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { EmailVerificationBanner } from './EmailVerificationBanner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
-  requireVerifiedEmail?: boolean;
 }
 
 export function ProtectedRoute({ 
   children, 
-  requireAdmin = false,
-  requireVerifiedEmail = true 
+  requireAdmin = false 
 }: ProtectedRouteProps) {
-  const { user, isAdmin, isLoading, isAdminLoaded, isEmailVerified, profile } = useAuth();
+  const { user, isAdmin, isLoading, isAdminLoaded } = useAuth();
   const location = useLocation();
 
   // Show loading while auth state is being determined
@@ -47,25 +44,6 @@ export function ProtectedRoute({
 
   if (requireAdmin && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
-  }
-
-  // Admin users skip email verification requirement - they go straight to admin dashboard
-  if (isAdmin && requireAdmin) {
-    return <>{children}</>;
-  }
-
-  // Show email verification banner if email is not verified (for regular users)
-  if (requireVerifiedEmail && !isEmailVerified) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container max-w-4xl mx-auto p-4 pt-8">
-          <EmailVerificationBanner email={profile?.email || user?.email || ''} />
-          <div className="opacity-50 pointer-events-none">
-            {children}
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return <>{children}</>;
