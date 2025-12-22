@@ -7,7 +7,7 @@ import { StreakCounter } from "@/components/StreakCounter";
 import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { WeeklySummary } from "@/components/WeeklySummary";
-import { OnboardingFlow } from "@/components/OnboardingFlow";
+import { ProductTour } from "@/components/ProductTour";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
@@ -38,28 +38,28 @@ export default function Dashboard() {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [weeklySummaryOpen, setWeeklySummaryOpen] = useState(false);
   const [weekData, setWeekData] = useState<{ date: string; day: string; completed: number; total: number }[]>([]);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showProductTour, setShowProductTour] = useState(false);
   
   // Enable streak notifications
   useStreakNotifications();
 
-  // Check if new user and show onboarding
+  // Check if new user and show product tour
   useEffect(() => {
-    const checkOnboarding = () => {
-      const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+    const checkProductTour = () => {
+      const hasSeenProductTour = localStorage.getItem('hasSeenProductTour');
       const isNewUser = goals.length === 0 && stats?.tasks_completed === 0;
       
-      if (!hasSeenOnboarding && isNewUser && !goalsLoading) {
-        setShowOnboarding(true);
+      if (!hasSeenProductTour && isNewUser && !goalsLoading) {
+        setShowProductTour(true);
       }
     };
     
-    checkOnboarding();
+    checkProductTour();
   }, [goals, stats, goalsLoading]);
 
-  const handleOnboardingComplete = () => {
-    localStorage.setItem('hasSeenOnboarding', 'true');
-    setShowOnboarding(false);
+  const handleProductTourComplete = () => {
+    localStorage.setItem('hasSeenProductTour', 'true');
+    setShowProductTour(false);
   };
 
   // Fetch week data
@@ -205,7 +205,12 @@ export default function Dashboard() {
                 })}
               </p>
             </div>
-            <Button variant="hero" className="animate-fade-in w-full sm:w-auto" onClick={() => setAddGoalOpen(true)}>
+            <Button 
+              variant="hero" 
+              className="animate-fade-in w-full sm:w-auto" 
+              onClick={() => setAddGoalOpen(true)}
+              data-tour="new-goal"
+            >
               <Plus className="w-4 h-4 mr-2" />
               New Goal
             </Button>
@@ -518,11 +523,10 @@ export default function Dashboard() {
         particleCount={100}
       />
 
-      {/* Onboarding Flow for New Users */}
-      <OnboardingFlow
-        open={showOnboarding}
-        onOpenChange={setShowOnboarding}
-        onComplete={handleOnboardingComplete}
+      {/* Product Tour for New Users */}
+      <ProductTour
+        open={showProductTour}
+        onComplete={handleProductTourComplete}
       />
     </div>
   );
