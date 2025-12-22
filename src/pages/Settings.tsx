@@ -508,6 +508,25 @@ export default function Settings() {
                 <div className="space-y-6">
                   <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Help & Support</h2>
                   <div className="space-y-3 sm:space-y-4">
+                    {/* Restart Tour Button */}
+                    <button 
+                      onClick={() => {
+                        localStorage.removeItem('tourCompleted');
+                        toast.success("Tour reset! Navigate to Dashboard to restart the tour.");
+                      }}
+                      className="w-full text-left p-4 bg-primary/10 border border-primary/20 rounded-xl hover:bg-primary/20 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                          <HelpCircle className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm sm:text-base">Restart Product Tour</h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Take the guided tour again</p>
+                        </div>
+                      </div>
+                    </button>
+
                     {[
                       { title: "Getting Started Guide", desc: "Learn how to use CrushGoals" },
                       { title: "FAQ", desc: "Frequently asked questions" },
