@@ -32,7 +32,7 @@ const motivationalQuotes = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, stats } = useAuth();
-  const { goals, isLoading: goalsLoading, addGoal } = useGoals();
+  const { goals, isLoading: goalsLoading, addGoal, refreshGoals } = useGoals();
   const today = new Date().toISOString().split('T')[0];
   const { tasks, isLoading: tasksLoading, toggleTask, addTask, celebrationTrigger, clearCelebration } = useTasks(today);
   const [addGoalOpen, setAddGoalOpen] = useState(false);
@@ -45,7 +45,14 @@ export default function Dashboard() {
   useStreakNotifications();
   
   // Process pending invite tokens
-  useInviteHandler();
+  const { processedInvites } = useInviteHandler();
+  
+  // Refetch goals when invites are processed
+  useEffect(() => {
+    if (processedInvites) {
+      refreshGoals();
+    }
+  }, [processedInvites, refreshGoals]);
 
   // Check if new user and show product tour
   useEffect(() => {
