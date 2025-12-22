@@ -116,40 +116,39 @@ export function useResendEmail() {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0b; color: #ffffff; margin: 0; padding: 40px 20px;">
           <div style="max-width: 560px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1f 0%, #0d0d10 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1);">
             <div style="text-align: center; margin-bottom: 32px;">
-              <div style="font-size: 48px; margin-bottom: 16px;">${hasGoal ? safeGoalEmoji : '👋'}</div>
-              <h1 style="margin: 0; font-size: 28px; color: #ffffff;">${hasGoal ? `${safeInviterName} challenged you!` : `${safeInviterName} wants to crush goals with you!`}</h1>
+              <div style="font-size: 48px; margin-bottom: 16px;">${hasGoal ? safeGoalEmoji : '🎯'}</div>
+              <h1 style="margin: 0; font-size: 28px; color: #ffffff;">${safeInviterName} Wants to Grow with You!</h1>
             </div>
             
+            <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px; text-align: center;">
+              Hey there! ${safeInviterName} has invited you to join them on CrushGoals — the app that makes achieving your goals fun and social.
+            </p>
+
             ${hasGoal ? `
             <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(99, 102, 241, 0.2); text-align: center;">
+              <p style="margin: 0 0 12px 0; color: #a1a1aa; font-size: 14px;">They want you to join them on this goal:</p>
               <div style="font-size: 32px; margin-bottom: 8px;">${safeGoalEmoji}</div>
               <h2 style="margin: 0; color: #6366f1; font-size: 20px;">${safeGoalName}</h2>
-              <p style="margin: 8px 0 0 0; color: #a1a1aa; font-size: 14px;">Compete on the leaderboard!</p>
+              <p style="margin: 12px 0 0 0; color: #a1a1aa; font-size: 14px;">Work together, stay accountable, and celebrate wins as a team!</p>
             </div>
             ` : ''}
             
-            <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
-              ${hasGoal 
-                ? `${safeInviterName} wants you to join them in crushing this goal together on CrushGoals.`
-                : `Your friend ${safeInviterName} has invited you to join them on CrushGoals — the app that makes achieving your goals fun and social.`
-              }
-            </p>
-            
             <div style="background: rgba(34, 197, 94, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 24px; border: 1px solid rgba(34, 197, 94, 0.2);">
-              <h3 style="margin: 0 0 12px 0; color: #22c55e;">Why join?</h3>
-              <ul style="margin: 0; padding-left: 20px; color: #a1a1aa;">
-                <li style="margin-bottom: 8px;">🏆 Compete on the leaderboard together</li>
-                <li style="margin-bottom: 8px;">🔥 Keep each other accountable</li>
-                <li style="margin-bottom: 8px;">💪 Celebrate wins as a team</li>
+              <h3 style="margin: 0 0 12px 0; color: #22c55e;">Why Join CrushGoals?</h3>
+              <ul style="margin: 0; padding-left: 20px; color: #a1a1aa; line-height: 1.8;">
+                <li style="margin-bottom: 8px;">🎯 Set meaningful goals and track your progress</li>
+                <li style="margin-bottom: 8px;">🔥 Build daily streaks to stay consistent</li>
+                <li style="margin-bottom: 8px;">🏆 Compete with friends on the leaderboard</li>
+                <li style="margin-bottom: 8px;">💪 Celebrate wins together as a team</li>
               </ul>
             </div>
             
             <div style="text-align: center; margin-bottom: 24px;">
-              <a href="${baseUrl}" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">${hasGoal ? 'Accept Challenge' : `Join ${safeInviterName} on CrushGoals`} →</a>
+              <a href="${baseUrl}" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Join ${safeInviterName} on CrushGoals →</a>
             </div>
             
             <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
-              See you on the leaderboard! 🎯
+              Let's crush some goals together! 💪
             </p>
           </div>
         </body>
@@ -159,8 +158,8 @@ export function useResendEmail() {
     return sendEmail({
       to: inviteeEmail,
       subject: hasGoal 
-        ? `${safeInviterName} challenged you to crush "${safeGoalName}"! ${safeGoalEmoji}`
-        : `${safeInviterName} invited you to CrushGoals! 🎯`,
+        ? `${safeInviterName} invited you to crush "${safeGoalName}" together! ${safeGoalEmoji}`
+        : `${safeInviterName} invited you to join CrushGoals! 🎯`,
       html,
     });
   };

@@ -32,9 +32,9 @@ const tourSteps: TourStep[] = [
     icon: Rocket,
   },
   {
-    id: "new-goal",
-    title: "Create Your First Goal",
-    description: "Click the 'New Goal' button to start your journey. Goals are broken into daily tasks to make them achievable.",
+    id: "dashboard-overview",
+    title: "Your Command Center",
+    description: "This is your dashboard — see today's tasks, your streak, active goals, and weekly progress all in one place.",
     target: "[data-tour='new-goal']",
     position: "bottom",
     route: "/dashboard",
@@ -104,7 +104,7 @@ const tourSteps: TourStep[] = [
   {
     id: "complete",
     title: "You're All Set! 🚀",
-    description: "You've earned 50 XP for completing the tour! Now go crush your first goal.",
+    description: "You've earned 50 XP for completing the tour! Now create your first goal to start crushing it!",
     target: "",
     position: "center",
     route: "/dashboard",
