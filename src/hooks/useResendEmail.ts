@@ -83,8 +83,11 @@ export function useResendEmail() {
 
   const sendFriendInviteEmail = async (
     inviteeEmail: string,
-    inviterName: string
+    inviterName: string,
+    goalName?: string,
+    goalEmoji?: string
   ): Promise<boolean> => {
+    const hasGoal = goalName && goalEmoji;
     const html = `
       <!DOCTYPE html>
       <html>
@@ -95,12 +98,23 @@ export function useResendEmail() {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0b; color: #ffffff; margin: 0; padding: 40px 20px;">
           <div style="max-width: 560px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1f 0%, #0d0d10 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1);">
             <div style="text-align: center; margin-bottom: 32px;">
-              <div style="font-size: 48px; margin-bottom: 16px;">👋</div>
-              <h1 style="margin: 0; font-size: 28px; color: #ffffff;">${inviterName} wants to crush goals with you!</h1>
+              <div style="font-size: 48px; margin-bottom: 16px;">${hasGoal ? goalEmoji : '👋'}</div>
+              <h1 style="margin: 0; font-size: 28px; color: #ffffff;">${hasGoal ? `${inviterName} challenged you!` : `${inviterName} wants to crush goals with you!`}</h1>
             </div>
             
+            ${hasGoal ? `
+            <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(99, 102, 241, 0.2); text-align: center;">
+              <div style="font-size: 32px; margin-bottom: 8px;">${goalEmoji}</div>
+              <h2 style="margin: 0; color: #6366f1; font-size: 20px;">${goalName}</h2>
+              <p style="margin: 8px 0 0 0; color: #a1a1aa; font-size: 14px;">Compete on the leaderboard!</p>
+            </div>
+            ` : ''}
+            
             <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
-              Your friend ${inviterName} has invited you to join them on CrushGoals — the app that makes achieving your goals fun and social.
+              ${hasGoal 
+                ? `${inviterName} wants you to join them in crushing this goal together on CrushGoals.`
+                : `Your friend ${inviterName} has invited you to join them on CrushGoals — the app that makes achieving your goals fun and social.`
+              }
             </p>
             
             <div style="background: rgba(34, 197, 94, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 24px; border: 1px solid rgba(34, 197, 94, 0.2);">
@@ -113,7 +127,7 @@ export function useResendEmail() {
             </div>
             
             <div style="text-align: center; margin-bottom: 24px;">
-              <a href="${window.location.origin}" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Join ${inviterName} on CrushGoals →</a>
+              <a href="${window.location.origin}" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">${hasGoal ? 'Accept Challenge' : `Join ${inviterName} on CrushGoals`} →</a>
             </div>
             
             <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
@@ -126,7 +140,9 @@ export function useResendEmail() {
 
     return sendEmail({
       to: inviteeEmail,
-      subject: `${inviterName} invited you to CrushGoals! 🎯`,
+      subject: hasGoal 
+        ? `${inviterName} challenged you to crush "${goalName}"! ${goalEmoji}`
+        : `${inviterName} invited you to CrushGoals! 🎯`,
       html,
     });
   };
