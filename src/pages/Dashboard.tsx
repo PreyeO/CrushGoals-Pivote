@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
 import { useStreakNotifications } from "@/hooks/useStreakNotifications";
+import { useInviteHandler } from "@/hooks/useInviteHandler";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/logger";
@@ -42,6 +43,9 @@ export default function Dashboard() {
   
   // Enable streak notifications
   useStreakNotifications();
+  
+  // Process pending invite tokens
+  useInviteHandler();
 
   // Check if new user and show product tour
   useEffect(() => {
