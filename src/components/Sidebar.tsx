@@ -20,12 +20,12 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Target, label: "My Goals", path: "/goals" },
-  { icon: CheckSquare, label: "Today's Tasks", path: "/tasks" },
-  { icon: BarChart3, label: "Analytics", path: "/analytics" },
-  { icon: Trophy, label: "Achievements", path: "/achievements" },
-  { icon: Users, label: "Leaderboard", path: "/leaderboard" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourId: "nav-dashboard" },
+  { icon: Target, label: "My Goals", path: "/goals", tourId: "nav-goals" },
+  { icon: CheckSquare, label: "Today's Tasks", path: "/tasks", tourId: "nav-tasks" },
+  { icon: BarChart3, label: "Analytics", path: "/analytics", tourId: "nav-analytics" },
+  { icon: Trophy, label: "Achievements", path: "/achievements", tourId: "nav-achievements" },
+  { icon: Users, label: "Leaderboard", path: "/leaderboard", tourId: "nav-leaderboard" },
 ];
 
 export function Sidebar() {
@@ -152,6 +152,7 @@ export function Sidebar() {
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
+                data-tour={item.tourId}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
                   isActive
@@ -202,6 +203,7 @@ export function Sidebar() {
           <NavLink
             to="/settings"
             onClick={() => setMobileOpen(false)}
+            data-tour="nav-settings"
             className={cn(
               "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
               location.pathname === "/settings"

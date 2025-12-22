@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { loginSchema, signupSchema } from "@/lib/validations";
 import { useRateLimiter } from "@/hooks/useRateLimiter";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
-import { useEmailService } from "@/hooks/useEmailService";
+import { useResendEmail } from "@/hooks/useResendEmail";
 
 interface AuthModalProps {
   open: boolean;
@@ -34,7 +34,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkingUsername, setCheckingUsername] = useState(false);
   const { checkRateLimit, recordAttempt } = useRateLimiter();
-  const { sendWelcomeEmail } = useEmailService();
+  const { sendWelcomeEmail } = useResendEmail();
 
   const checkUsernameAvailability = async (value: string) => {
     if (value.length < 3) return;

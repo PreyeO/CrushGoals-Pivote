@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logError } from '@/lib/logger';
-import { useEmailService } from '@/hooks/useEmailService';
+import { useResendEmail } from '@/hooks/useResendEmail';
 
 export interface SharedGoal {
   id: string;
@@ -46,7 +46,7 @@ export function useSharedGoals() {
   const [sharedGoals, setSharedGoals] = useState<SharedGoal[]>([]);
   const [pendingInvites, setPendingInvites] = useState<SharedGoalInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { sendSharedGoalInviteEmail } = useEmailService();
+  const { sendSharedGoalInviteEmail } = useResendEmail();
 
   const fetchSharedGoals = async () => {
     if (!user) return;
@@ -197,8 +197,7 @@ export function useSharedGoals() {
         email.toLowerCase().trim(),
         inviterName,
         goalInfo?.name || sharedGoalData?.name || 'a shared goal',
-        goalInfo?.emoji || '🎯',
-        !!existingUser
+        goalInfo?.emoji || '🎯'
       ).catch(() => {
         // Silent fail - invitation already created in DB
       });
