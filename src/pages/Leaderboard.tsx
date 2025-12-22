@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { useFriends } from "@/hooks/useFriends";
 import { useSharedGoals } from "@/hooks/useSharedGoals";
-import { AddFriendModal } from "@/components/AddFriendModal";
+import { InviteFriendModal } from "@/components/InviteFriendModal";
 import { FriendRequestCard } from "@/components/FriendRequestCard";
 import { SharedGoalModal } from "@/components/SharedGoalModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -387,10 +387,9 @@ export default function Leaderboard() {
         </div>
       </main>
 
-      <AddFriendModal 
+      <InviteFriendModal 
         open={addFriendOpen} 
         onOpenChange={setAddFriendOpen}
-        onSendRequest={sendFriendRequest}
       />
 
       {selectedSharedGoal && (

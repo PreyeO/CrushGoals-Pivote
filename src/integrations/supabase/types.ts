@@ -113,6 +113,47 @@ export type Database = {
         }
         Relationships: []
       }
+      friend_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          goal_id: string | null
+          id: string
+          invite_token: string | null
+          invitee_email: string
+          inviter_id: string
+          status: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          goal_id?: string | null
+          id?: string
+          invite_token?: string | null
+          invitee_email: string
+          inviter_id: string
+          status?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          goal_id?: string | null
+          id?: string
+          invite_token?: string | null
+          invitee_email?: string
+          inviter_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_invites_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friendships: {
         Row: {
           created_at: string
