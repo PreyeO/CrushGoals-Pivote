@@ -32,7 +32,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [showOnLeaderboard, setShowOnLeaderboard] = useState(true);
+  const [showOnLeaderboard, setShowOnLeaderboard] = useState(true); // Default to ON
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkingUsername, setCheckingUsername] = useState(false);
   const { checkRateLimit, recordAttempt } = useRateLimiter();
@@ -207,7 +207,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
           setEmail("");
           setPassword("");
           setAgreed(false);
-          setShowOnLeaderboard(false);
+          setShowOnLeaderboard(true);
         }
         setIsLoading(false);
       } else {
