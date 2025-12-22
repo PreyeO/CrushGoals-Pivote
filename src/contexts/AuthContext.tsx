@@ -39,7 +39,6 @@ interface AuthContextType {
   isAdmin: boolean;
   isLoading: boolean;
   isAdminLoaded: boolean;
-  isEmailVerified: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -56,8 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdminLoaded, setIsAdminLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-
-  const isEmailVerified = user?.email_confirmed_at != null;
 
   const handleSessionTimeout = useCallback(() => {
     setUser(null);
@@ -194,7 +191,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin,
       isLoading,
       isAdminLoaded,
-      isEmailVerified,
       signOut,
       refreshProfile,
     }}>
