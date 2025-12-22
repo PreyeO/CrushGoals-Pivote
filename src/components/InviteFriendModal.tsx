@@ -220,10 +220,13 @@ export function InviteFriendModal({ open, onOpenChange, onSuccess }: InviteFrien
 
           <div className="space-y-2">
             <Label htmlFor="goal">Challenge them on a goal (optional)</Label>
-            <Select value={selectedGoalId} onValueChange={setSelectedGoalId}>
+            <Select 
+              value={selectedGoalId || "none"} 
+              onValueChange={(value) => setSelectedGoalId(value === "none" ? "" : value)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a goal to share">
-                  {selectedGoalId ? (
+                  {selectedGoalId && selectedGoalId !== "none" ? (
                     <div className="flex items-center gap-2">
                       <span>{goals.find(g => g.id === selectedGoalId)?.emoji}</span>
                       <span>{goals.find(g => g.id === selectedGoalId)?.name}</span>
@@ -234,7 +237,7 @@ export function InviteFriendModal({ open, onOpenChange, onSuccess }: InviteFrien
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">
+                <SelectItem value="none">
                   <span className="text-muted-foreground">No goal - just add as friend</span>
                 </SelectItem>
                 {goals.filter(g => !g.is_paused && g.progress !== 100).map((goal) => (
