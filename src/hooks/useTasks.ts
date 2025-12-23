@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ALL_BADGES } from '@/hooks/useAchievements';
 import { logError } from '@/lib/logger';
+import { logTaskCompletionToSharedGoals } from '@/hooks/useSharedGoalActivities';
 
 export interface Task {
   id: string;
@@ -284,6 +285,18 @@ export function useTasks(date?: string) {
       // Auto-update goal progress
       if (data.goal_id) {
         await updateGoalProgress(data.goal_id);
+        
+        // Log activity to shared goals for real-time notifications
+        if (completed && user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, full_name')
+            .eq('user_id', user.id)
+            .single();
+          
+          const username = profile?.username || profile?.full_name?.split(' ')[0] || 'Someone';
+          await logTaskCompletionToSharedGoals(user.id, data.goal_id, data.title, username);
+        }
       }
 
       // Update user stats if completing task
