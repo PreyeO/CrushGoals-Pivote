@@ -304,6 +304,79 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_goal_activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          shared_goal_id: string
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          shared_goal_id: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          shared_goal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_goal_activities_shared_goal_id_fkey"
+            columns: ["shared_goal_id"]
+            isOneToOne: false
+            referencedRelation: "shared_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_goal_comments: {
+        Row: {
+          comment_type: string
+          content: string
+          created_at: string
+          id: string
+          shared_goal_id: string
+          user_id: string
+        }
+        Insert: {
+          comment_type?: string
+          content: string
+          created_at?: string
+          id?: string
+          shared_goal_id: string
+          user_id: string
+        }
+        Update: {
+          comment_type?: string
+          content?: string
+          created_at?: string
+          id?: string
+          shared_goal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_goal_comments_shared_goal_id_fkey"
+            columns: ["shared_goal_id"]
+            isOneToOne: false
+            referencedRelation: "shared_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_goal_invites: {
         Row: {
           created_at: string

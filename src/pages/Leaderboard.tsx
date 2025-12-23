@@ -7,7 +7,7 @@ import { useFriends } from "@/hooks/useFriends";
 import { useSharedGoals, SharedGoalMember } from "@/hooks/useSharedGoals";
 import { InviteFriendModal } from "@/components/InviteFriendModal";
 import { FriendRequestCard } from "@/components/FriendRequestCard";
-import { SharedGoalModal } from "@/components/SharedGoalModal";
+import { SharedGoalDetailModal } from "@/components/SharedGoalDetailModal";
 import { useAuth } from "@/contexts/AuthContext";
 
 type ViewFilter = "global" | "friends";
@@ -449,15 +449,10 @@ export default function Leaderboard() {
         onOpenChange={setAddFriendOpen}
       />
 
-      {selectedSharedGoal && (
-        <SharedGoalModal
-          open={!!selectedSharedGoal}
-          onOpenChange={(open) => !open && setSelectedSharedGoal(null)}
-          sharedGoalId={selectedSharedGoal.id}
-          sharedGoalName={selectedSharedGoal.name}
-          isOwner={selectedSharedGoal.isOwner}
-        />
-      )}
+      <SharedGoalDetailModal
+        sharedGoal={selectedSharedGoal}
+        onOpenChange={(open) => !open && setSelectedSharedGoal(null)}
+      />
     </div>
   );
 }
