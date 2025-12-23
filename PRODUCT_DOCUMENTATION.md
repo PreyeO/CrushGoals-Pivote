@@ -98,15 +98,28 @@ The fundamental mechanism that enables goal achievement:
 - **Friends Leaderboard**: Compete with added friends
 - **Privacy Protection**: Shows first letter of name only
 - **Admin Exclusion**: Admin accounts excluded from rankings
+- **Time Filters**: Weekly and all-time views
 
 ### 6. Social Features
 
 - **Friends System**: Add friends by email/username
 - **Friend Requests**: Send, accept, reject functionality
+- **Friend Invites**: Invite non-users via email with invite links
 - **Social Sharing**: Share achievements to WhatsApp, Instagram, Twitter
 - **Achievement Cards**: Formatted images with badge, XP, rarity, date
 
-### 7. Analytics Dashboard
+### 7. Shared Goals (Group Challenges)
+
+- **Create Shared Goals**: Turn any goal into a group challenge
+- **Invite Friends**: Send invites via email or shareable links
+- **Auto-Join on Signup**: Friends who sign up via invite link automatically join the shared goal
+- **Goal Copying**: Each member gets their own copy of the goal with same settings
+- **In-Goal Leaderboard**: See member rankings by progress, streak, and completion stats
+- **Real-Time Activity Feed**: Live updates when members complete tasks
+- **Comments & Encouragement**: Send messages and quick encouragement to teammates
+- **Live Notifications**: Toast notifications when any member completes a task
+
+### 8. Analytics Dashboard
 
 - **Weekly Task Completion**: Bar charts
 - **Monthly/Yearly XP Progression**: Line graphs
@@ -115,26 +128,28 @@ The fundamental mechanism that enables goal achievement:
 - **Goal Progress**: Across all active goals
 - **Real-Time Updates**: Immediate reflection of actions
 
-### 8. Habit Tracking Calendar
+### 9. Habit Tracking Calendar
 
 - **GoalHabitCalendar View**: Accessible from goal cards
 - **Complete History**: From start_date to end_date
 - **Visual Indicators**: Perfect days, missed days, partial completion, streaks
 
-### 9. Notifications
+### 10. Notifications
 
 - **Push Notifications**: Daily reminders at user-selected time
 - **Streak Warnings**: Alerts before streak loss
 - **Do Not Disturb**: Quiet hours support
 - **In-App Notifications**: Real-time updates
+- **Shared Goal Notifications**: Live updates when teammates complete tasks
 
-### 10. Settings & Customization
+### 11. Settings & Customization
 
 - **Sound Effects**: Toggle on/off
 - **Haptic Feedback**: Mobile vibration on actions
 - **Currency Preference**: Location-aware pricing display
 - **Notification Time**: Custom reminder scheduling
 - **Theme**: Dark glassmorphism aesthetic
+- **Leaderboard Visibility**: Opt-in/out of public leaderboard
 
 ---
 
@@ -169,7 +184,9 @@ src/
 │   ├── ConfettiCelebration.tsx
 │   ├── GoalCard.tsx
 │   ├── GoalHabitCalendar.tsx
+│   ├── InviteFriendModal.tsx
 │   ├── ProgressRing.tsx
+│   ├── SharedGoalDetailModal.tsx
 │   ├── Sidebar.tsx
 │   ├── StreakCounter.tsx
 │   ├── TaskCalendar.tsx
@@ -181,11 +198,14 @@ src/
 │   ├── useAchievements.ts
 │   ├── useFriends.ts
 │   ├── useGoals.ts
+│   ├── useInviteHandler.ts
 │   ├── useLeaderboard.ts
 │   ├── useMissedTasks.ts
 │   ├── useNotifications.ts
 │   ├── useProfile.ts
 │   ├── useRateLimiter.ts
+│   ├── useSharedGoalActivities.ts
+│   ├── useSharedGoals.ts
 │   ├── useSoundEffects.ts
 │   ├── useStreakNotifications.ts
 │   ├── useSubscription.ts
@@ -211,7 +231,8 @@ src/
 │   ├── Leaderboard.tsx
 │   ├── ResetPassword.tsx
 │   ├── Settings.tsx
-│   └── Tasks.tsx
+│   ├── Tasks.tsx
+│   └── VerifyEmail.tsx
 └── index.css            # Design system tokens
 ```
 
@@ -344,6 +365,71 @@ src/
 | created_at | timestamptz | Request timestamp |
 | updated_at | timestamptz | Status update timestamp |
 
+#### `friend_invites`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| inviter_id | uuid | User sending invite |
+| invitee_email | text | Email to invite |
+| goal_id | uuid | Optional goal to share |
+| invite_token | text | Unique invite token |
+| status | text | pending, accepted |
+| created_at | timestamptz | Invite timestamp |
+| accepted_at | timestamptz | When accepted |
+
+#### `shared_goals`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| goal_id | uuid | Original goal reference |
+| owner_id | uuid | Creator of shared goal |
+| name | text | Challenge name |
+| created_at | timestamptz | Creation timestamp |
+| updated_at | timestamptz | Last update timestamp |
+
+#### `shared_goal_members`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| shared_goal_id | uuid | Shared goal reference |
+| user_id | uuid | Member user ID |
+| goal_id | uuid | Member's copy of goal |
+| joined_at | timestamptz | Join timestamp |
+
+#### `shared_goal_comments`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| shared_goal_id | uuid | Shared goal reference |
+| user_id | uuid | Comment author |
+| content | text | Comment text |
+| comment_type | text | comment, encouragement, celebration |
+| created_at | timestamptz | Comment timestamp |
+
+#### `shared_goal_activities`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| shared_goal_id | uuid | Shared goal reference |
+| user_id | uuid | Activity user |
+| activity_type | text | task_completed, goal_joined, streak_milestone |
+| message | text | Activity description |
+| metadata | jsonb | Additional data |
+| created_at | timestamptz | Activity timestamp |
+
+#### `shared_goal_invites`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| shared_goal_id | uuid | Shared goal reference |
+| inviter_id | uuid | User sending invite |
+| invitee_email | text | Invited email |
+| invitee_user_id | uuid | If user exists |
+| invite_token | uuid | Unique token |
+| status | text | pending, accepted, declined |
+| expires_at | timestamptz | Invite expiration |
+| created_at | timestamptz | Invite timestamp |
+
 #### `user_roles`
 | Column | Type | Description |
 |--------|------|-------------|
@@ -409,6 +495,12 @@ Role verification helper:
 - Returns boolean for role check
 - Used in RLS policies
 
+#### `get_shared_goal_progress(p_shared_goal_id)`
+Returns member progress for shared goals:
+- user_id, username, tasks_completed_today/week
+- current_streak, goal_progress percentage
+- Only accessible by members/owners
+
 ---
 
 ## Authentication & Security
@@ -416,10 +508,11 @@ Role verification helper:
 ### Authentication Flow
 
 1. **Signup**: Email/password with full name
-2. **Email Verification**: Required before accessing protected features
+2. **Email Verification**: OTP-based verification after signup
 3. **Login**: Email/password with rate limiting
 4. **Session Management**: 30-minute inactivity timeout with 5-minute warning
 5. **Password Reset**: Secure token-based flow via email
+6. **Invite Flow**: Process pending invites on login (friend invites, shared goals)
 
 ### Security Features
 
@@ -625,9 +718,12 @@ npm run preview
 
 **Includes:**
 - Unlimited goals
+- Shared goals (group challenges)
 - Advanced analytics
 - All 47+ achievement badges
 - Leaderboard access
+- Real-time activity feeds
+- Comments & encouragement
 - Data export
 - Priority support
 
@@ -636,6 +732,32 @@ npm run preview
 - USD (United States)
 - GBP (United Kingdom)
 - Auto-detected or manual selection
+
+---
+
+## Real-Time Features
+
+### Shared Goal Activities
+- **Real-time subscriptions**: Using Supabase Realtime
+- **Activity types**: task_completed, goal_joined, streak_milestone
+- **Toast notifications**: Live updates when teammates complete tasks
+- **Activity feed**: Chronological list of member activities
+
+### Implementation
+```typescript
+// Subscribe to shared goal activities
+const channel = supabase
+  .channel(`shared-goal-activities-${sharedGoalId}`)
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'shared_goal_activities',
+    filter: `shared_goal_id=eq.${sharedGoalId}`,
+  }, (payload) => {
+    // Show toast notification for teammate activity
+  })
+  .subscribe();
+```
 
 ---
 
@@ -648,4 +770,4 @@ npm run preview
 ---
 
 *Last Updated: December 2024*
-*Version: 1.0.0*
+*Version: 1.1.0*
