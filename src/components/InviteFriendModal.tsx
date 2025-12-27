@@ -48,6 +48,42 @@ export function InviteFriendModal({ open, onOpenChange, onSuccess }: InviteFrien
     if (!user || !selectedGoalId) return "";
     
     try {
+      const selectedGoal = goals.find(g => g.id === selectedGoalId);
+      
+      // Ensure shared goal exists for this goal before generating link
+      let sharedGoalId: string;
+      const { data: existingSharedGoal } = await supabase
+        .from('shared_goals')
+        .select('id')
+        .eq('goal_id', selectedGoalId)
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (existingSharedGoal) {
+        sharedGoalId = existingSharedGoal.id;
+      } else if (selectedGoal) {
+        // Create shared goal
+        const { data: newSharedGoal, error: sgError } = await supabase
+          .from('shared_goals')
+          .insert({
+            goal_id: selectedGoalId,
+            owner_id: user.id,
+            name: `${selectedGoal.name} Challenge`,
+          })
+          .select('id')
+          .single();
+
+        if (sgError) throw sgError;
+        sharedGoalId = newSharedGoal.id;
+
+        // Add owner as member
+        await supabase.from('shared_goal_members').insert({
+          shared_goal_id: sharedGoalId,
+          user_id: user.id,
+          goal_id: selectedGoalId,
+        });
+      }
+
       // Create an invite record and get the token
       const { data: inviteData, error } = await supabase
         .from('friend_invites')

@@ -3,6 +3,83 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logError } from '@/lib/logger';
+import { addDays, addWeeks, addMonths, format } from 'date-fns';
+
+// Generate tasks for a goal based on its frequency and deadline
+const generateTasksForGoal = async (userId: string, goal: any) => {
+  try {
+    const frequency = goal.task_frequency || 'daily';
+    const startDate = new Date(goal.start_date || new Date());
+    const endDate = goal.deadline ? new Date(goal.deadline) : addMonths(startDate, 1);
+    
+    const tasks: any[] = [];
+    let currentDate = startDate;
+    
+    // Parse target value for daily task title
+    const targetMatch = goal.target_value?.match(/(\d+)\s*(.+)?/);
+    const totalTarget = targetMatch ? parseInt(targetMatch[1]) : 0;
+    const unit = targetMatch?.[2] || 'units';
+    
+    // Calculate number of periods
+    const daysBetween = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    let periods = 0;
+    
+    switch (frequency) {
+      case 'daily':
+        periods = daysBetween || 30;
+        break;
+      case 'weekly':
+        periods = Math.ceil(daysBetween / 7) || 4;
+        break;
+      case 'biweekly':
+        periods = Math.ceil(daysBetween / 14) || 2;
+        break;
+      case 'monthly':
+        periods = Math.ceil(daysBetween / 30) || 1;
+        break;
+    }
+    
+    const dailyTarget = totalTarget > 0 ? Math.ceil(totalTarget / periods) : 0;
+    
+    while (currentDate <= endDate && tasks.length < 365) {
+      const taskTitle = dailyTarget > 0 
+        ? `${goal.emoji || '🎯'} ${goal.name}: ${dailyTarget} ${unit}`
+        : `${goal.emoji || '🎯'} ${goal.name}`;
+      
+      tasks.push({
+        user_id: userId,
+        goal_id: goal.id,
+        title: taskTitle,
+        due_date: format(currentDate, 'yyyy-MM-dd'),
+        priority: 'medium',
+      });
+      
+      switch (frequency) {
+        case 'daily':
+          currentDate = addDays(currentDate, 1);
+          break;
+        case 'weekly':
+          currentDate = addWeeks(currentDate, 1);
+          break;
+        case 'biweekly':
+          currentDate = addWeeks(currentDate, 2);
+          break;
+        case 'monthly':
+          currentDate = addMonths(currentDate, 1);
+          break;
+      }
+    }
+    
+    if (tasks.length > 0) {
+      const { error } = await supabase.from('tasks').insert(tasks);
+      if (error) {
+        logError('Error generating tasks for shared goal:', error);
+      }
+    }
+  } catch (error) {
+    logError('Error in generateTasksForGoal:', error);
+  }
+};
 
 export function useInviteHandler() {
   const { user, profile } = useAuth();
@@ -44,15 +121,20 @@ export function useInviteHandler() {
       .or(`and(user_id.eq.${inviterId},friend_id.eq.${user.id}),and(user_id.eq.${user.id},friend_id.eq.${inviterId})`)
       .maybeSingle();
 
-    if (!existingFriendship) {
+  if (!existingFriendship) {
       // Create friendship (auto-accepted since they clicked the invite)
-      await supabase
+      // NOTE: user_id must be the current user (auth.uid()) to satisfy RLS policy
+      const { error: friendshipError } = await supabase
         .from('friendships')
         .insert({
-          user_id: inviterId,
-          friend_id: user.id,
+          user_id: user.id,
+          friend_id: inviterId,
           status: 'accepted',
         });
+      
+      if (friendshipError) {
+        logError('Error creating friendship:', friendshipError);
+      }
     } else if (existingFriendship.status === 'pending') {
       // Accept pending request
       await supabase
@@ -61,9 +143,9 @@ export function useInviteHandler() {
         .eq('id', existingFriendship.id);
     }
 
-    // If there's a goal attached, create shared goal for the invitee
+    // If there's a goal attached, create shared goal and copy for the invitee
     if (goalData) {
-      // Check if shared goal already exists
+      // Check if shared goal already exists (should be created by inviter)
       let sharedGoalId: string | null = null;
       
       const { data: existingSharedGoal } = await supabase
@@ -75,63 +157,55 @@ export function useInviteHandler() {
 
       if (existingSharedGoal) {
         sharedGoalId = existingSharedGoal.id;
-      } else {
-        // Create shared goal
-        const { data: newSharedGoal } = await supabase
-          .from('shared_goals')
-          .insert({
-            goal_id: friendInvite.goal_id,
-            owner_id: inviterId,
-            name: `${goalData.name} Challenge`,
-          })
-          .select('id')
-          .single();
+      }
+      // Note: We can't create shared_goals here due to RLS (owner_id must be auth.uid())
+      // The inviter should have created the shared goal when they sent the invite
 
-        if (newSharedGoal) {
-          sharedGoalId = newSharedGoal.id;
+      // Create a copy of the goal for the invitee regardless of shared goal status
+      const startDate = new Date().toISOString().split('T')[0];
+      const { data: newGoal, error: goalError } = await supabase
+        .from('goals')
+        .insert({
+          user_id: user.id,
+          name: goalData.name,
+          emoji: goalData.emoji,
+          category: goalData.category,
+          target_value: goalData.target_value,
+          deadline: goalData.deadline,
+          task_frequency: goalData.task_frequency || 'daily',
+          start_date: startDate,
+        })
+        .select('*')
+        .single();
 
-          // Add owner as member
-          await supabase.from('shared_goal_members').insert({
-            shared_goal_id: sharedGoalId,
-            user_id: inviterId,
-            goal_id: friendInvite.goal_id,
-          });
-        }
+      if (goalError) {
+        logError('Error creating goal for invitee:', goalError);
       }
 
-      if (sharedGoalId) {
-        // Check if invitee already has a membership
-        const { data: existingMembership } = await supabase
-          .from('shared_goal_members')
-          .select('id')
-          .eq('shared_goal_id', sharedGoalId)
-          .eq('user_id', user.id)
-          .maybeSingle();
+      if (newGoal) {
+        // Generate tasks for the new goal
+        await generateTasksForGoal(user.id, newGoal);
 
-        if (!existingMembership) {
-          // Create a copy of the goal for the invitee
-          const { data: newGoal } = await supabase
-            .from('goals')
-            .insert({
-              user_id: user.id,
-              name: goalData.name,
-              emoji: goalData.emoji,
-              category: goalData.category,
-              target_value: goalData.target_value,
-              deadline: goalData.deadline,
-              task_frequency: goalData.task_frequency,
-              start_date: new Date().toISOString().split('T')[0],
-            })
+        // Add invitee as member of the shared goal if it exists
+        if (sharedGoalId) {
+          // Check if invitee already has a membership
+          const { data: existingMembership } = await supabase
+            .from('shared_goal_members')
             .select('id')
-            .single();
+            .eq('shared_goal_id', sharedGoalId)
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-          if (newGoal) {
-            // Add invitee as member of the shared goal
-            await supabase.from('shared_goal_members').insert({
+          if (!existingMembership) {
+            const { error: memberError } = await supabase.from('shared_goal_members').insert({
               shared_goal_id: sharedGoalId,
               user_id: user.id,
               goal_id: newGoal.id,
             });
+
+            if (memberError) {
+              logError('Error adding invitee to shared goal:', memberError);
+            }
           }
         }
       }
