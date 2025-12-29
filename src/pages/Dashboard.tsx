@@ -61,6 +61,13 @@ export default function Dashboard() {
     checkProductTour();
   }, [goals, stats, goalsLoading]);
 
+  // Listen for custom event from ProductTour to open Add Goal modal
+  useEffect(() => {
+    const handleOpenAddGoal = () => setAddGoalOpen(true);
+    window.addEventListener('openAddGoalModal', handleOpenAddGoal);
+    return () => window.removeEventListener('openAddGoalModal', handleOpenAddGoal);
+  }, []);
+
   const handleProductTourComplete = () => {
     localStorage.setItem('hasSeenProductTour', 'true');
     setShowProductTour(false);
