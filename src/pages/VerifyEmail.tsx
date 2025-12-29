@@ -70,15 +70,22 @@ export default function VerifyEmail() {
     setIsResending(true);
     try {
       // Generate new OTP
-      const { data, error } = await supabase.rpc('generate_email_otp', {
-        p_email: user.email || '',
+      const { data: otpCode, error: otpError } = await supabase.rpc("generate_email_otp", {
+        p_email: user.email || "",
         p_user_id: user.id,
       });
 
-      if (error) throw error;
+      if (otpError) {
+        const msg = otpError.message || "Failed to generate verification code";
+        // Friendly message for our server-side rate limit
+        if (msg.toLowerCase().includes("too frequent") || msg.toLowerCase().includes("rate")) {
+          throw new Error("Please wait a moment before requesting a new code.");
+        }
+        throw new Error(msg);
+      }
 
-      // Send verification email via edge function
-      const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
+      // Send verification email via backend function
+      const { error: emailError } = await supabase.functions.invoke("send-email-resend", {
         body: {
           to: user.email,
           subject: "Verify your CrushGoals email",
@@ -92,7 +99,7 @@ export default function VerifyEmail() {
               <h1 style="font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 16px; color: #1f2937;">Verify Your Email</h1>
               <p style="font-size: 16px; color: #6b7280; text-align: center; margin-bottom: 30px;">Enter this code to verify your email and start crushing your goals:</p>
               <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 24px; border-radius: 16px; text-align: center; margin-bottom: 30px;">
-                <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: white;">${data}</span>
+                <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: white;">${otpCode}</span>
               </div>
               <p style="font-size: 14px; color: #9ca3af; text-align: center;">This code expires in 10 minutes.</p>
             </div>
@@ -102,12 +109,13 @@ export default function VerifyEmail() {
 
       if (emailError) {
         logError("Email error", emailError);
+        throw new Error(emailError.message || "Failed to send email");
       }
 
       toast.success("Verification code sent! Check your inbox.");
       setCountdown(60);
     } catch (error: any) {
-      toast.error("Failed to resend code. Please try again.");
+      toast.error(error?.message || "Failed to resend code. Please try again.");
     } finally {
       setIsResending(false);
     }

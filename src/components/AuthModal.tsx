@@ -155,14 +155,14 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             .eq('user_id', data.user.id);
 
           // Generate OTP and send verification email via Resend
-          const { data: otpCode, error: otpError } = await supabase.rpc('generate_email_otp', {
+          const { data: otpCode, error: otpError } = await supabase.rpc("generate_email_otp", {
             p_email: email.trim(),
             p_user_id: data.user.id,
           });
 
           if (!otpError && otpCode) {
             // Send verification email via Resend
-            await supabase.functions.invoke('send-email-resend', {
+            const { error: emailError } = await supabase.functions.invoke("send-email-resend", {
               body: {
                 to: email.trim(),
                 subject: "Verify your CrushGoals email 🎯",
@@ -193,6 +193,13 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
                 `,
               },
             });
+
+            if (emailError) {
+              // Don't block signup success, but do tell the user what happened.
+              toast.error(emailError.message || "We couldn't send the verification email. You can resend it from the verification screen.");
+            }
+          } else if (otpError) {
+            toast.error(otpError.message || "Could not generate verification code. Please try again.");
           }
 
           // Store pending invite token if exists (for after verification)
