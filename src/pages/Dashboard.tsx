@@ -1,9 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { StatCard } from "@/components/StatCard";
 import { GoalCard } from "@/components/GoalCard";
 import { TaskItem } from "@/components/TaskItem";
-import { StreakCounter } from "@/components/StreakCounter";
 import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { WeeklySummary } from "@/components/WeeklySummary";
@@ -11,7 +9,7 @@ import { ProductTour } from "@/components/ProductTour";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
-import { Target, Zap, Trophy, Plus, Sparkles, ChevronRight, Loader2, Check, Calendar } from "lucide-react";
+import { Target, Zap, Trophy, Plus, ChevronRight, Loader2, Flame, Calendar, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
@@ -20,13 +18,13 @@ import { useInviteHandler } from "@/hooks/useInviteHandler";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/logger";
+import { cn } from "@/lib/utils";
+import { ProgressRing } from "@/components/ProgressRing";
 
 const motivationalQuotes = [
   { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
   { quote: "Small steps every day lead to big changes.", author: "Unknown" },
-  { quote: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
-  { quote: "Progress, not perfection, is what we should be asking of ourselves.", author: "Julia Cameron" },
-  { quote: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
+  { quote: "Progress, not perfection.", author: "Julia Cameron" },
 ];
 
 export default function Dashboard() {
@@ -41,20 +39,15 @@ export default function Dashboard() {
   const [weekData, setWeekData] = useState<{ date: string; day: string; completed: number; total: number }[]>([]);
   const [showProductTour, setShowProductTour] = useState(false);
   
-  // Enable streak notifications
   useStreakNotifications();
-  
-  // Process pending invite tokens
   const { processedInvites } = useInviteHandler();
   
-  // Refetch goals when invites are processed
   useEffect(() => {
     if (processedInvites) {
       refreshGoals();
     }
   }, [processedInvites, refreshGoals]);
 
-  // Check if new user and show product tour
   useEffect(() => {
     const checkProductTour = () => {
       const hasSeenProductTour = localStorage.getItem('hasSeenProductTour');
@@ -73,7 +66,6 @@ export default function Dashboard() {
     setShowProductTour(false);
   };
 
-  // Fetch week data
   useEffect(() => {
     const fetchWeekData = async () => {
       if (!profile) return;
@@ -81,7 +73,6 @@ export default function Dashboard() {
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const weekDates: { date: string; day: string; completed: number; total: number }[] = [];
       
-      // Get start of week (Monday)
       const now = new Date();
       const dayOfWeek = now.getDay();
       const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -129,12 +120,10 @@ export default function Dashboard() {
     fetchWeekData();
   }, [profile, tasks]);
 
-  // Memoize the quote so it doesn't change on every render
   const randomQuote = useMemo(() => {
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, []);
   
-  // Determine if we should show milestone celebration
   const showMilestoneCelebration = stats?.current_streak === 7 || stats?.current_streak === 30;
 
   const completedTasks = tasks.filter((t) => t.completed).length;
@@ -185,12 +174,12 @@ export default function Dashboard() {
     });
   };
 
-  // Calculate level progress
   const currentXP = stats?.total_xp || 0;
   const currentLevel = stats?.level || 1;
-  const xpForNextLevel = currentLevel * 1000; // Simple formula: level * 1000 XP needed
+  const xpForNextLevel = currentLevel * 1000;
   const xpProgress = currentXP % 1000;
   const xpToNext = xpForNextLevel - xpProgress;
+  const activeGoals = goals.filter(g => g.status !== 'completed');
 
   const isLoading = goalsLoading || tasksLoading;
 
@@ -198,132 +187,142 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background flex">
       <Sidebar />
 
-      {/* Main Content */}
       <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
         {/* Header */}
-        <header className="mb-6 lg:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <header className="mb-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2 animate-slide-up">
-                {getGreeting()}, {profile?.full_name?.split(' ')[0] || 'Champion'}! ☀️
+              <h1 className="text-xl sm:text-2xl font-bold">
+                {getGreeting()}, {profile?.full_name?.split(' ')[0] || 'Champion'}
               </h1>
-              <p className="text-muted-foreground animate-slide-up opacity-0" style={{ animationDelay: "50ms" }}>
+              <p className="text-sm text-muted-foreground">
                 {new Date().toLocaleDateString("en-US", {
                   weekday: "long",
-                  year: "numeric",
-                  month: "long",
+                  month: "short",
                   day: "numeric",
                 })}
               </p>
             </div>
             <Button 
               variant="hero" 
-              className="animate-fade-in w-full sm:w-auto" 
+              size="sm"
+              className="w-full sm:w-auto" 
               onClick={() => setAddGoalOpen(true)}
               data-tour="new-goal"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 mr-1" />
               New Goal
             </Button>
           </div>
+        </header>
 
-          {/* Motivational Quote */}
-          <Card variant="glass" className="mt-6 p-4 animate-fade-in opacity-0" style={{ animationDelay: "100ms" }}>
-            <div className="flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-premium flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-foreground-secondary italic">"{randomQuote.quote}"</p>
-                <p className="text-sm text-muted-foreground mt-1">— {randomQuote.author}</p>
+        {/* Quick Stats Grid - Compact Cards */}
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '50ms' }}>
+          {/* Today's Progress */}
+          <Card variant="glass" className="p-3 hover-scale">
+            <div className="flex items-center gap-3">
+              <ProgressRing
+                progress={progressPercent}
+                size={44}
+                strokeWidth={4}
+                variant={progressPercent >= 70 ? "success" : progressPercent >= 40 ? "default" : "warning"}
+              >
+                <span className="text-[10px] font-bold">{progressPercent}%</span>
+              </ProgressRing>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Today</p>
+                <p className="text-base font-bold">{completedTasks}/{totalTasks}</p>
               </div>
             </div>
           </Card>
-        </header>
 
-        {/* Stats Overview */}
-        <section className="grid grid-cols-2 gap-3 mb-6 lg:mb-8">
-          <StatCard
-            title="Today's Progress"
-            value={`${completedTasks}/${totalTasks}`}
-            subtitle={totalTasks === 0 ? "No tasks yet" : "Keep going! 💪"}
-            variant="progress"
-            progress={progressPercent}
-            delay={0}
-            className="col-span-1"
-          />
-          
-          {/* Enhanced Streak Counter */}
-          <div className="animate-slide-up opacity-0 col-span-1" style={{ animationDelay: '100ms' }}>
-            <StreakCounter 
-              streak={stats?.current_streak || 0} 
-              longestStreak={stats?.longest_streak || 0}
-              showShare={false}
-              className="h-full"
-            />
-          </div>
-          
-          <StatCard
-            icon={Target}
-            title="Active Goals"
-            value={goals.filter(g => g.status !== 'completed').length.toString()}
-            subtitle={goals.length > 0 ? "Crushing it!" : "Add a goal"}
-            delay={200}
-            className="col-span-1"
-          />
-          <StatCard
-            icon={Zap}
-            title="Level"
-            value={`Lvl ${currentLevel}`}
-            subtitle={`${xpToNext} XP to next`}
-            trend={{ value: `${currentXP} XP`, positive: true }}
-            delay={300}
-            className="col-span-1"
-          />
+          {/* Streak */}
+          <Card variant="glass" className="p-3 hover-scale">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-11 h-11 rounded-xl flex items-center justify-center",
+                (stats?.current_streak || 0) > 0 
+                  ? "bg-gradient-to-br from-orange-500 to-red-500" 
+                  : "bg-muted"
+              )}>
+                <Flame className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Streak</p>
+                <p className="text-base font-bold">{stats?.current_streak || 0} days</p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Active Goals */}
+          <Card variant="glass" className="p-3 hover-scale">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-primary flex items-center justify-center">
+                <Target className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Goals</p>
+                <p className="text-base font-bold">{activeGoals.length}</p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Level */}
+          <Card variant="glass" className="p-3 hover-scale">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Level</p>
+                <p className="text-base font-bold">{currentLevel}</p>
+              </div>
+            </div>
+          </Card>
         </section>
 
+        {/* Quote Card - Compact */}
+        <Card variant="glass" className="p-3 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '100ms' }}>
+          <p className="text-sm text-foreground-secondary italic">"{randomQuote.quote}" <span className="text-muted-foreground">— {randomQuote.author}</span></p>
+        </Card>
+
         {/* Today's Tasks */}
-        <section className="mb-6 lg:mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                Today's Mission 🎯
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Complete all tasks for a Perfect Day bonus! (+100 XP)
-              </p>
-            </div>
-            <Button variant="ghost" className="text-primary hidden sm:flex" onClick={() => navigate('/tasks')}>
+        <section className="mb-6 animate-slide-up opacity-0" style={{ animationDelay: '150ms' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold">Today's Tasks</h2>
+            <Button variant="ghost" size="sm" className="text-primary h-8" onClick={() => navigate('/tasks')}>
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
 
           {isLoading ? (
-            <Card variant="glass" className="p-8 text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-              <p className="text-muted-foreground">Loading your tasks...</p>
+            <Card variant="glass" className="p-6 text-center">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Loading tasks...</p>
             </Card>
           ) : tasks.length === 0 ? (
-            <Card variant="glass" className="p-8 text-center">
-              <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No tasks for today yet</p>
-              <Button variant="outline" onClick={() => setAddGoalOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add a goal to get started
+            <Card variant="glass" className="p-6 text-center">
+              <Target className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">No tasks for today</p>
+              <Button variant="outline" size="sm" onClick={() => setAddGoalOpen(true)}>
+                <Plus className="w-4 h-4 mr-1" />
+                Add a goal
               </Button>
             </Card>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {tasks.slice(0, 5).map((task, index) => (
                 <div
                   key={task.id}
                   className="animate-slide-up opacity-0"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  style={{ animationDelay: `${200 + index * 50}ms` }}
                 >
                   <TaskItem
                     id={task.id}
                     title={task.title}
                     goalName={task.goal?.name || 'General'}
-                    goalEmoji={task.goal?.emoji || '📌'}
+                    goalEmoji={task.goal?.emoji || ''}
                     timeEstimate={task.time_estimate || undefined}
                     priority={task.priority}
                     completed={task.completed}
@@ -333,47 +332,79 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+        </section>
 
+        {/* This Week - Compact */}
+        <section className="mb-6 animate-slide-up opacity-0" style={{ animationDelay: '200ms' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              This Week
+            </h2>
+          </div>
+          <Card variant="glass" className="p-3">
+            <div className="grid grid-cols-7 gap-1.5">
+              {weekData.map((day, i) => {
+                const isToday = day.date === today;
+                const percent = day.total > 0 ? (day.completed / day.total) * 100 : 0;
+                return (
+                  <div key={i} className="text-center">
+                    <p className={cn(
+                      "text-[10px] mb-1",
+                      isToday ? "text-primary font-semibold" : "text-muted-foreground"
+                    )}>{day.day}</p>
+                    <div className={cn(
+                      "h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-colors",
+                      day.total === 0 ? "bg-muted/50 text-muted-foreground" :
+                      percent === 100 ? "bg-success/20 text-success" :
+                      percent > 0 ? "bg-primary/20 text-primary" :
+                      "bg-muted text-muted-foreground"
+                    )}>
+                      {day.total > 0 ? `${day.completed}/${day.total}` : '-'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
         </section>
 
         {/* Goals Overview */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-              Your Active Goals 🎯
-            </h2>
-            <Button variant="ghost" className="text-primary hidden sm:flex" onClick={() => navigate('/goals')}>
+        <section className="animate-slide-up opacity-0" style={{ animationDelay: '250ms' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold">Active Goals</h2>
+            <Button variant="ghost" size="sm" className="text-primary h-8" onClick={() => navigate('/goals')}>
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
 
           {goalsLoading ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {[1, 2, 3].map((i) => (
-                <Card key={i} variant="glass" className="p-6 animate-pulse">
-                  <div className="h-12 bg-white/10 rounded mb-4" />
-                  <div className="h-4 bg-white/10 rounded w-3/4 mb-2" />
-                  <div className="h-4 bg-white/10 rounded w-1/2" />
+                <Card key={i} variant="glass" className="p-4 animate-pulse">
+                  <div className="h-8 bg-white/10 rounded mb-3" />
+                  <div className="h-3 bg-white/10 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-white/10 rounded w-1/2" />
                 </Card>
               ))}
             </div>
-          ) : goals.length === 0 ? (
-            <Card variant="glass" className="p-8 text-center">
-              <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No goals yet. Let's crush some!</p>
-              <Button variant="hero" onClick={() => setAddGoalOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First Goal
+          ) : activeGoals.length === 0 ? (
+            <Card variant="glass" className="p-6 text-center">
+              <Trophy className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">No active goals</p>
+              <Button variant="hero" size="sm" onClick={() => setAddGoalOpen(true)}>
+                <Plus className="w-4 h-4 mr-1" />
+                Create Goal
               </Button>
             </Card>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {goals.filter(g => g.status !== 'completed').slice(0, 6).map((goal, index) => (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              {activeGoals.slice(0, 6).map((goal, index) => (
                 <div
                   key={goal.id}
                   className="animate-slide-up opacity-0"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  style={{ animationDelay: `${300 + index * 50}ms` }}
                 >
                   <GoalCard
                     id={goal.id}
@@ -382,7 +413,7 @@ export default function Dashboard() {
                     progress={goal.progress}
                     currentValue={goal.current_value}
                     targetValue={goal.target_value || 'Complete'}
-                    timeRemaining={goal.deadline ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : 'No deadline'}
+                    timeRemaining={goal.deadline ? `${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short' })}` : ''}
                     status={goal.status}
                     tasksToday={{ completed: 0, total: 0 }}
                   />
@@ -392,150 +423,86 @@ export default function Dashboard() {
           )}
         </section>
 
-        {/* Recent Achievements - Only show after tour is completed */}
-        {localStorage.getItem('hasSeenProductTour') && (
-          <section className="mt-6 lg:mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-premium" />
-                Recent Achievements
+        {/* Achievements Preview - Compact Cards */}
+        {localStorage.getItem('hasSeenProductTour') && stats && stats.tasks_completed > 0 && (
+          <section className="mt-6 animate-slide-up opacity-0" style={{ animationDelay: '300ms' }}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-premium" />
+                Achievements
               </h2>
+              <Button variant="ghost" size="sm" className="text-primary h-8" onClick={() => navigate('/achievements')}>
+                View All
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
-              {stats && stats.tasks_completed > 0 ? (
-                <>
-                  {stats.tasks_completed >= 1 && (
-                    <Card
-                      variant="glass"
-                      className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
-                    >
-                      <div className="text-3xl sm:text-4xl mb-2">🎯</div>
-                      <p className="font-semibold mb-1 text-sm sm:text-base">First Task</p>
-                      <p className="text-xs text-muted-foreground">Completed your first task</p>
-                    </Card>
-                  )}
-                  {stats.current_streak >= 3 && (
-                    <Card
-                      variant="glass"
-                      className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
-                      style={{ animationDelay: '100ms' }}
-                    >
-                      <div className="text-3xl sm:text-4xl mb-2">🔥</div>
-                      <p className="font-semibold mb-1 text-sm sm:text-base">On Fire</p>
-                      <p className="text-xs text-muted-foreground">3 day streak</p>
-                    </Card>
-                  )}
-                  {stats.tasks_completed >= 10 && (
-                    <Card
-                      variant="glass"
-                      className="p-4 min-w-[160px] sm:min-w-[200px] flex-shrink-0 text-center animate-slide-up opacity-0 hover-lift"
-                      style={{ animationDelay: '200ms' }}
-                    >
-                      <div className="text-3xl sm:text-4xl mb-2">💪</div>
-                      <p className="font-semibold mb-1 text-sm sm:text-base">Task Master</p>
-                      <p className="text-xs text-muted-foreground">10 tasks completed</p>
-                    </Card>
-                  )}
-                </>
-              ) : (
-                <Card variant="glass" className="p-6 w-full text-center">
-                  <p className="text-muted-foreground">Complete tasks to earn achievements!</p>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+              {stats.tasks_completed >= 1 && (
+                <Card variant="glass" className="p-3 min-w-[120px] flex-shrink-0 text-center hover-scale">
+                  <div className="text-2xl mb-1">🎯</div>
+                  <p className="text-xs font-medium">First Task</p>
+                </Card>
+              )}
+              {(stats.current_streak || 0) >= 3 && (
+                <Card variant="glass" className="p-3 min-w-[120px] flex-shrink-0 text-center hover-scale">
+                  <div className="text-2xl mb-1">🔥</div>
+                  <p className="text-xs font-medium">On Fire</p>
+                </Card>
+              )}
+              {stats.tasks_completed >= 10 && (
+                <Card variant="glass" className="p-3 min-w-[120px] flex-shrink-0 text-center hover-scale">
+                  <div className="text-2xl mb-1">💪</div>
+                  <p className="text-xs font-medium">Task Master</p>
+                </Card>
+              )}
+              {activeGoals.length >= 3 && (
+                <Card variant="glass" className="p-3 min-w-[120px] flex-shrink-0 text-center hover-scale">
+                  <div className="text-2xl mb-1">🎪</div>
+                  <p className="text-xs font-medium">Multi-Tasker</p>
                 </Card>
               )}
             </div>
           </section>
         )}
 
-        {/* This Week at a Glance */}
-        <section className="mt-6 lg:mt-8">
-          <h2 className="text-lg sm:text-xl font-bold mb-4">This Week at a Glance 📅</h2>
-          <Card variant="glass" className="p-4 sm:p-6">
-            <div className="flex items-center justify-between gap-1 sm:gap-2">
-              {weekData.map((dayData) => {
-                const isToday = dayData.date === today;
-                const isPast = new Date(dayData.date) < new Date(today);
-                const isPerfect = dayData.total > 0 && dayData.completed === dayData.total;
+        {/* Modals */}
+        <WeeklySummary
+          open={weeklySummaryOpen}
+          onOpenChange={setWeeklySummaryOpen}
+        />
 
-                return (
-                  <div
-                    key={dayData.date}
-                    className={`flex-1 text-center p-2 sm:p-3 rounded-xl transition-all ${
-                      isToday
-                        ? "bg-primary/20 border border-primary/50"
-                        : isPast && isPerfect
-                        ? "bg-success/20"
-                        : isPast && dayData.total > 0
-                        ? "bg-warning/20"
-                        : "bg-white/5"
-                    }`}
-                  >
-                    <p className="text-xs text-muted-foreground mb-1">{dayData.day}</p>
-                    <div className="text-sm sm:text-lg">
-                      {dayData.total > 0 ? (
-                        isPerfect ? (
-                          <Check className="w-4 h-4 mx-auto text-success" />
-                        ) : (
-                          `${dayData.completed}/${dayData.total}`
-                        )
-                      ) : (
-                        "—"
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                <span className="text-success font-medium">
-                  {weekData.filter(d => d.total > 0 && d.completed === d.total).length}
-                </span> perfect days this week
-              </p>
-              <Button variant="ghost" size="sm" onClick={() => setWeeklySummaryOpen(true)}>
-                <Calendar className="w-4 h-4 mr-1" />
-                Weekly Summary
-              </Button>
-            </div>
-          </Card>
-        </section>
+        <AddGoalModal
+          open={addGoalOpen}
+          onOpenChange={setAddGoalOpen}
+          onSuccess={handleAddGoal}
+        />
+
+        <AddTaskModal
+          open={addTaskOpen}
+          onOpenChange={setAddTaskOpen}
+          onSuccess={handleAddTask}
+        />
+
+        {/* Celebrations */}
+        <ConfettiCelebration
+          trigger={celebrationTrigger === 'perfectDay' || showMilestoneCelebration}
+          onComplete={clearCelebration}
+          type={
+            celebrationTrigger === 'perfectDay'
+              ? "perfectDay"
+              : stats?.current_streak === 30
+              ? "milestone"
+              : "default"
+          }
+        />
+
+        {/* Product Tour */}
+        <ProductTour 
+          open={showProductTour} 
+          onComplete={handleProductTourComplete} 
+        />
       </main>
-
-      {/* Weekly Summary Modal */}
-      <WeeklySummary open={weeklySummaryOpen} onOpenChange={setWeeklySummaryOpen} />
-
-      {/* Add Goal Modal */}
-      <AddGoalModal 
-        open={addGoalOpen} 
-        onOpenChange={setAddGoalOpen} 
-        onSuccess={handleAddGoal}
-      />
-
-      {/* Add Task Modal */}
-      <AddTaskModal
-        open={addTaskOpen}
-        onOpenChange={setAddTaskOpen}
-        onSuccess={handleAddTask}
-      />
-      
-      {/* Confetti Celebration */}
-      <ConfettiCelebration 
-        trigger={celebrationTrigger === 'perfectDay'}
-        type="perfectDay"
-        particleCount={150}
-        onComplete={clearCelebration}
-      />
-      <ConfettiCelebration 
-        trigger={showMilestoneCelebration}
-        type="milestone"
-        particleCount={100}
-      />
-
-      {/* Product Tour for New Users */}
-      <ProductTour
-        open={showProductTour}
-        onComplete={handleProductTourComplete}
-      />
     </div>
   );
 }
