@@ -334,11 +334,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Quick Add */}
-          <Button variant="glass" className="w-full mt-4" onClick={() => setAddTaskOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add custom task for today
-          </Button>
         </section>
 
         {/* Goals Overview */}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { GoalCard } from "@/components/GoalCard";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,16 @@ import { WhyBehindModal } from "@/components/WhyBehindModal";
 import { CreateSharedGoalModal } from "@/components/CreateSharedGoalModal";
 import { SharedGoalModal } from "@/components/SharedGoalModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2, Pause } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2, Pause, Filter } from "lucide-react";
 import { useGoals, Goal } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
 import { useSharedGoals } from "@/hooks/useSharedGoals";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+
+type StatusFilter = 'all' | 'on-track' | 'ahead' | 'behind' | 'paused' | 'completed';
+type CategoryFilter = 'all' | 'health' | 'finance' | 'career' | 'learning' | 'relationships' | 'personal' | 'fitness' | 'mindfulness' | 'content' | 'habits' | 'custom';
 
 export default function Goals() {
   const { user } = useAuth();
@@ -25,6 +29,8 @@ export default function Goals() {
   const { addTask } = useTasks();
   const { sharedGoals } = useSharedGoals();
   const [addGoalOpen, setAddGoalOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [editGoal, setEditGoal] = useState<Goal | null>(null);
   const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -86,15 +92,60 @@ export default function Goals() {
 
   const goalToDelete = goals.find(g => g.id === deleteGoalId);
 
-  const activeGoals = goals.filter(g => g.status !== 'completed' && !g.is_paused);
-  const pausedGoals = goals.filter(g => g.is_paused);
-  const completedGoals = goals.filter(g => g.status === 'completed');
-  const avgProgress = activeGoals.length > 0 
-    ? Math.round(activeGoals.reduce((acc, g) => acc + (g.progress || 0), 0) / activeGoals.length)
+  // Category options
+  const categories = [
+    { value: 'all', label: 'All Categories' },
+    { value: 'health', label: '🍎 Health' },
+    { value: 'fitness', label: '💪 Fitness' },
+    { value: 'finance', label: '💰 Finance' },
+    { value: 'career', label: '💼 Career' },
+    { value: 'learning', label: '📚 Learning' },
+    { value: 'relationships', label: '❤️ Relationships' },
+    { value: 'mindfulness', label: '🧘 Mindfulness' },
+    { value: 'content', label: '📱 Content' },
+    { value: 'habits', label: '✨ Habits' },
+    { value: 'personal', label: '🎯 Personal' },
+    { value: 'custom', label: '⚡ Custom' },
+  ];
+
+  // Filtered goals based on status and category
+  const filteredGoals = useMemo(() => {
+    return goals.filter(goal => {
+      // Category filter
+      if (categoryFilter !== 'all' && goal.category !== categoryFilter) {
+        return false;
+      }
+      
+      // Status filter
+      switch (statusFilter) {
+        case 'on-track':
+          return goal.status === 'on-track' && !goal.is_paused;
+        case 'ahead':
+          return goal.status === 'ahead' && !goal.is_paused;
+        case 'behind':
+          return goal.status === 'behind' && !goal.is_paused;
+        case 'paused':
+          return goal.is_paused;
+        case 'completed':
+          return goal.status === 'completed';
+        default:
+          return true;
+      }
+    });
+  }, [goals, statusFilter, categoryFilter]);
+
+  const activeGoals = filteredGoals.filter(g => g.status !== 'completed' && !g.is_paused);
+  const pausedGoals = filteredGoals.filter(g => g.is_paused);
+  const completedGoals = filteredGoals.filter(g => g.status === 'completed');
+  
+  // Stats based on all goals (not filtered)
+  const allActiveGoals = goals.filter(g => g.status !== 'completed' && !g.is_paused);
+  const avgProgress = allActiveGoals.length > 0 
+    ? Math.round(allActiveGoals.reduce((acc, g) => acc + (g.progress || 0), 0) / allActiveGoals.length)
     : 0;
 
   // Find next deadline
-  const upcomingDeadlines = activeGoals
+  const upcomingDeadlines = allActiveGoals
     .filter(g => g.deadline)
     .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime());
   const nextDeadline = upcomingDeadlines[0]?.deadline 
@@ -149,7 +200,7 @@ export default function Goals() {
                   <Target className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xl sm:text-2xl font-bold">{activeGoals.length}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{allActiveGoals.length}</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">Active Goals</p>
                 </div>
               </div>
@@ -160,7 +211,7 @@ export default function Goals() {
                   <Trophy className="w-5 h-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-xl sm:text-2xl font-bold">{completedGoals.length}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{goals.filter(g => g.status === 'completed').length}</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
                 </div>
               </div>
@@ -189,6 +240,58 @@ export default function Goals() {
             </div>
           </div>
 
+          {/* Filters */}
+          {goals.length > 0 && (
+            <div className="mb-6 lg:mb-8 space-y-4">
+              {/* Status Filter Tabs */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                  <TabsList className="bg-secondary/50 h-auto flex-wrap">
+                    <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
+                    <TabsTrigger value="on-track" className="text-xs sm:text-sm">✅ On Track</TabsTrigger>
+                    <TabsTrigger value="ahead" className="text-xs sm:text-sm">🚀 Crushing It</TabsTrigger>
+                    <TabsTrigger value="behind" className="text-xs sm:text-sm">⚠️ Behind</TabsTrigger>
+                    <TabsTrigger value="paused" className="text-xs sm:text-sm">⏸️ Paused</TabsTrigger>
+                    <TabsTrigger value="completed" className="text-xs sm:text-sm">🏆 Completed</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              
+              {/* Category Filter */}
+              <div className="flex flex-wrap gap-2">
+                {categories.map(cat => (
+                  <Button
+                    key={cat.value}
+                    variant={categoryFilter === cat.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCategoryFilter(cat.value as CategoryFilter)}
+                    className="text-xs"
+                  >
+                    {cat.label}
+                  </Button>
+                ))}
+              </div>
+              
+              {/* Active filter indicator */}
+              {(statusFilter !== 'all' || categoryFilter !== 'all') && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Filter className="w-4 h-4" />
+                  <span>
+                    Showing {filteredGoals.length} of {goals.length} goals
+                  </span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => { setStatusFilter('all'); setCategoryFilter('all'); }}
+                    className="text-primary h-auto p-1"
+                  >
+                    Clear filters
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Empty State */}
           {goals.length === 0 && (
             <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
@@ -198,6 +301,18 @@ export default function Goals() {
               <Button variant="hero" onClick={() => setAddGoalOpen(true)}>
                 <Plus className="w-5 h-5 mr-2" />
                 Create Your First Goal
+              </Button>
+            </div>
+          )}
+          
+          {/* No filtered results */}
+          {goals.length > 0 && filteredGoals.length === 0 && (
+            <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
+              <div className="text-5xl sm:text-6xl mb-4">🔍</div>
+              <h3 className="text-xl font-semibold mb-2">No matching goals</h3>
+              <p className="text-muted-foreground mb-6">Try adjusting your filters to see more goals.</p>
+              <Button variant="outline" onClick={() => { setStatusFilter('all'); setCategoryFilter('all'); }}>
+                Clear Filters
               </Button>
             </div>
           )}
