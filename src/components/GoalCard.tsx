@@ -19,7 +19,8 @@ interface GoalCardProps {
   targetValue: string;
   timeRemaining: string;
   status: "on-track" | "behind" | "ahead" | "completed";
-  tasksToday: { completed: number; total: number };
+  tasksToday?: { completed: number; total: number };
+  totalRemainingTasks?: number;
   startDate?: string;
   endDate?: string;
   isPaused?: boolean;
@@ -43,6 +44,7 @@ export function GoalCard({
   timeRemaining,
   status,
   tasksToday,
+  totalRemainingTasks,
   startDate,
   endDate,
   isPaused,
@@ -59,7 +61,7 @@ export function GoalCard({
   const statusConfig = {
     "on-track": { label: "On Track", color: "text-success", bg: "bg-success/20" },
     "behind": { label: "Behind", color: "text-warning", bg: "bg-warning/20" },
-    "ahead": { label: "Crushing It!", color: "text-primary", bg: "bg-primary/20" },
+    "ahead": { label: "Crushing It!", color: "text-success", bg: "bg-success/20" },
     "completed": { label: "Completed!", color: "text-premium", bg: "bg-premium/20" },
     "paused": { label: "Paused", color: "text-muted-foreground", bg: "bg-muted" },
   };
@@ -194,17 +196,24 @@ export function GoalCard({
           </div>
         </div>
 
-        {/* Tasks Info - Simplified */}
+        {/* Tasks Info - Show today + remaining */}
         <div className="flex items-center justify-between pt-2 border-t border-white/10 mt-auto text-xs">
           <div className="flex items-center gap-1 text-muted-foreground">
             <Calendar className="w-3 h-3" />
             <span>{timeRemaining}</span>
           </div>
           <span className="font-medium">
-            {tasksToday.total > 0 ? (
-              <><span className="text-primary">{tasksToday.completed}</span> of {tasksToday.total} today</>
+            {tasksToday && tasksToday.total > 0 ? (
+              <>
+                <span className="text-primary">{tasksToday.completed}</span>/{tasksToday.total} today
+                {totalRemainingTasks !== undefined && totalRemainingTasks > 0 && (
+                  <span className="text-muted-foreground"> · {totalRemainingTasks} left</span>
+                )}
+              </>
+            ) : totalRemainingTasks !== undefined && totalRemainingTasks > 0 ? (
+              <span className="text-muted-foreground">{totalRemainingTasks} tasks remaining</span>
             ) : (
-              <span className="text-muted-foreground">No tasks today</span>
+              <span className="text-muted-foreground">No tasks</span>
             )}
           </span>
         </div>

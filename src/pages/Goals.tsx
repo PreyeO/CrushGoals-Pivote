@@ -461,11 +461,11 @@ export default function Goals() {
         onSuccess={handleAddTask}
       />
 
-      {/* Habit Calendar Modal */}
+      {/* Habit Calendar Modal - More compact */}
       <Dialog open={!!calendarGoal} onOpenChange={(open) => !open && setCalendarGoal(null)}>
-        <DialogContent className="sm:max-w-[450px] bg-card border-border/50">
-          <DialogHeader>
-            <DialogTitle>Habit Tracking</DialogTitle>
+        <DialogContent className="max-w-[340px] sm:max-w-[380px] p-4 bg-card border-border/50">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-sm">Habit Tracking</DialogTitle>
           </DialogHeader>
           {calendarGoal && (
             <GoalHabitCalendar

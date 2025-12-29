@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { CheckCircle2, Target, Calendar as CalendarIcon, TrendingUp } from "lucide-react";
+import { CheckCircle2, Target, Calendar as CalendarIcon } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, differenceInDays } from "date-fns";
 import { logError } from "@/lib/logger";
 
@@ -158,108 +158,93 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
     : 0;
 
   return (
-    <div className="space-y-4 max-w-full overflow-hidden">
-      {/* Goal Header */}
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-card/50 border border-border/50">
-        <span className="text-xl sm:text-2xl">{goalEmoji}</span>
+    <div className="space-y-3 max-w-full overflow-hidden">
+      {/* Goal Header - Compact */}
+      <div className="flex items-center gap-2 p-2 rounded-lg bg-card/50 border border-border/50">
+        <span className="text-lg">{goalEmoji}</span>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-sm truncate">{goalName}</h3>
-          <p className="text-xs text-muted-foreground">Habit tracking calendar</p>
         </div>
       </div>
 
-      {/* Stats Row - Responsive Grid */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-        <div className="p-2 rounded-lg bg-primary/10 text-center">
-          <p className="text-base sm:text-lg font-bold text-primary">{stats.currentStreak}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Streak</p>
+      {/* Stats Row - Compact 4 column grid */}
+      <div className="grid grid-cols-4 gap-1">
+        <div className="p-1.5 rounded-lg bg-primary/10 text-center">
+          <p className="text-sm font-bold text-primary">{stats.currentStreak}</p>
+          <p className="text-[9px] text-muted-foreground">Streak</p>
         </div>
-        <div className="p-2 rounded-lg bg-success/10 text-center">
-          <p className="text-base sm:text-lg font-bold text-success">{stats.perfectDays}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Perfect</p>
+        <div className="p-1.5 rounded-lg bg-success/10 text-center">
+          <p className="text-sm font-bold text-success">{stats.perfectDays}</p>
+          <p className="text-[9px] text-muted-foreground">Perfect</p>
         </div>
-        <div className="p-2 rounded-lg bg-warning/10 text-center">
-          <p className="text-base sm:text-lg font-bold text-warning">{stats.completedDays}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Active</p>
+        <div className="p-1.5 rounded-lg bg-warning/10 text-center">
+          <p className="text-sm font-bold text-warning">{stats.completedDays}</p>
+          <p className="text-[9px] text-muted-foreground">Active</p>
         </div>
-        <div className="p-2 rounded-lg bg-accent/50 text-center">
-          <p className="text-base sm:text-lg font-bold">{completionRate}%</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Rate</p>
+        <div className="p-1.5 rounded-lg bg-accent/50 text-center">
+          <p className="text-sm font-bold">{completionRate}%</p>
+          <p className="text-[9px] text-muted-foreground">Rate</p>
         </div>
       </div>
 
-      {/* Calendar - Responsive */}
-      <div className="overflow-x-auto -mx-2 px-2">
-        <Calendar
-          mode="single"
-          month={month}
-          onMonthChange={setMonth}
-          className="rounded-xl border border-border/50 p-2 sm:p-3 min-w-[280px]"
-          classNames={{
-            months: "flex flex-col",
-            month: "space-y-2 sm:space-y-4",
-            caption: "flex justify-center pt-1 relative items-center",
-            caption_label: "text-xs sm:text-sm font-medium",
-            nav: "space-x-1 flex items-center",
-            nav_button: "h-6 w-6 sm:h-7 sm:w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-            nav_button_previous: "absolute left-1",
-            nav_button_next: "absolute right-1",
-            table: "w-full border-collapse space-y-1",
-            head_row: "flex",
-            head_cell: "text-muted-foreground rounded-md w-8 sm:w-9 font-normal text-[10px] sm:text-xs",
-            row: "flex w-full mt-1 sm:mt-2",
-            cell: "text-center text-xs sm:text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-            day: "h-7 w-7 sm:h-9 sm:w-9 p-0 font-normal aria-selected:opacity-100",
-            day_today: "ring-2 ring-primary/50",
-          }}
-          components={{
-            DayContent: ({ date }) => (
-              <>
-                {getDayContent(date) || (
-                  <span className="text-[10px] sm:text-sm">{date.getDate()}</span>
-                )}
-              </>
-            ),
-          }}
-          disabled={(date) => {
-            if (startDate && date < new Date(startDate)) return true;
-            if (endDate && date > new Date(endDate)) return true;
-            return false;
-          }}
-        />
-      </div>
+      {/* Calendar - Compact and responsive */}
+      <Calendar
+        mode="single"
+        month={month}
+        onMonthChange={setMonth}
+        className="rounded-lg border border-border/50 p-2 w-full"
+        classNames={{
+          months: "flex flex-col",
+          month: "space-y-1",
+          caption: "flex justify-center pt-1 relative items-center",
+          caption_label: "text-xs font-medium",
+          nav: "space-x-1 flex items-center",
+          nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100",
+          nav_button_previous: "absolute left-1",
+          nav_button_next: "absolute right-1",
+          table: "w-full border-collapse",
+          head_row: "flex justify-between",
+          head_cell: "text-muted-foreground w-8 font-normal text-[10px]",
+          row: "flex w-full justify-between mt-1",
+          cell: "text-center text-xs p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+          day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100",
+          day_today: "ring-1 ring-primary/50",
+        }}
+        components={{
+          DayContent: ({ date }) => (
+            <>
+              {getDayContent(date) || (
+                <span className="text-[10px]">{date.getDate()}</span>
+              )}
+            </>
+          ),
+        }}
+        disabled={(date) => {
+          if (startDate && date < new Date(startDate)) return true;
+          if (endDate && date > new Date(endDate)) return true;
+          return false;
+        }}
+      />
 
-      {/* Legend - Responsive */}
-      <div className="flex items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
+      {/* Legend - Compact inline */}
+      <div className="flex items-center justify-center gap-3 text-[9px] text-muted-foreground">
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-success/20 ring-1 ring-success/50" />
+          <div className="w-3 h-3 rounded bg-success/20 ring-1 ring-success/50" />
           <span>Complete</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-primary/20 ring-1 ring-primary/30" />
+          <div className="w-3 h-3 rounded bg-primary/20 ring-1 ring-primary/30" />
           <span>Partial</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-muted/50" />
+          <div className="w-3 h-3 rounded bg-muted/50" />
           <span>Missed</span>
         </div>
-      </div>
-
-      {/* Progress Summary */}
-      {stats.totalDays > 0 && (
-        <div className="p-3 rounded-xl bg-gradient-to-r from-primary/10 to-success/10 border border-primary/20">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <span className="text-xs sm:text-sm font-medium">Monthly Summary</span>
-          </div>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">
-            You completed {stats.perfectDays} out of {stats.totalDays} scheduled days this month.
-            {completionRate >= 80 && " Amazing consistency!"}
-            {completionRate >= 50 && completionRate < 80 && " Keep pushing!"}
-            {completionRate < 50 && " Let's build that habit!"}
-          </p>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded bg-warning/20 ring-1 ring-warning/30" />
+          <span>Paused</span>
         </div>
-      )}
+      </div>
     </div>
   );
 }
