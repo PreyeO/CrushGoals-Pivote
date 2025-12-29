@@ -159,7 +159,7 @@ The fundamental mechanism that enables goal achievement:
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 18.3, TypeScript, Vite |
+| Frontend | React 19.x, TypeScript, Vite |
 | Styling | Tailwind CSS, shadcn/ui |
 | State Management | TanStack Query (React Query) |
 | Routing | React Router DOM 6.x |
@@ -508,11 +508,20 @@ Returns member progress for shared goals:
 ### Authentication Flow
 
 1. **Signup**: Email/password with full name
-2. **Email Verification**: OTP-based verification after signup
+2. **Email Verification**: 6-digit OTP-based verification sent via Resend from verified domain (hello.crushgoals.app)
 3. **Login**: Email/password with rate limiting
 4. **Session Management**: 30-minute inactivity timeout with 5-minute warning
 5. **Password Reset**: Secure token-based flow via email
 6. **Invite Flow**: Process pending invites on login (friend invites, shared goals)
+
+### Email Service
+
+- **Provider**: Resend API
+- **Verified Domain**: hello.crushgoals.app
+- **Sender**: CrushGoals <no-reply@hello.crushgoals.app>
+- **Edge Functions**:
+  - `send-email-resend`: Primary email function for OTP codes, invitations, and transactional emails
+  - `send-email`: Legacy Brevo-based function (deprecated)
 
 ### Security Features
 
@@ -770,4 +779,4 @@ const channel = supabase
 ---
 
 *Last Updated: December 2024*
-*Version: 1.1.0*
+*Version: 1.2.0*
