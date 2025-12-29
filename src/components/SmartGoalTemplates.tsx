@@ -513,7 +513,7 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
     <div className="space-y-2 sm:space-y-3">
 
       {/* Category Filters - Horizontal scroll on mobile */}
-      <div className="overflow-x-auto -mx-3 px-3 sm:-mx-4 sm:px-4 md:mx-0 md:px-0">
+      <div className="overflow-x-auto">
         <div className="flex gap-1 sm:gap-1.5 pb-1.5 sm:pb-2 min-w-max sm:flex-wrap sm:min-w-0">
           {goalCategories.map((category) => {
             const Icon = category.icon;

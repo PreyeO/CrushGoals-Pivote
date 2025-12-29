@@ -202,13 +202,10 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             localStorage.setItem('pendingInviteToken', inviteToken);
           }
           
-          // Close modal first, then navigate after a brief delay to ensure smooth transition
+          // Navigate to verification page immediately to avoid Landing auto-redirect race
+          // (Landing redirects to /dashboard as soon as a session exists)
+          navigate('/verify-email', { replace: true });
           onOpenChange(false);
-          
-          // Navigate to verification page after modal closes
-          setTimeout(() => {
-            navigate('/verify-email');
-          }, 150);
           
           // Reset form
           setName("");

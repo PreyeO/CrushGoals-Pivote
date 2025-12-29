@@ -107,14 +107,6 @@ export function ProductTour({ open, onComplete }: ProductTourProps) {
                   Create My First Goal
                 </Button>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-muted-foreground"
-                  onClick={handleSkip}
-                >
-                  Maybe later
-                </Button>
               </div>
             </>
           )}
