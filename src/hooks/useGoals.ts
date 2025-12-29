@@ -23,7 +23,6 @@ export interface Goal {
   is_paused: boolean;
   paused_at: string | null;
   pause_reason: string | null;
-  goal_metadata?: Record<string, any>;
 }
 
 // Parse target value to extract number and unit
@@ -170,7 +169,6 @@ export function useGoals() {
     start_date?: string;
     deadline?: string;
     task_frequency?: 'daily' | 'weekly' | 'monthly';
-    goal_metadata?: Record<string, any>;
   }) => {
     if (!user) return null;
 
@@ -189,7 +187,6 @@ export function useGoals() {
           start_date: startDate,
           deadline: goalData.deadline || null,
           task_frequency: frequency,
-          goal_metadata: goalData.goal_metadata || {},
         })
         .select()
         .single();
