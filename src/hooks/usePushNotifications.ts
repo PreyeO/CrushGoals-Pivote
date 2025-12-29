@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { logError } from '@/lib/logger';
+import { logError, logDebug } from '@/lib/logger';
 
 interface PushNotificationSettings {
   enabled: boolean;
@@ -37,9 +37,9 @@ export function usePushNotifications() {
         try {
           const registration = await navigator.serviceWorker.register('/sw.js');
           setSwRegistration(registration);
-          console.log('Service Worker registered:', registration);
+          logDebug('Service Worker registered', registration);
         } catch (error) {
-          logError('Service Worker registration failed:', error);
+          logError('Service Worker registration failed', error);
         }
       }
     };

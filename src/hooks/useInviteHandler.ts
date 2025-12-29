@@ -114,12 +114,22 @@ export function useInviteHandler() {
     const inviterId = friendInvite.inviter_id;
     const goalData = friendInvite.goals;
 
-    // Check if already friends
-    const { data: existingFriendship } = await supabase
+    // Check if already friends (using separate queries to avoid string interpolation)
+    const { data: sentFriendship } = await supabase
       .from('friendships')
       .select('id, status')
-      .or(`and(user_id.eq.${inviterId},friend_id.eq.${user.id}),and(user_id.eq.${user.id},friend_id.eq.${inviterId})`)
+      .eq('user_id', inviterId)
+      .eq('friend_id', user.id)
       .maybeSingle();
+
+    const { data: receivedFriendship } = await supabase
+      .from('friendships')
+      .select('id, status')
+      .eq('user_id', user.id)
+      .eq('friend_id', inviterId)
+      .maybeSingle();
+
+    const existingFriendship = sentFriendship || receivedFriendship;
 
   if (!existingFriendship) {
       // Create friendship (auto-accepted since they clicked the invite)

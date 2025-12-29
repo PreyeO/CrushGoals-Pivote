@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logError, logDebug } from "@/lib/logger";
 
 interface SendEmailParams {
   to: string;
@@ -25,14 +26,14 @@ export function useResendEmail() {
       });
 
       if (error) {
-        console.error("Error sending email:", error);
+        logError("Error sending email", error);
         return false;
       }
 
-      console.log("Email sent successfully:", data);
+      logDebug("Email sent successfully", data);
       return true;
     } catch (error) {
-      console.error("Error invoking email function:", error);
+      logError("Error invoking email function", error);
       return false;
     }
   };

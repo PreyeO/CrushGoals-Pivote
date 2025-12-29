@@ -7,6 +7,7 @@ import { Loader2, Mail, CheckCircle2, RefreshCw, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { logError } from "@/lib/logger";
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
@@ -108,7 +109,7 @@ export default function VerifyEmail() {
       });
 
       if (emailError) {
-        console.error("Email error:", emailError);
+        logError("Email error", emailError);
       }
 
       toast.success("Verification code sent! Check your inbox.");
