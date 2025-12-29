@@ -4,11 +4,10 @@ import {
   Dumbbell, TrendingUp, Palette, Users, Brain, 
   Target, Scale, Flame, GraduationCap, Wallet,
   Rocket, Handshake, PenTool, 
-  Mic, Globe, Zap, Trophy, Plus, Search, Coffee,
+  Mic, Globe, Zap, Trophy, Plus, Coffee,
   Cigarette, Clock, Utensils, Moon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 // Popular goal template with participant counts
@@ -27,6 +26,8 @@ export interface PopularGoalTemplate {
   targetSuffix?: string;
   tips: string[];
   actionVerb?: string;
+  customInputLabel?: string;
+  customInputPlaceholder?: string;
 }
 
 // Category definitions
@@ -49,18 +50,18 @@ export const popularTemplates: PopularGoalTemplate[] = [
   // Fitness - Actionable & Popular
   {
     id: 'lose-weight-gym',
-    name: 'Lose Weight (Hit the Gym)',
+    name: 'Lose Weight (Gym)',
     icon: Scale,
     category: 'fitness',
-    description: 'Gym workouts 3-5x/week + calorie tracking',
+    description: 'Hit the gym regularly to reach your weight goal',
     participants: 8247,
     frequency: 'daily',
     defaultDuration: 180,
     smartType: 'measured',
-    targetLabel: 'Weight to lose (kg)',
+    targetLabel: 'How many kg do you want to lose?',
     targetPlaceholder: '10',
     targetSuffix: 'kg',
-    actionVerb: 'Work out at gym',
+    actionVerb: 'Go to gym',
     tips: ['Track calories with an app', 'Aim for 3-5 gym sessions/week', 'Focus on strength + cardio mix'],
   },
   {
@@ -86,7 +87,7 @@ export const popularTemplates: PopularGoalTemplate[] = [
     frequency: 'weekly',
     defaultDuration: 180,
     smartType: 'measured',
-    targetLabel: 'Training runs',
+    targetLabel: 'Training runs to complete',
     targetPlaceholder: '60',
     targetSuffix: 'runs',
     actionVerb: 'Complete training run',
@@ -95,16 +96,16 @@ export const popularTemplates: PopularGoalTemplate[] = [
   
   // Finance - Top yearly goals
   {
-    id: 'emergency-fund',
-    name: 'Build Emergency Fund',
+    id: 'save-money',
+    name: 'Save Money',
     icon: Wallet,
     category: 'finance',
-    description: 'Save 3-6 months of expenses',
+    description: 'Build your savings consistently every month',
     participants: 6521,
     frequency: 'monthly',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'Total to save',
+    targetLabel: 'How much do you want to save in total?',
     targetPlaceholder: '500000',
     targetSuffix: '',
     actionVerb: 'Transfer to savings',
@@ -136,7 +137,7 @@ export const popularTemplates: PopularGoalTemplate[] = [
     frequency: 'monthly',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'Total to invest',
+    targetLabel: 'Total amount to invest',
     targetPlaceholder: '100000',
     targetSuffix: '',
     actionVerb: 'Invest monthly amount',
@@ -154,7 +155,7 @@ export const popularTemplates: PopularGoalTemplate[] = [
     frequency: 'monthly',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'Books to read',
+    targetLabel: 'How many books do you want to read?',
     targetPlaceholder: '12',
     targetSuffix: 'books',
     actionVerb: 'Read for 30 minutes',
@@ -171,6 +172,8 @@ export const popularTemplates: PopularGoalTemplate[] = [
     defaultDuration: 365,
     smartType: 'habit',
     actionVerb: 'Complete language lesson',
+    customInputLabel: 'Which language do you want to learn?',
+    customInputPlaceholder: 'e.g. Spanish, French, Japanese',
     tips: ['Use Duolingo + conversation apps', '15-30 minutes daily', 'Find a language exchange partner'],
   },
   {
@@ -184,6 +187,8 @@ export const popularTemplates: PopularGoalTemplate[] = [
     defaultDuration: 90,
     smartType: 'simple',
     actionVerb: 'Study for certification',
+    customInputLabel: 'Which certification are you pursuing?',
+    customInputPlaceholder: 'e.g. AWS, PMP, CPA',
     tips: ['Block 1-2 hours daily for study', 'Take practice exams weekly', 'Set exam date to create urgency'],
   },
 
@@ -211,7 +216,7 @@ export const popularTemplates: PopularGoalTemplate[] = [
     frequency: 'daily',
     defaultDuration: 90,
     smartType: 'measured',
-    targetLabel: 'Applications to send',
+    targetLabel: 'How many applications will you send?',
     targetPlaceholder: '50',
     targetSuffix: 'applications',
     actionVerb: 'Apply to jobs',
@@ -227,7 +232,7 @@ export const popularTemplates: PopularGoalTemplate[] = [
     frequency: 'weekly',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'New connections',
+    targetLabel: 'How many new connections?',
     targetPlaceholder: '52',
     targetSuffix: 'people',
     actionVerb: 'Reach out to someone new',
@@ -246,6 +251,8 @@ export const popularTemplates: PopularGoalTemplate[] = [
     defaultDuration: 90,
     smartType: 'simple',
     actionVerb: 'Work on business',
+    customInputLabel: 'What business idea are you launching?',
+    customInputPlaceholder: 'e.g. Online store, Consulting, SaaS',
     tips: ['Validate idea before building', 'Launch MVP in 30 days', 'Get first paying customer fast'],
   },
   {
@@ -262,6 +269,8 @@ export const popularTemplates: PopularGoalTemplate[] = [
     targetPlaceholder: '100000',
     targetSuffix: '',
     actionVerb: 'Work on freelance projects',
+    customInputLabel: 'What skill will you freelance with?',
+    customInputPlaceholder: 'e.g. Web design, Writing, Consulting',
     tips: ['Start on Upwork/Fiverr', 'Build portfolio first', 'Raise rates every 3 months'],
   },
 
@@ -345,7 +354,7 @@ export const popularTemplates: PopularGoalTemplate[] = [
     frequency: 'weekly',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'Date nights',
+    targetLabel: 'How many date nights this year?',
     targetPlaceholder: '52',
     targetSuffix: 'dates',
     actionVerb: 'Go on date night',
@@ -376,7 +385,7 @@ export const popularTemplates: PopularGoalTemplate[] = [
     frequency: 'weekly',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'Videos to post',
+    targetLabel: 'How many videos will you post?',
     targetPlaceholder: '52',
     targetSuffix: 'videos',
     actionVerb: 'Work on video content',
@@ -392,7 +401,7 @@ export const popularTemplates: PopularGoalTemplate[] = [
     frequency: 'daily',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'Words to write',
+    targetLabel: 'Total words to write',
     targetPlaceholder: '50000',
     targetSuffix: 'words',
     actionVerb: 'Write daily words',
@@ -414,29 +423,29 @@ export const popularTemplates: PopularGoalTemplate[] = [
     tips: ['Go to bed by 9-10PM', 'No snooze button', 'Have morning routine ready'],
   },
   {
-    id: 'eat-healthy',
-    name: 'Eat Healthier',
+    id: 'dont-miss-meals',
+    name: "Don't Miss a Meal (3 Meals/Day)",
     icon: Utensils,
     category: 'lifestyle',
-    description: 'Clean eating & meal prep weekly',
+    description: 'Eat breakfast, lunch & dinner daily',
     participants: 5876,
     frequency: 'daily',
     defaultDuration: 90,
     smartType: 'habit',
-    actionVerb: 'Eat healthy meals',
-    tips: ['Meal prep on Sundays', 'Drink 2L water daily', 'Track meals for first month'],
+    actionVerb: 'Complete all 3 meals',
+    tips: ['Set meal time reminders', 'Meal prep on Sundays', 'Never skip breakfast'],
   },
   {
     id: 'reduce-screen',
     name: 'Reduce Screen Time',
     icon: Coffee,
     category: 'lifestyle',
-    description: 'Less social media, more real life',
+    description: 'Limit phone usage to 2 hours/day',
     participants: 3654,
     frequency: 'daily',
     defaultDuration: 66,
     smartType: 'habit',
-    actionVerb: 'Stay within screen limits',
+    actionVerb: 'Stay within 2hr screen limit',
     tips: ['Set app time limits', 'No phone first hour of day', 'Replace with reading/hobby'],
   },
 ];
@@ -456,24 +465,14 @@ export interface GoalConfig {
 
 export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGoalTemplatesProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
 
   const filteredTemplates = useMemo(() => {
-    let templates = selectedCategory === 'all' 
+    const templates = selectedCategory === 'all' 
       ? popularTemplates 
       : popularTemplates.filter(t => t.category === selectedCategory);
     
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      templates = templates.filter(t => 
-        t.name.toLowerCase().includes(query) || 
-        t.description.toLowerCase().includes(query) ||
-        t.category.toLowerCase().includes(query)
-      );
-    }
-    
     return templates.sort((a, b) => b.participants - a.participants);
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory]);
 
   const formatParticipants = (count: number) => {
     if (count >= 1000) {
@@ -484,16 +483,6 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
 
   return (
     <div className="space-y-3">
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search goals..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-9 text-sm bg-background/50"
-        />
-      </div>
 
       {/* Category Filters - Horizontal scroll on mobile */}
       <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -521,24 +510,13 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
 
       {/* Templates Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-y-auto pr-1">
-        {filteredTemplates.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            <p className="text-sm">No goals found matching "{searchQuery}"</p>
-            <button 
-              onClick={onCreateCustom}
-              className="text-primary text-sm mt-2 hover:underline"
-            >
-              Create a custom goal instead
-            </button>
-          </div>
-        ) : (
-          filteredTemplates.map((template) => {
-            const Icon = template.icon;
-            return (
-              <button
-                key={template.id}
-                onClick={() => onSelectTemplate(template)}
-                className={cn(
+        {filteredTemplates.map((template) => {
+          const Icon = template.icon;
+          return (
+            <button
+              key={template.id}
+              onClick={() => onSelectTemplate(template)}
+              className={cn(
                   "p-3 rounded-xl border border-border/40 bg-card/30",
                   "hover:bg-card/80 hover:border-primary/40 hover:shadow-sm transition-all text-left group"
                 )}
@@ -565,8 +543,7 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
                 </div>
               </button>
             );
-          })
-        )}
+        })}
       </div>
 
       {/* Custom Goal Button */}

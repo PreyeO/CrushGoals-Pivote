@@ -245,6 +245,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   const [selectedTemplate, setSelectedTemplate] = useState<PopularGoalTemplate | null>(null);
   const [goalName, setGoalName] = useState("");
   const [goalTarget, setGoalTarget] = useState("");
+  const [customInput, setCustomInput] = useState("");
   const [startDate, setStartDate] = useState('2026-01-01');
   const [deadline, setDeadline] = useState(() => format(addDays(new Date('2026-01-01'), 90), 'yyyy-MM-dd'));
   const [reason, setReason] = useState("");
@@ -263,6 +264,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setStartDate('2026-01-01');
     setDeadline(format(end, 'yyyy-MM-dd'));
     setGoalTarget('');
+    setCustomInput('');
     setReason(`I want to ${template.description.toLowerCase()}`);
     setStep(2);
   };
@@ -300,6 +302,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setSelectedTemplate(null);
     setGoalName("");
     setGoalTarget("");
+    setCustomInput("");
     setStartDate('2026-01-01');
     setDeadline(format(addDays(new Date('2026-01-01'), 90), 'yyyy-MM-dd'));
     setReason("");
@@ -439,6 +442,22 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                     {breakdownPreview && (
                       <p className="text-xs text-success font-medium">→ {breakdownPreview}</p>
                     )}
+                  </div>
+                )}
+
+                {/* Custom Input (for templates like "Learn a Language") */}
+                {selectedTemplate?.customInputLabel && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="customInput" className="text-sm">
+                      {selectedTemplate.customInputLabel}
+                    </Label>
+                    <Input
+                      id="customInput"
+                      placeholder={selectedTemplate.customInputPlaceholder || "Enter details..."}
+                      value={customInput}
+                      onChange={(e) => setCustomInput(e.target.value)}
+                      className="bg-secondary border-border h-10"
+                    />
                   </div>
                 )}
 
