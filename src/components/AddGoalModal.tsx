@@ -37,9 +37,6 @@ const categoryConfig: Record<string, {
   emoji: string;
   icon: any;
   examples: string;
-  targetLabel: string;
-  targetPlaceholder: string;
-  targetHint: string;
   frequencyTip: string;
 }> = {
   finance: {
@@ -47,9 +44,6 @@ const categoryConfig: Record<string, {
     emoji: "💰",
     icon: DollarSign,
     examples: "Save money, pay debt, invest",
-    targetLabel: "Enter the total amount",
-    targetPlaceholder: "e.g., '₦500,000' or '$10,000'",
-    targetHint: "Enter the exact amount you want to save or pay off",
     frequencyTip: "Monthly works best for payday-aligned savings.",
   },
   fitness: {
@@ -57,9 +51,6 @@ const categoryConfig: Record<string, {
     emoji: "💪",
     icon: Dumbbell,
     examples: "Lose weight, run, build muscle",
-    targetLabel: "Your fitness target",
-    targetPlaceholder: "e.g., '10 kg' or '50 km'",
-    targetHint: "Enter your measurable goal",
     frequencyTip: "Daily works best for habits.",
   },
   learning: {
@@ -67,9 +58,6 @@ const categoryConfig: Record<string, {
     emoji: "📚",
     icon: BookOpen,
     examples: "Read books, learn skills",
-    targetLabel: "What will you complete?",
-    targetPlaceholder: "e.g., '12 books' or '100 lessons'",
-    targetHint: "Enter books, lessons, or hours",
     frequencyTip: "Daily for language, monthly for books.",
   },
   career: {
@@ -77,9 +65,6 @@ const categoryConfig: Record<string, {
     emoji: "🚀",
     icon: Briefcase,
     examples: "Get promoted, network",
-    targetLabel: "Your milestone target",
-    targetPlaceholder: "e.g., '50 applications'",
-    targetHint: "Enter milestones or achievements",
     frequencyTip: "Daily for job search, weekly for networking.",
   },
   'side-hustle': {
@@ -87,9 +72,6 @@ const categoryConfig: Record<string, {
     emoji: "💼",
     icon: TrendingUp,
     examples: "Launch business, freelance",
-    targetLabel: "Your business target",
-    targetPlaceholder: "e.g., '₦500,000' or '10 clients'",
-    targetHint: "Enter income target or client count",
     frequencyTip: "Daily for building, monthly for income goals.",
   },
   spiritual: {
@@ -97,9 +79,6 @@ const categoryConfig: Record<string, {
     emoji: "🙏",
     icon: Sparkles,
     examples: "Prayer, meditation",
-    targetLabel: "Your spiritual practice target",
-    targetPlaceholder: "e.g., '90 sessions'",
-    targetHint: "Enter sessions or days",
     frequencyTip: "Daily works best for spiritual habits.",
   },
   'mental-health': {
@@ -107,9 +86,6 @@ const categoryConfig: Record<string, {
     emoji: "🧠",
     icon: Brain,
     examples: "Meditation, journaling",
-    targetLabel: "Your wellness target",
-    targetPlaceholder: "e.g., '60 sessions'",
-    targetHint: "Enter sessions or entries",
     frequencyTip: "Daily works best for meditation.",
   },
   relationship: {
@@ -117,9 +93,6 @@ const categoryConfig: Record<string, {
     emoji: "❤️",
     icon: Heart,
     examples: "Quality time, date nights",
-    targetLabel: "Your relationship goal",
-    targetPlaceholder: "e.g., '52 date nights'",
-    targetHint: "Enter activities or sessions",
     frequencyTip: "Weekly for date nights.",
   },
   content: {
@@ -127,9 +100,6 @@ const categoryConfig: Record<string, {
     emoji: "🎬",
     icon: Palette,
     examples: "YouTube, blog, podcast",
-    targetLabel: "Your content output",
-    targetPlaceholder: "e.g., '52 videos'",
-    targetHint: "Enter videos, posts, or articles",
     frequencyTip: "Weekly for YouTube, daily for social media.",
   },
   lifestyle: {
@@ -137,9 +107,6 @@ const categoryConfig: Record<string, {
     emoji: "✨",
     icon: Users,
     examples: "Morning routine, habits",
-    targetLabel: "Your lifestyle target",
-    targetPlaceholder: "e.g., '66 days'",
-    targetHint: "Enter days or activities",
     frequencyTip: "Daily for habits.",
   },
   custom: {
@@ -147,9 +114,6 @@ const categoryConfig: Record<string, {
     emoji: "✏️",
     icon: Edit3,
     examples: "Create your own unique goal",
-    targetLabel: "Your measurable target",
-    targetPlaceholder: "e.g., '30 days' or '100 units'",
-    targetHint: "Enter a number with unit",
     frequencyTip: "Choose based on your goal type.",
   },
 };
@@ -247,7 +211,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   const [goalTarget, setGoalTarget] = useState("");
   const [customInput, setCustomInput] = useState("");
   const [startDate, setStartDate] = useState('2026-01-01');
-  const [deadline, setDeadline] = useState(() => format(addDays(new Date('2026-01-01'), 90), 'yyyy-MM-dd'));
+  const [deadline, setDeadline] = useState('2026-12-31');
   const [reason, setReason] = useState("");
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
@@ -259,10 +223,9 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setSelectedCategory(template.category);
     setGoalName(template.name);
     setFrequency(template.frequency);
-    const start = new Date('2026-01-01');
-    const end = addDays(start, template.defaultDuration);
+    // Default to full year Jan 1 - Dec 31, 2026
     setStartDate('2026-01-01');
-    setDeadline(format(end, 'yyyy-MM-dd'));
+    setDeadline('2026-12-31');
     setGoalTarget('');
     setCustomInput('');
     setReason(`I want to ${template.description.toLowerCase()}`);
@@ -304,7 +267,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setGoalTarget("");
     setCustomInput("");
     setStartDate('2026-01-01');
-    setDeadline(format(addDays(new Date('2026-01-01'), 90), 'yyyy-MM-dd'));
+    setDeadline('2026-12-31');
     setReason("");
     setFrequency('daily');
   };
@@ -412,11 +375,11 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                   />
                 </div>
 
-                {/* Target (for measured goals or custom) */}
-                {(selectedTemplate?.smartType === 'measured' || !selectedTemplate) && (
+                {/* Target (for measured template goals only) */}
+                {selectedTemplate?.smartType === 'measured' && (
                   <div className="space-y-1.5">
                     <Label htmlFor="goalTarget" className="text-sm">
-                      {selectedTemplate?.targetLabel || config.targetLabel}
+                      {selectedTemplate.targetLabel || 'Your target'}
                     </Label>
                     <div className="relative">
                       {selectedTemplate && !selectedTemplate.targetSuffix && (
@@ -424,16 +387,16 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                       )}
                       <Input
                         id="goalTarget"
-                        type={selectedTemplate?.smartType === 'measured' ? 'number' : 'text'}
-                        placeholder={selectedTemplate?.targetPlaceholder || config.targetPlaceholder}
+                        type="number"
+                        placeholder={selectedTemplate.targetPlaceholder || '0'}
                         value={goalTarget}
                         onChange={(e) => setGoalTarget(e.target.value)}
                         className={cn(
                           "bg-secondary border-border h-10",
-                          selectedTemplate && !selectedTemplate.targetSuffix && "pl-8"
+                          !selectedTemplate.targetSuffix && "pl-8"
                         )}
                       />
-                      {selectedTemplate?.targetSuffix && (
+                      {selectedTemplate.targetSuffix && (
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                           {selectedTemplate.targetSuffix}
                         </span>
@@ -442,6 +405,25 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                     {breakdownPreview && (
                       <p className="text-xs text-success font-medium">→ {breakdownPreview}</p>
                     )}
+                  </div>
+                )}
+
+                {/* Simple task description for custom goals */}
+                {!selectedTemplate && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="taskDescription" className="text-sm">
+                      What will you do each {frequency === 'daily' ? 'day' : frequency === 'weekly' ? 'week' : 'month'}?
+                    </Label>
+                    <Input
+                      id="taskDescription"
+                      placeholder="e.g., Brush teeth twice, Go to gym, Read for 30 mins"
+                      value={goalTarget}
+                      onChange={(e) => setGoalTarget(e.target.value)}
+                      className="bg-secondary border-border h-10"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      This is what your {frequency} reminder will say
+                    </p>
                   </div>
                 )}
 
