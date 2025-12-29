@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   Briefcase, DollarSign, BookOpen, Sparkles, Heart, 
   Dumbbell, TrendingUp, Palette, Users, Brain, 
   Target, Scale, Flame, GraduationCap, Wallet,
-  Rocket, Handshake, PenTool, Calendar, Music,
-  Mic, Globe, Zap, Trophy, ArrowRight, Plus
+  Rocket, Handshake, PenTool, 
+  Mic, Globe, Zap, Trophy, Plus, Search, Coffee,
+  Cigarette, Clock, Utensils, Moon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 // Popular goal template with participant counts
@@ -24,6 +26,7 @@ export interface PopularGoalTemplate {
   targetPlaceholder?: string;
   targetSuffix?: string;
   tips: string[];
+  actionVerb?: string;
 }
 
 // Category definitions
@@ -41,356 +44,400 @@ export const goalCategories = [
   { id: 'lifestyle', label: 'Lifestyle', icon: Users },
 ];
 
-// Popular goal templates with realistic participant counts
+// Popular goal templates - Curated actionable yearly goals
 export const popularTemplates: PopularGoalTemplate[] = [
-  // Fitness
+  // Fitness - Actionable & Popular
   {
-    id: 'lose-weight',
-    name: 'Lose Weight',
+    id: 'lose-weight-gym',
+    name: 'Lose Weight (Hit the Gym)',
     icon: Scale,
     category: 'fitness',
-    description: 'Reach your ideal weight through consistent effort',
-    participants: 3247,
+    description: 'Gym workouts 3-5x/week + calorie tracking',
+    participants: 8247,
     frequency: 'daily',
-    defaultDuration: 90,
-    smartType: 'simple',
-    tips: ['Focus on nutrition + exercise', 'Track your progress weekly', 'Aim for 0.5-1kg per week'],
+    defaultDuration: 180,
+    smartType: 'measured',
+    targetLabel: 'Weight to lose (kg)',
+    targetPlaceholder: '10',
+    targetSuffix: 'kg',
+    actionVerb: 'Work out at gym',
+    tips: ['Track calories with an app', 'Aim for 3-5 gym sessions/week', 'Focus on strength + cardio mix'],
   },
   {
-    id: 'workout-streak',
-    name: 'Build Workout Habit',
-    icon: Dumbbell,
-    category: 'fitness',
-    description: 'Create a consistent exercise routine',
-    participants: 2891,
-    frequency: 'daily',
-    defaultDuration: 66,
-    smartType: 'habit',
-    tips: ['Start with 20 minutes', 'Schedule like a meeting', 'Have a backup home workout'],
-  },
-  {
-    id: 'running-challenge',
-    name: 'Running Challenge',
+    id: 'run-5k',
+    name: 'Run a 5K Race',
     icon: Flame,
     category: 'fitness',
-    description: 'Build your running endurance',
-    participants: 1654,
+    description: 'Train from couch to completing 5K',
+    participants: 4521,
     frequency: 'weekly',
     defaultDuration: 90,
+    smartType: 'simple',
+    actionVerb: 'Complete training run',
+    tips: ['Start with walk-run intervals', 'Follow Couch to 5K program', 'Register for a race as motivation'],
+  },
+  {
+    id: 'marathon-training',
+    name: 'Run a Marathon',
+    icon: Trophy,
+    category: 'fitness',
+    description: 'Complete a full marathon (42.2km)',
+    participants: 2134,
+    frequency: 'weekly',
+    defaultDuration: 180,
     smartType: 'measured',
-    targetLabel: 'Total kilometers',
-    targetPlaceholder: '100',
-    targetSuffix: 'km',
-    tips: ['Start with walk-run intervals', 'Rest days are important', 'Get proper running shoes'],
+    targetLabel: 'Training runs',
+    targetPlaceholder: '60',
+    targetSuffix: 'runs',
+    actionVerb: 'Complete training run',
+    tips: ['Build base mileage first', 'Long run every weekend', 'Join a running club'],
   },
   
-  // Finance
+  // Finance - Top yearly goals
   {
-    id: 'save-money',
-    name: 'Save Money',
+    id: 'emergency-fund',
+    name: 'Build Emergency Fund',
     icon: Wallet,
     category: 'finance',
-    description: 'Build your savings consistently',
-    participants: 4521,
+    description: 'Save 3-6 months of expenses',
+    participants: 6521,
     frequency: 'monthly',
     defaultDuration: 365,
     smartType: 'measured',
     targetLabel: 'Total to save',
     targetPlaceholder: '500000',
     targetSuffix: '',
-    tips: ['Automate your savings', 'Start with 10% of income', 'Keep in separate account'],
+    actionVerb: 'Transfer to savings',
+    tips: ['Automate monthly transfers', 'Start with 10% of income', 'Keep in high-yield savings account'],
   },
   {
     id: 'pay-off-debt',
-    name: 'Debt Freedom',
+    name: 'Become Debt Free',
     icon: DollarSign,
     category: 'finance',
-    description: 'Pay off your debts and breathe easier',
-    participants: 2156,
+    description: 'Pay off all consumer debt',
+    participants: 4156,
     frequency: 'monthly',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'Total debt to pay',
+    targetLabel: 'Total debt to clear',
     targetPlaceholder: '200000',
     targetSuffix: '',
-    tips: ['Pay more than minimum', 'Consider debt snowball method', 'Celebrate milestones'],
+    actionVerb: 'Make extra payment',
+    tips: ['Use debt snowball method', 'Put all extra income to debt', 'Celebrate each paid-off account'],
   },
   {
-    id: 'start-investing',
+    id: 'first-investment',
     name: 'Start Investing',
     icon: TrendingUp,
     category: 'finance',
-    description: 'Begin your investment journey',
-    participants: 1432,
+    description: 'Open brokerage & invest monthly',
+    participants: 3432,
     frequency: 'monthly',
     defaultDuration: 365,
     smartType: 'measured',
     targetLabel: 'Total to invest',
     targetPlaceholder: '100000',
     targetSuffix: '',
-    tips: ['Consistency beats timing', 'Diversify investments', 'Start small, increase over time'],
+    actionVerb: 'Invest monthly amount',
+    tips: ['Start with index funds', 'Set up automatic investments', 'Think long-term, ignore market noise'],
   },
 
-  // Learning
+  // Learning - Popular self-improvement goals
   {
     id: 'read-books',
-    name: 'Read More Books',
+    name: 'Read 12 Books This Year',
     icon: BookOpen,
     category: 'learning',
-    description: 'Expand your knowledge through reading',
-    participants: 5234,
+    description: 'One book per month minimum',
+    participants: 7234,
     frequency: 'monthly',
     defaultDuration: 365,
     smartType: 'measured',
     targetLabel: 'Books to read',
     targetPlaceholder: '12',
     targetSuffix: 'books',
-    tips: ['Read 20-30 pages daily', 'Keep a book with you always', 'Mix fiction and non-fiction'],
+    actionVerb: 'Read for 30 minutes',
+    tips: ['Read 20-30 pages daily', 'Mix genres to stay interested', 'Join a book club for accountability'],
   },
   {
     id: 'learn-language',
-    name: 'Learn a Language',
+    name: 'Learn a New Language',
     icon: Globe,
     category: 'learning',
-    description: 'Master a new language',
-    participants: 2876,
+    description: 'Reach conversational level in 1 year',
+    participants: 5876,
     frequency: 'daily',
     defaultDuration: 365,
     smartType: 'habit',
-    tips: ['15-30 minutes daily is enough', 'Practice speaking from day 1', 'Use apps + real conversations'],
+    actionVerb: 'Complete language lesson',
+    tips: ['Use Duolingo + conversation apps', '15-30 minutes daily', 'Find a language exchange partner'],
   },
   {
     id: 'get-certified',
-    name: 'Get Certified',
+    name: 'Get Professional Certification',
     icon: GraduationCap,
     category: 'learning',
-    description: 'Earn a professional certification',
-    participants: 1654,
-    frequency: 'weekly',
+    description: 'Pass a career-boosting certification exam',
+    participants: 3654,
+    frequency: 'daily',
     defaultDuration: 90,
     smartType: 'simple',
-    tips: ['Study in focused blocks', 'Take practice exams', 'Join study groups'],
+    actionVerb: 'Study for certification',
+    tips: ['Block 1-2 hours daily for study', 'Take practice exams weekly', 'Set exam date to create urgency'],
   },
 
-  // Career
+  // Career - Actionable professional goals
   {
-    id: 'career-growth',
-    name: 'Career Growth',
+    id: 'get-promotion',
+    name: 'Get a Promotion',
     icon: Briefcase,
     category: 'career',
-    description: 'Level up your professional journey',
-    participants: 1876,
+    description: 'Level up at your current job',
+    participants: 4876,
     frequency: 'weekly',
-    defaultDuration: 180,
+    defaultDuration: 365,
     smartType: 'simple',
-    tips: ['Document your wins', 'Seek stretch assignments', 'Get visibility with leadership'],
+    actionVerb: 'Work on visibility task',
+    tips: ['Document all your wins', 'Take on stretch projects', 'Have regular career chats with manager'],
   },
   {
-    id: 'job-search',
+    id: 'new-job',
     name: 'Land a New Job',
     icon: Target,
     category: 'career',
-    description: 'Find your dream job',
-    participants: 1234,
+    description: 'Find a better opportunity',
+    participants: 3234,
     frequency: 'daily',
     defaultDuration: 90,
     smartType: 'measured',
     targetLabel: 'Applications to send',
     targetPlaceholder: '50',
     targetSuffix: 'applications',
-    tips: ['Quality over quantity', 'Customize each application', 'Network alongside applying'],
+    actionVerb: 'Apply to jobs',
+    tips: ['Tailor resume for each role', 'Network alongside applying', 'Practice interviewing weekly'],
   },
   {
-    id: 'networking',
-    name: 'Grow Your Network',
+    id: 'build-network',
+    name: 'Grow Professional Network',
     icon: Handshake,
     category: 'career',
-    description: 'Build meaningful professional connections',
-    participants: 987,
+    description: 'Make valuable industry connections',
+    participants: 2187,
     frequency: 'weekly',
-    defaultDuration: 180,
+    defaultDuration: 365,
     smartType: 'measured',
     targetLabel: 'New connections',
-    targetPlaceholder: '24',
+    targetPlaceholder: '52',
     targetSuffix: 'people',
-    tips: ['Offer value first', 'Follow up within 48 hours', 'Attend industry events'],
+    actionVerb: 'Reach out to someone new',
+    tips: ['Attend 1 event per month', 'Coffee chats with 1 person/week', 'Offer value before asking'],
   },
 
   // Side Hustle
   {
     id: 'launch-business',
-    name: 'Launch Your Business',
+    name: 'Launch a Side Business',
     icon: Rocket,
     category: 'side-hustle',
-    description: 'Start your entrepreneurial journey',
-    participants: 1543,
+    description: 'Start earning from your idea',
+    participants: 3543,
     frequency: 'daily',
     defaultDuration: 90,
     smartType: 'simple',
-    tips: ['Start before you\'re ready', 'Talk to potential customers', 'Launch an MVP first'],
+    actionVerb: 'Work on business',
+    tips: ['Validate idea before building', 'Launch MVP in 30 days', 'Get first paying customer fast'],
   },
   {
-    id: 'side-income',
-    name: 'Build Side Income',
+    id: 'freelance-income',
+    name: 'Build Freelance Income',
     icon: Zap,
     category: 'side-hustle',
-    description: 'Create additional income streams',
-    participants: 2134,
+    description: 'Earn on the side with your skills',
+    participants: 4134,
     frequency: 'monthly',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'Income target',
-    targetPlaceholder: '500000',
+    targetLabel: 'Monthly income target',
+    targetPlaceholder: '100000',
     targetSuffix: '',
-    tips: ['Start with skills you have', 'Reinvest early profits', 'Track time vs income'],
+    actionVerb: 'Work on freelance projects',
+    tips: ['Start on Upwork/Fiverr', 'Build portfolio first', 'Raise rates every 3 months'],
   },
 
   // Spiritual
   {
     id: 'daily-prayer',
-    name: 'Daily Prayer/Meditation',
+    name: 'Daily Prayer Practice',
     icon: Sparkles,
     category: 'spiritual',
-    description: 'Deepen your spiritual practice',
-    participants: 3421,
-    frequency: 'daily',
-    defaultDuration: 90,
-    smartType: 'habit',
-    tips: ['Same time each day helps', 'Start with 5 minutes', 'Find a quiet space'],
-  },
-  {
-    id: 'scripture-reading',
-    name: 'Read Scripture Daily',
-    icon: BookOpen,
-    category: 'spiritual',
-    description: 'Connect with sacred texts',
-    participants: 2567,
+    description: 'Dedicated prayer time every day',
+    participants: 5421,
     frequency: 'daily',
     defaultDuration: 365,
     smartType: 'habit',
-    tips: ['One chapter a day', 'Journal your reflections', 'Join a study group'],
+    actionVerb: 'Complete prayer time',
+    tips: ['Same time each day', 'Start with 10 minutes', 'Keep a prayer journal'],
+  },
+  {
+    id: 'scripture-reading',
+    name: 'Read Through the Bible',
+    icon: BookOpen,
+    category: 'spiritual',
+    description: 'Complete Bible reading in 1 year',
+    participants: 4567,
+    frequency: 'daily',
+    defaultDuration: 365,
+    smartType: 'habit',
+    actionVerb: 'Read daily passage',
+    tips: ['Use a reading plan', '3-4 chapters per day', 'Journal key insights'],
   },
 
   // Mental Health / Wellness
   {
-    id: 'wellness-journey',
-    name: 'Wellness Journey',
+    id: 'daily-meditation',
+    name: 'Daily Meditation',
     icon: Brain,
     category: 'mental-health',
-    description: 'Prioritize your mental wellbeing',
-    participants: 2156,
+    description: 'Build a calm, focused mind',
+    participants: 4876,
     frequency: 'daily',
     defaultDuration: 90,
     smartType: 'habit',
-    tips: ['Start with self-care basics', 'Be patient with yourself', 'Seek support when needed'],
+    actionVerb: 'Complete meditation session',
+    tips: ['Start with 5 minutes', 'Use Headspace or Calm app', 'Morning is best time'],
   },
   {
-    id: 'meditation',
-    name: 'Build Meditation Habit',
-    icon: Sparkles,
+    id: 'quit-smoking',
+    name: 'Quit Smoking',
+    icon: Cigarette,
     category: 'mental-health',
-    description: 'Cultivate inner peace',
-    participants: 1876,
+    description: 'Become smoke-free for good',
+    participants: 3156,
+    frequency: 'daily',
+    defaultDuration: 90,
+    smartType: 'habit',
+    actionVerb: 'Stay smoke-free',
+    tips: ['Set quit date', 'Use nicotine replacement', 'Identify and avoid triggers'],
+  },
+  {
+    id: 'better-sleep',
+    name: 'Fix Sleep Schedule',
+    icon: Moon,
+    category: 'mental-health',
+    description: 'Get 7-8 hours of quality sleep',
+    participants: 3432,
     frequency: 'daily',
     defaultDuration: 66,
     smartType: 'habit',
-    tips: ['Start with guided meditations', '2 minutes is enough to start', 'Morning works best'],
-  },
-  {
-    id: 'journaling',
-    name: 'Daily Journaling',
-    icon: PenTool,
-    category: 'mental-health',
-    description: 'Process thoughts through writing',
-    participants: 1432,
-    frequency: 'daily',
-    defaultDuration: 90,
-    smartType: 'habit',
-    tips: ['Write before bed or morning', 'No judgment, just write', 'Try gratitude journaling'],
+    actionVerb: 'Complete sleep routine',
+    tips: ['Same bedtime every night', 'No screens 1 hour before bed', 'Keep bedroom cool & dark'],
   },
 
   // Relationship
   {
-    id: 'quality-time',
-    name: 'Quality Time',
+    id: 'weekly-date-night',
+    name: 'Weekly Date Night',
     icon: Heart,
     category: 'relationship',
-    description: 'Strengthen your relationships',
-    participants: 1234,
-    frequency: 'weekly',
-    defaultDuration: 365,
-    smartType: 'habit',
-    tips: ['Put phones away', 'Plan activities together', 'Active listening matters'],
-  },
-  {
-    id: 'date-nights',
-    name: 'Regular Date Nights',
-    icon: Heart,
-    category: 'relationship',
-    description: 'Keep the spark alive',
-    participants: 987,
+    description: 'Dedicated quality time with partner',
+    participants: 2987,
     frequency: 'weekly',
     defaultDuration: 365,
     smartType: 'measured',
     targetLabel: 'Date nights',
     targetPlaceholder: '52',
     targetSuffix: 'dates',
-    tips: ['Schedule in advance', 'Try new experiences', 'Budget for it'],
+    actionVerb: 'Go on date night',
+    tips: ['Schedule like a meeting', 'Try new experiences', 'Phones away during date'],
+  },
+  {
+    id: 'family-time',
+    name: 'Quality Family Time',
+    icon: Users,
+    category: 'relationship',
+    description: 'Intentional time with family weekly',
+    participants: 2234,
+    frequency: 'weekly',
+    defaultDuration: 365,
+    smartType: 'habit',
+    actionVerb: 'Spend quality family time',
+    tips: ['Weekly family activity', 'Daily dinner together', 'One-on-one time with each child'],
   },
 
-  // Content
+  // Content Creation
   {
-    id: 'creative-project',
-    name: 'Creative Project',
-    icon: Palette,
-    category: 'content',
-    description: 'Bring your creative vision to life',
-    participants: 1234,
-    frequency: 'daily',
-    defaultDuration: 90,
-    smartType: 'simple',
-    tips: ['Work on it daily', 'Done is better than perfect', 'Share your progress'],
-  },
-  {
-    id: 'content-creation',
-    name: 'Content Creation',
+    id: 'youtube-channel',
+    name: 'Start YouTube Channel',
     icon: Mic,
     category: 'content',
-    description: 'Build your online presence',
-    participants: 2345,
+    description: 'Post consistently and grow audience',
+    participants: 3345,
     frequency: 'weekly',
     defaultDuration: 365,
     smartType: 'measured',
-    targetLabel: 'Posts/videos to create',
+    targetLabel: 'Videos to post',
     targetPlaceholder: '52',
-    targetSuffix: 'pieces',
-    tips: ['Batch create content', 'Consistency over perfection', 'Engage with your audience'],
+    targetSuffix: 'videos',
+    actionVerb: 'Work on video content',
+    tips: ['Start with 1 video/week', 'Batch film content', 'Consistency beats perfection'],
+  },
+  {
+    id: 'write-book',
+    name: 'Write a Book',
+    icon: PenTool,
+    category: 'content',
+    description: 'Complete your first book',
+    participants: 2567,
+    frequency: 'daily',
+    defaultDuration: 365,
+    smartType: 'measured',
+    targetLabel: 'Words to write',
+    targetPlaceholder: '50000',
+    targetSuffix: 'words',
+    actionVerb: 'Write daily words',
+    tips: ['500 words per day', 'Write at same time daily', 'Dont edit while writing'],
   },
 
   // Lifestyle
   {
-    id: 'morning-routine',
-    name: 'Morning Routine',
-    icon: Calendar,
+    id: 'wake-early',
+    name: 'Wake Up at 5AM',
+    icon: Clock,
     category: 'lifestyle',
-    description: 'Start each day with intention',
-    participants: 2345,
+    description: 'Join the 5AM club for productivity',
+    participants: 4345,
     frequency: 'daily',
     defaultDuration: 66,
     smartType: 'habit',
-    tips: ['Wake up at same time', 'No phone for first hour', 'Include exercise'],
+    actionVerb: 'Wake up at 5AM',
+    tips: ['Go to bed by 9-10PM', 'No snooze button', 'Have morning routine ready'],
   },
   {
-    id: 'learn-skill',
-    name: 'Learn a New Skill',
-    icon: Music,
+    id: 'eat-healthy',
+    name: 'Eat Healthier',
+    icon: Utensils,
     category: 'lifestyle',
-    description: 'Master something new',
-    participants: 1876,
+    description: 'Clean eating & meal prep weekly',
+    participants: 5876,
     frequency: 'daily',
     defaultDuration: 90,
-    smartType: 'simple',
-    tips: ['Practice daily', 'Get feedback', 'Enjoy the process'],
+    smartType: 'habit',
+    actionVerb: 'Eat healthy meals',
+    tips: ['Meal prep on Sundays', 'Drink 2L water daily', 'Track meals for first month'],
+  },
+  {
+    id: 'reduce-screen',
+    name: 'Reduce Screen Time',
+    icon: Coffee,
+    category: 'lifestyle',
+    description: 'Less social media, more real life',
+    participants: 3654,
+    frequency: 'daily',
+    defaultDuration: 66,
+    smartType: 'habit',
+    actionVerb: 'Stay within screen limits',
+    tips: ['Set app time limits', 'No phone first hour of day', 'Replace with reading/hobby'],
   },
 ];
 
@@ -409,13 +456,24 @@ export interface GoalConfig {
 
 export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGoalTemplatesProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredTemplates = selectedCategory === 'all' 
-    ? popularTemplates 
-    : popularTemplates.filter(t => t.category === selectedCategory);
-
-  // Sort by participants
-  const sortedTemplates = [...filteredTemplates].sort((a, b) => b.participants - a.participants);
+  const filteredTemplates = useMemo(() => {
+    let templates = selectedCategory === 'all' 
+      ? popularTemplates 
+      : popularTemplates.filter(t => t.category === selectedCategory);
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      templates = templates.filter(t => 
+        t.name.toLowerCase().includes(query) || 
+        t.description.toLowerCase().includes(query) ||
+        t.category.toLowerCase().includes(query)
+      );
+    }
+    
+    return templates.sort((a, b) => b.participants - a.participants);
+  }, [selectedCategory, searchQuery]);
 
   const formatParticipants = (count: number) => {
     if (count >= 1000) {
@@ -425,10 +483,21 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search goals..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 h-9 text-sm bg-background/50"
+        />
+      </div>
+
       {/* Category Filters - Horizontal scroll on mobile */}
       <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-2 pb-2 min-w-max sm:flex-wrap sm:min-w-0">
+        <div className="flex gap-1.5 pb-2 min-w-max sm:flex-wrap sm:min-w-0">
           {goalCategories.map((category) => {
             const Icon = category.icon;
             return (
@@ -436,13 +505,13 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0",
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0",
                   selectedCategory === category.id
                     ? "bg-primary text-primary-foreground"
-                    : "bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground"
+                    : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3 h-3" />
                 <span>{category.label}</span>
               </button>
             );
@@ -451,40 +520,53 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
       </div>
 
       {/* Templates Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
-        {sortedTemplates.map((template) => {
-          const Icon = template.icon;
-          return (
-            <button
-              key={template.id}
-              onClick={() => onSelectTemplate(template)}
-              className={cn(
-                "p-3 rounded-xl border border-border/50 bg-card/50",
-                "hover:bg-card hover:border-primary/50 transition-all text-left group"
-              )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-y-auto pr-1">
+        {filteredTemplates.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            <p className="text-sm">No goals found matching "{searchQuery}"</p>
+            <button 
+              onClick={onCreateCustom}
+              className="text-primary text-sm mt-2 hover:underline"
             >
-              <div className="flex items-start gap-2.5">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                    {template.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                    {template.description}
-                  </p>
-                  <div className="flex items-center gap-1 mt-1.5">
-                    <Trophy className="w-3 h-3 text-success" />
-                    <span className="text-xs text-success font-medium">{formatParticipants(template.participants)}</span>
-                    <span className="text-xs text-muted-foreground">crushing it</span>
+              Create a custom goal instead
+            </button>
+          </div>
+        ) : (
+          filteredTemplates.map((template) => {
+            const Icon = template.icon;
+            return (
+              <button
+                key={template.id}
+                onClick={() => onSelectTemplate(template)}
+                className={cn(
+                  "p-3 rounded-xl border border-border/40 bg-card/30",
+                  "hover:bg-card/80 hover:border-primary/40 hover:shadow-sm transition-all text-left group"
+                )}
+              >
+                <div className="flex items-start gap-2.5">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors leading-tight">
+                      {template.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                      {template.description}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <Trophy className="w-3 h-3 text-amber-500" />
+                      <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        {formatParticipants(template.participants)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">crushing it</span>
+                    </div>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-1" />
-              </div>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })
+        )}
       </div>
 
       {/* Custom Goal Button */}
