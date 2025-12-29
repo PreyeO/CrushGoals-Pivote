@@ -124,8 +124,8 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
+        options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
             data: {
               full_name: name.trim(),
               username: username.toLowerCase().trim(),
