@@ -5,12 +5,12 @@ import { TaskItem } from "@/components/TaskItem";
 import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { WeeklySummary } from "@/components/WeeklySummary";
-import { ProductTour } from "@/components/ProductTour";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
-import { Target, Zap, Trophy, Plus, ChevronRight, Loader2, Flame, Calendar, TrendingUp, ListTodo } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Target, Zap, Trophy, Plus, ChevronRight, Flame, Calendar, ListTodo, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
@@ -38,7 +38,6 @@ export default function Dashboard() {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [weeklySummaryOpen, setWeeklySummaryOpen] = useState(false);
   const [weekData, setWeekData] = useState<{ date: string; day: string; completed: number; total: number }[]>([]);
-  const [showProductTour, setShowProductTour] = useState(false);
   
   useStreakNotifications();
   const { processedInvites } = useInviteHandler();
@@ -48,31 +47,6 @@ export default function Dashboard() {
       refreshGoals();
     }
   }, [processedInvites, refreshGoals]);
-
-  useEffect(() => {
-    const checkProductTour = () => {
-      const hasSeenProductTour = localStorage.getItem('hasSeenProductTour');
-      const isNewUser = goals.length === 0 && stats?.tasks_completed === 0;
-      
-      if (!hasSeenProductTour && isNewUser && !goalsLoading) {
-        setShowProductTour(true);
-      }
-    };
-    
-    checkProductTour();
-  }, [goals, stats, goalsLoading]);
-
-  // Listen for custom event from ProductTour to open Add Goal modal
-  useEffect(() => {
-    const handleOpenAddGoal = () => setAddGoalOpen(true);
-    window.addEventListener('openAddGoalModal', handleOpenAddGoal);
-    return () => window.removeEventListener('openAddGoalModal', handleOpenAddGoal);
-  }, []);
-
-  const handleProductTourComplete = () => {
-    localStorage.setItem('hasSeenProductTour', 'true');
-    setShowProductTour(false);
-  };
 
   useEffect(() => {
     const fetchWeekData = async () => {
@@ -191,6 +165,51 @@ export default function Dashboard() {
 
   const isLoading = goalsLoading || tasksLoading;
 
+  // Show loading skeleton for the entire dashboard
+  if (isLoading && !profile) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        <Sidebar />
+        <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
+          <div className="space-y-6 animate-fade-in">
+            {/* Header skeleton */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+              <Skeleton className="h-10 w-32" />
+            </div>
+            
+            {/* Stats skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Skeleton className="h-24 rounded-xl" />
+              <div className="grid grid-cols-3 gap-3">
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+              </div>
+            </div>
+            
+            {/* Quote skeleton */}
+            <Skeleton className="h-12 rounded-xl" />
+            
+            {/* Tasks skeleton */}
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-16 rounded-xl" />
+              <Skeleton className="h-16 rounded-xl" />
+              <Skeleton className="h-16 rounded-xl" />
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Get display name - prefer username, fallback to first name
+  const displayName = profile?.username || profile?.full_name?.split(' ')[0] || 'there';
+
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar />
@@ -201,7 +220,7 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold">
-                {getGreeting()}, {profile?.full_name?.split(' ')[0] || 'Champion'}
+                {getGreeting()}, {displayName}
               </h1>
               <p className="text-sm text-muted-foreground">
                 {totalTasks > 0 ? (
@@ -216,7 +235,6 @@ export default function Dashboard() {
               size="sm"
               className="w-full sm:w-auto" 
               onClick={() => setAddGoalOpen(true)}
-              data-tour="new-goal"
             >
               <Plus className="w-4 h-4 mr-1" />
               New Goal
@@ -445,7 +463,7 @@ export default function Dashboard() {
         </section>
 
         {/* Achievements Preview - Compact Cards */}
-        {localStorage.getItem('hasSeenProductTour') && stats && stats.tasks_completed > 0 && (
+        {stats && stats.tasks_completed > 0 && (
           <section className="mt-6 animate-slide-up opacity-0" style={{ animationDelay: '300ms' }}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-semibold flex items-center gap-2">
@@ -459,22 +477,22 @@ export default function Dashboard() {
             </div>
 
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
-              {stats.tasks_completed >= 1 && (
+              {goals.length >= 1 && (
                 <Card variant="glass" className="p-3 min-w-[120px] flex-shrink-0 text-center hover-scale">
                   <div className="text-2xl mb-1">🎯</div>
-                  <p className="text-xs font-medium">First Task</p>
+                  <p className="text-xs font-medium">First Goal</p>
+                </Card>
+              )}
+              {stats.tasks_completed >= 1 && (
+                <Card variant="glass" className="p-3 min-w-[120px] flex-shrink-0 text-center hover-scale">
+                  <div className="text-2xl mb-1">👣</div>
+                  <p className="text-xs font-medium">First Step</p>
                 </Card>
               )}
               {(stats.current_streak || 0) >= 3 && (
                 <Card variant="glass" className="p-3 min-w-[120px] flex-shrink-0 text-center hover-scale">
                   <div className="text-2xl mb-1">🔥</div>
                   <p className="text-xs font-medium">On Fire</p>
-                </Card>
-              )}
-              {stats.tasks_completed >= 10 && (
-                <Card variant="glass" className="p-3 min-w-[120px] flex-shrink-0 text-center hover-scale">
-                  <div className="text-2xl mb-1">💪</div>
-                  <p className="text-xs font-medium">Task Master</p>
                 </Card>
               )}
               {activeGoals.length >= 3 && (
@@ -525,11 +543,6 @@ export default function Dashboard() {
           type="firstGoal"
         />
 
-        {/* Product Tour */}
-        <ProductTour 
-          open={showProductTour} 
-          onComplete={handleProductTourComplete} 
-        />
 
         {/* PWA Install Prompt */}
         <PWAInstallPrompt />
