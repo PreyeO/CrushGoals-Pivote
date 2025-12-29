@@ -7,10 +7,7 @@ import {
   Mic, Globe, Zap, Trophy, ArrowRight, Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { format, addDays } from "date-fns";
 
 // Popular goal template with participant counts
 export interface PopularGoalTemplate {
@@ -398,7 +395,7 @@ export const popularTemplates: PopularGoalTemplate[] = [
 ];
 
 interface SmartGoalTemplatesProps {
-  onSelectTemplate: (template: PopularGoalTemplate, config: GoalConfig) => void;
+  onSelectTemplate: (template: PopularGoalTemplate) => void;
   onCreateCustom: () => void;
 }
 
@@ -412,11 +409,6 @@ export interface GoalConfig {
 
 export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGoalTemplatesProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedTemplate, setSelectedTemplate] = useState<PopularGoalTemplate | null>(null);
-  const [targetValue, setTargetValue] = useState('');
-  const [startDate, setStartDate] = useState('2026-01-01');
-  const [endDate, setEndDate] = useState(() => format(addDays(new Date('2026-01-01'), 90), 'yyyy-MM-dd'));
-  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   const filteredTemplates = selectedCategory === 'all' 
     ? popularTemplates 
@@ -425,35 +417,6 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
   // Sort by participants
   const sortedTemplates = [...filteredTemplates].sort((a, b) => b.participants - a.participants);
 
-  const handleTemplateClick = (template: PopularGoalTemplate) => {
-    setSelectedTemplate(template);
-    setFrequency(template.frequency);
-    const start = new Date('2026-01-01');
-    const end = addDays(start, template.defaultDuration);
-    setStartDate('2026-01-01');
-    setEndDate(format(end, 'yyyy-MM-dd'));
-    setTargetValue('');
-  };
-
-  const handleConfirm = () => {
-    if (!selectedTemplate) return;
-    
-    let target = '';
-    if (selectedTemplate.smartType === 'measured' && targetValue) {
-      target = selectedTemplate.targetSuffix 
-        ? `${targetValue} ${selectedTemplate.targetSuffix}`
-        : `₦${Number(targetValue).toLocaleString()}`;
-    }
-
-    onSelectTemplate(selectedTemplate, {
-      name: selectedTemplate.name,
-      target,
-      startDate,
-      deadline: endDate,
-      frequency,
-    });
-  };
-
   const formatParticipants = (count: number) => {
     if (count >= 1000) {
       return `${(count / 1000).toFixed(1)}k`;
@@ -461,53 +424,11 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
     return count.toString();
   };
 
-  const getDaysCount = () => {
-    if (!startDate || !endDate) return 0;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  };
-
-  const getBreakdown = () => {
-    const days = getDaysCount();
-    if (!targetValue || days <= 0) return '';
-    
-    const value = parseFloat(targetValue);
-    if (isNaN(value)) return '';
-
-    let periodsCount: number;
-    let periodLabel: string;
-
-    switch (frequency) {
-      case 'daily':
-        periodsCount = days;
-        periodLabel = 'day';
-        break;
-      case 'weekly':
-        periodsCount = Math.ceil(days / 7);
-        periodLabel = 'week';
-        break;
-      case 'monthly':
-        periodsCount = Math.ceil(days / 30);
-        periodLabel = 'month';
-        break;
-    }
-
-    const perPeriod = value / periodsCount;
-    const displayValue = perPeriod % 1 === 0 ? perPeriod : perPeriod.toFixed(1);
-
-    if (selectedTemplate?.targetSuffix) {
-      return `${displayValue} ${selectedTemplate.targetSuffix} per ${periodLabel}`;
-    }
-    return `₦${Number(displayValue).toLocaleString()} per ${periodLabel}`;
-  };
-
-  // Template selection view
-  if (!selectedTemplate) {
-    return (
-      <div className="space-y-5">
-        {/* Category Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin -mx-1 px-1">
+  return (
+    <div className="space-y-4">
+      {/* Category Filters - Horizontal scroll on mobile */}
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex gap-2 pb-2 min-w-max sm:flex-wrap sm:min-w-0">
           {goalCategories.map((category) => {
             const Icon = category.icon;
             return (
@@ -515,242 +436,70 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0",
                   selectedCategory === category.id
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5" />
                 <span>{category.label}</span>
               </button>
             );
           })}
         </div>
-
-        {/* Popular Templates Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {sortedTemplates.map((template) => {
-            const Icon = template.icon;
-            return (
-              <button
-                key={template.id}
-                onClick={() => handleTemplateClick(template)}
-                className={cn(
-                  "p-4 rounded-xl border border-border/50 bg-card/50",
-                  "hover:bg-card hover:border-primary/50 transition-all text-left group",
-                  "hover-lift"
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                      {template.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                      {template.description}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <div className="flex items-center gap-1 text-xs text-success">
-                        <Trophy className="w-3 h-3" />
-                        <span className="font-medium">{formatParticipants(template.participants)}</span>
-                        <span className="text-muted-foreground">crushing this</span>
-                      </div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Custom Goal Button */}
-        <button
-          onClick={onCreateCustom}
-          className="w-full p-4 rounded-xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-3 text-primary group"
-        >
-          <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-            <Plus className="w-5 h-5" />
-          </div>
-          <div className="text-left">
-            <p className="font-semibold">Create Custom Goal</p>
-            <p className="text-xs text-muted-foreground">Build your own unique goal</p>
-          </div>
-        </button>
-      </div>
-    );
-  }
-
-  // Template configuration view
-  const Icon = selectedTemplate.icon;
-  const days = getDaysCount();
-
-  return (
-    <div className="space-y-5">
-      {/* Back Button */}
-      <button
-        onClick={() => setSelectedTemplate(null)}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowRight className="w-4 h-4 rotate-180" />
-        Back to goals
-      </button>
-
-      {/* Selected Template Header */}
-      <div className="flex items-center gap-4 p-4 rounded-xl bg-primary/10 border border-primary/30">
-        <div className="p-3 rounded-xl bg-primary/20 text-primary">
-          <Icon className="w-6 h-6" />
-        </div>
-        <div className="flex-1">
-          <h3 className="font-bold text-lg">{selectedTemplate.name}</h3>
-          <p className="text-sm text-muted-foreground">{selectedTemplate.description}</p>
-          <div className="flex items-center gap-1.5 mt-1">
-            <Trophy className="w-3.5 h-3.5 text-success" />
-            <span className="text-xs text-success font-medium">
-              {formatParticipants(selectedTemplate.participants)} people crushing this
-            </span>
-          </div>
-        </div>
       </div>
 
-      {/* Target Input for Measured Goals */}
-      {selectedTemplate.smartType === 'measured' && (
-        <div className="space-y-2">
-          <Label htmlFor="target" className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-primary" />
-            {selectedTemplate.targetLabel}
-          </Label>
-          <div className="relative">
-            {!selectedTemplate.targetSuffix && (
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₦</span>
-            )}
-            <Input
-              id="target"
-              type="number"
-              placeholder={selectedTemplate.targetPlaceholder}
-              value={targetValue}
-              onChange={(e) => setTargetValue(e.target.value)}
-              className={cn(
-                "bg-secondary border-border h-12",
-                !selectedTemplate.targetSuffix && "pl-8"
-              )}
-            />
-            {selectedTemplate.targetSuffix && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                {selectedTemplate.targetSuffix}
-              </span>
-            )}
-          </div>
-          {targetValue && getBreakdown() && (
-            <p className="text-sm text-success font-medium">
-              → {getBreakdown()}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Date Selection */}
-      <div className="p-4 rounded-xl bg-card/50 border border-border/50 space-y-4">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-primary" />
-          <span className="font-medium">Timeline</span>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">Start Date</Label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="bg-secondary border-border h-11"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">End Date</Label>
-            <Input
-              type="date"
-              value={endDate}
-              min={startDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="bg-secondary border-border h-11"
-            />
-          </div>
-        </div>
-
-        {days > 0 && (
-          <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-success/10 border border-success/30">
-            <Calendar className="w-4 h-4 text-success" />
-            <span className="text-sm font-medium text-success">
-              {days} days to achieve this goal!
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Frequency Selection */}
-      <div className="space-y-3">
-        <Label className="flex items-center gap-2">
-          <Flame className="w-4 h-4 text-primary" />
-          How often do you want reminders?
-        </Label>
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { id: 'daily', label: 'Daily', desc: 'Every day' },
-            { id: 'weekly', label: 'Weekly', desc: 'Once a week' },
-            { id: 'monthly', label: 'Monthly', desc: 'Once a month' },
-          ].map((freq) => (
+      {/* Templates Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+        {sortedTemplates.map((template) => {
+          const Icon = template.icon;
+          return (
             <button
-              key={freq.id}
-              type="button"
-              onClick={() => setFrequency(freq.id as 'daily' | 'weekly' | 'monthly')}
+              key={template.id}
+              onClick={() => onSelectTemplate(template)}
               className={cn(
-                "p-3 rounded-lg border transition-all text-center",
-                frequency === freq.id
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border/50 bg-card/50 hover:border-primary/50"
+                "p-3 rounded-xl border border-border/50 bg-card/50",
+                "hover:bg-card hover:border-primary/50 transition-all text-left group"
               )}
             >
-              <p className="font-medium text-sm">{freq.label}</p>
-              <p className="text-xs text-muted-foreground">{freq.desc}</p>
+              <div className="flex items-start gap-2.5">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                    {template.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                    {template.description}
+                  </p>
+                  <div className="flex items-center gap-1 mt-1.5">
+                    <Trophy className="w-3 h-3 text-success" />
+                    <span className="text-xs text-success font-medium">{formatParticipants(template.participants)}</span>
+                    <span className="text-xs text-muted-foreground">crushing it</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-1" />
+              </div>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      {/* Tips */}
-      {selectedTemplate.tips.length > 0 && (
-        <div className="p-3 rounded-xl bg-card/50 border border-border/50">
-          <p className="text-xs font-medium mb-2 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            Pro Tips
-          </p>
-          <ul className="space-y-1">
-            {selectedTemplate.tips.map((tip, i) => (
-              <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                <span className="text-primary">•</span>
-                {tip}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Confirm Button */}
-      <Button
-        variant="hero"
-        size="lg"
-        className="w-full"
-        onClick={handleConfirm}
-        disabled={selectedTemplate.smartType === 'measured' && !targetValue}
+      {/* Custom Goal Button */}
+      <button
+        onClick={onCreateCustom}
+        className="w-full p-3 rounded-xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2.5 text-primary group"
       >
-        Start This Goal
-        <ArrowRight className="w-4 h-4 ml-2" />
-      </Button>
+        <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+          <Plus className="w-4 h-4" />
+        </div>
+        <div className="text-left">
+          <p className="font-medium text-sm">Create Custom Goal</p>
+          <p className="text-xs text-muted-foreground">Build your own unique goal</p>
+        </div>
+      </button>
     </div>
   );
 }
