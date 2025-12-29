@@ -424,6 +424,90 @@ export function useGoals() {
     }
   };
 
+  const recalculateProgress = async (goalId: string) => {
+    if (!user) return null;
+
+    try {
+      // Get all tasks for this goal
+      const { data: goalTasks, error: fetchError } = await supabase
+        .from('tasks')
+        .select('id, completed')
+        .eq('goal_id', goalId)
+        .eq('user_id', user.id);
+
+      if (fetchError) throw fetchError;
+
+      const goal = goals.find(g => g.id === goalId);
+      if (!goal) return null;
+
+      let progress = 0;
+      let status: 'on-track' | 'ahead' | 'behind' | 'completed' = 'on-track';
+
+      if (goalTasks && goalTasks.length > 0) {
+        const completedCount = goalTasks.filter(t => t.completed).length;
+        const totalCount = goalTasks.length;
+        progress = Math.round((completedCount / totalCount) * 100);
+
+        // Determine status based on progress vs timeline
+        if (progress >= 100) {
+          status = 'completed';
+        } else if (goal.start_date && goal.deadline) {
+          const start = new Date(goal.start_date).getTime();
+          const end = new Date(goal.deadline).getTime();
+          const now = Date.now();
+          const totalDuration = end - start;
+          const elapsed = now - start;
+          const expectedProgress = totalDuration > 0 ? Math.min(100, Math.round((elapsed / totalDuration) * 100)) : 0;
+
+          if (progress > expectedProgress + 10) {
+            status = 'ahead';
+          } else if (progress + 5 < expectedProgress) {
+            status = 'behind';
+          } else {
+            status = 'on-track';
+          }
+        }
+      }
+
+      // Update goal with recalculated values
+      const updates: any = { progress, status };
+      
+      if (progress >= 100) {
+        updates.completed_at = new Date().toISOString();
+      }
+
+      // Also update current_value if target_value exists
+      if (goal.target_value && goalTasks && goalTasks.length > 0) {
+        const match = goal.target_value.match(/^\$?(\d+(?:\.\d+)?)\s*(.*)$/);
+        if (match) {
+          const totalValue = parseFloat(match[1]);
+          const unit = match[2].trim();
+          const completedCount = goalTasks.filter(t => t.completed).length;
+          const totalCount = goalTasks.length;
+          const currentValue = ((completedCount / totalCount) * totalValue).toFixed(1);
+          updates.current_value = `${currentValue} ${unit}`.trim();
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('goals')
+        .update(updates)
+        .eq('id', goalId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setGoals(prev => prev.map(g => g.id === goalId ? data as Goal : g));
+      toast.success(`Progress recalculated: ${progress}%`);
+      return data as Goal;
+    } catch (error) {
+      logError('Error recalculating progress:', error);
+      toast.error('Failed to recalculate progress');
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchGoals();
 
@@ -458,6 +542,7 @@ export function useGoals() {
     duplicateGoal,
     pauseGoal,
     resumeGoal,
+    recalculateProgress,
     refreshGoals: fetchGoals,
     firstGoalCelebration,
     clearFirstGoalCelebration,

@@ -202,9 +202,8 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             localStorage.setItem('pendingInviteToken', inviteToken);
           }
           
-          // Navigate to verification page immediately to avoid Landing auto-redirect race
-          // (Landing redirects to /dashboard as soon as a session exists)
-          navigate('/verify-email', { replace: true });
+          // Navigate to success page immediately to avoid Landing auto-redirect race
+          navigate('/signup-success', { replace: true });
           onOpenChange(false);
           
           // Reset form
