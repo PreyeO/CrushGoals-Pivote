@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { ProgressRing } from "@/components/ProgressRing";
-import { TrendingUp, Flame, Target, CheckSquare, Trophy, Loader2, Calendar, BarChart3 } from "lucide-react";
+import { TrendingUp, Flame, Target, CheckSquare, Trophy, Loader2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useGoals } from "@/hooks/useGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,7 @@ interface DayData {
   completed: number;
   total: number;
   percent: number;
+  fullDate: Date;
 }
 
 export default function Analytics() {
@@ -25,8 +26,8 @@ export default function Analytics() {
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState<TimeRange>("week");
   const [chartData, setChartData] = useState<DayData[]>([]);
-  const [streakHistory, setStreakHistory] = useState<{ date: string; streak: number }[]>([]);
-  const [xpHistory, setXpHistory] = useState<{ date: string; xp: number }[]>([]);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [calendarData, setCalendarData] = useState<Map<string, { completed: number; total: number }>>(new Map());
   const [isLoadingChart, setIsLoadingChart] = useState(true);
 
   // Fetch chart data based on time range
@@ -78,6 +79,7 @@ export default function Analytics() {
         const data: DayData[] = labels.map(label => {
           let tasksForPeriod: typeof tasks = [];
           let displayLabel = '';
+          let fullDate = new Date();
 
           if (timeRange === "year") {
             const [year, month] = label.split('-');
@@ -87,38 +89,24 @@ export default function Analytics() {
                      taskDate.getMonth() === parseInt(month) - 1;
             }) || [];
             displayLabel = monthNames[parseInt(month) - 1];
+            fullDate = new Date(parseInt(year), parseInt(month) - 1, 1);
           } else {
             tasksForPeriod = tasks?.filter(t => t.due_date === label) || [];
             const d = new Date(label);
             displayLabel = timeRange === "week" 
               ? dayNames[d.getDay()]
               : `${d.getDate()}`;
+            fullDate = d;
           }
 
           const completed = tasksForPeriod.filter(t => t.completed).length;
           const total = tasksForPeriod.length;
           const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-          return { date: label, day: displayLabel, completed, total, percent };
+          return { date: label, day: displayLabel, completed, total, percent, fullDate };
         });
 
         setChartData(data);
-
-        // Generate streak history (simulated based on current data)
-        const streaks = data.map((d, i) => ({
-          date: d.day,
-          streak: d.percent === 100 ? Math.min(i + 1, stats?.current_streak || 0) : 0
-        }));
-        setStreakHistory(streaks);
-
-        // Generate XP history (estimated)
-        let cumulativeXp = 0;
-        const xpData = data.map(d => {
-          cumulativeXp += d.completed * 10 + (d.percent === 100 ? 100 : 0);
-          return { date: d.day, xp: cumulativeXp };
-        });
-        setXpHistory(xpData);
-
       } catch (error) {
         logError('Error fetching chart data:', error);
       } finally {
@@ -129,6 +117,44 @@ export default function Analytics() {
     fetchChartData();
   }, [user?.id, timeRange, stats]);
 
+  // Fetch calendar data for streak calendar
+  useEffect(() => {
+    const fetchCalendarData = async () => {
+      if (!user) return;
+
+      const year = calendarMonth.getFullYear();
+      const month = calendarMonth.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+
+      try {
+        const { data: tasks } = await supabase
+          .from('tasks')
+          .select('due_date, completed')
+          .eq('user_id', user.id)
+          .gte('due_date', firstDay.toISOString().split('T')[0])
+          .lte('due_date', lastDay.toISOString().split('T')[0]);
+
+        const dataMap = new Map<string, { completed: number; total: number }>();
+        
+        tasks?.forEach(task => {
+          const dateKey = task.due_date;
+          const existing = dataMap.get(dateKey) || { completed: 0, total: 0 };
+          dataMap.set(dateKey, {
+            completed: existing.completed + (task.completed ? 1 : 0),
+            total: existing.total + 1
+          });
+        });
+
+        setCalendarData(dataMap);
+      } catch (error) {
+        logError('Error fetching calendar data:', error);
+      }
+    };
+
+    fetchCalendarData();
+  }, [user?.id, calendarMonth]);
+
   const isLoading = statsLoading || goalsLoading;
 
   // Calculate success rate from chart data
@@ -137,10 +163,39 @@ export default function Analytics() {
   const successRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
 
   // Get active goals for progress display
-  const activeGoals = goals.filter(g => g.status !== 'completed').slice(0, 3);
+  const activeGoals = goals.filter(g => g.status !== 'completed').slice(0, 4);
 
   const bestDay = chartData.reduce((best, day) => day.percent > best.percent ? day : best, chartData[0] || { day: '-', percent: 0 });
-  const maxXp = Math.max(...xpHistory.map(x => x.xp), 1);
+
+  // Generate calendar days
+  const calendarDays = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startPadding = firstDay.getDay();
+    const days: { date: Date | null; dateStr: string; data: { completed: number; total: number } | null }[] = [];
+
+    // Add padding for days before the month starts
+    for (let i = 0; i < startPadding; i++) {
+      days.push({ date: null, dateStr: '', data: null });
+    }
+
+    // Add days of the month
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(year, month, d);
+      const dateStr = date.toISOString().split('T')[0];
+      days.push({
+        date,
+        dateStr,
+        data: calendarData.get(dateStr) || null
+      });
+    }
+
+    return days;
+  }, [calendarMonth, calendarData]);
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   const insights = [
     { 
@@ -156,12 +211,6 @@ export default function Analytics() {
         ? `Incredible ${stats?.current_streak}-day streak! You're building a powerful habit.`
         : "Consistency is key. Complete all your tasks today to start building a streak!",
       type: (stats?.current_streak || 0) >= 7 ? "praise" : "tip"
-    },
-    { 
-      text: activeGoals.length > 0
-        ? `You have ${activeGoals.length} active goal${activeGoals.length > 1 ? 's' : ''}. Stay focused on your top priority!`
-        : "Create a goal to start tracking your progress and stay motivated.",
-      type: "insight"
     },
   ];
 
@@ -183,10 +232,10 @@ export default function Analytics() {
       <main className="lg:pl-64 min-h-screen">
         <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2">Analytics Dashboard 📊</h1>
-              <p className="text-muted-foreground">Deep insights into your goal-crushing performance</p>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1">Analytics</h1>
+              <p className="text-muted-foreground text-sm">Track your progress and performance</p>
             </div>
             <div className="flex gap-2">
               <Button 
@@ -214,76 +263,172 @@ export default function Analytics() {
           </div>
 
           {/* Stats Overview */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 lg:mb-8">
-            <div className="glass-card p-4 sm:p-6 rounded-2xl">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <CheckSquare className="w-5 sm:w-6 h-5 sm:h-6 text-primary" />
-                <span className="flex items-center gap-1 text-success text-xs sm:text-sm">
-                  <TrendingUp className="w-3 sm:w-4 h-3 sm:h-4" /> Active
-                </span>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div className="glass-card p-4 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                  <CheckSquare className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xl sm:text-2xl font-bold">{stats?.tasks_completed || 0}</p>
+                  <p className="text-xs text-muted-foreground">Tasks Done</p>
+                </div>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold mb-1">{stats?.tasks_completed || 0}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Tasks Completed</p>
             </div>
 
-            <div className="glass-card p-4 sm:p-6 rounded-2xl">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <Target className="w-5 sm:w-6 h-5 sm:h-6 text-success" />
+            <div className="glass-card p-4 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-success/20 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-xl sm:text-2xl font-bold">{successRate}%</p>
+                  <p className="text-xs text-muted-foreground">Success Rate</p>
+                </div>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold mb-1">{successRate}%</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Success Rate ({timeRange})</p>
             </div>
 
-            <div className="glass-card p-4 sm:p-6 rounded-2xl">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <Flame className="w-5 sm:w-6 h-5 sm:h-6 text-orange-500" />
-                {(stats?.current_streak || 0) >= 7 && (
-                  <span className="text-premium text-xs sm:text-sm">🔥 Hot!</span>
-                )}
+            <div className="glass-card p-4 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-xl sm:text-2xl font-bold">{stats?.current_streak || 0}</p>
+                  <p className="text-xs text-muted-foreground">Day Streak</p>
+                </div>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold mb-1">{stats?.current_streak || 0}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Current Streak</p>
             </div>
 
-            <div className="glass-card p-4 sm:p-6 rounded-2xl">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <Trophy className="w-5 sm:w-6 h-5 sm:h-6 text-premium" />
-                <span className="text-muted-foreground text-xs sm:text-sm">Level {stats?.level || 1}</span>
+            <div className="glass-card p-4 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-premium/20 flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-premium" />
+                </div>
+                <div>
+                  <p className="text-xl sm:text-2xl font-bold">{stats?.perfect_days || 0}</p>
+                  <p className="text-xs text-muted-foreground">Perfect Days</p>
+                </div>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold mb-1">{(stats?.total_xp || 0).toLocaleString()}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Total XP</p>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mb-6 lg:mb-8">
+          {/* Main Content Grid */}
+          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+            {/* Streak Calendar */}
+            <div className="glass-card p-4 sm:p-6 rounded-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-orange-500" />
+                  Streak Calendar
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1))}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-sm font-medium min-w-[100px] text-center">
+                    {monthNames[calendarMonth.getMonth()]} {calendarMonth.getFullYear()}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1))}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                  <div key={i} className="text-center text-xs text-muted-foreground py-1">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((day, i) => {
+                  if (!day.date) {
+                    return <div key={i} className="aspect-square" />;
+                  }
+                  
+                  const isPerfect = day.data && day.data.total > 0 && day.data.completed === day.data.total;
+                  const hasPartial = day.data && day.data.total > 0 && day.data.completed > 0 && day.data.completed < day.data.total;
+                  const hasActivity = day.data && day.data.total > 0;
+                  const isToday = day.dateStr === new Date().toISOString().split('T')[0];
+                  
+                  return (
+                    <div
+                      key={i}
+                      className={`aspect-square rounded-md flex items-center justify-center text-xs transition-all ${
+                        isPerfect 
+                          ? 'bg-success text-success-foreground font-medium' 
+                          : hasPartial
+                          ? 'bg-warning/30 text-warning'
+                          : hasActivity
+                          ? 'bg-muted/50 text-muted-foreground'
+                          : 'bg-muted/20 text-muted-foreground'
+                      } ${isToday ? 'ring-2 ring-primary' : ''}`}
+                      title={day.data ? `${day.data.completed}/${day.data.total} tasks` : 'No tasks'}
+                    >
+                      {day.date.getDate()}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Legend */}
+              <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-success" />
+                  <span>100%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-warning/30" />
+                  <span>Partial</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-muted/50" />
+                  <span>Missed</span>
+                </div>
+              </div>
+            </div>
+
             {/* Task Completion Chart */}
             <div className="glass-card p-4 sm:p-6 rounded-2xl">
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <TrendingUp className="w-5 h-5 text-primary" />
                   Task Completion
                 </h3>
               </div>
               {isLoadingChart ? (
-                <div className="flex items-center justify-center h-36 sm:h-48">
+                <div className="flex items-center justify-center h-48">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               ) : (
                 <>
-                  <div className="flex items-end justify-between h-36 sm:h-48 gap-1">
+                  <div className="flex items-end justify-between h-40 gap-1">
                     {chartData.slice(-7).map((day, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1 sm:gap-2">
-                        <div className="w-full bg-white/10 rounded-lg relative overflow-hidden" style={{ height: "120px" }}>
+                      <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                        <div className="w-full bg-muted/30 rounded-lg relative overflow-hidden" style={{ height: "120px" }}>
                           <div 
                             className="absolute bottom-0 w-full rounded-lg transition-all duration-500"
                             style={{ 
                               height: `${day.percent}%`,
                               background: day.percent >= 80 
-                                ? "linear-gradient(to top, hsl(var(--success)), hsl(var(--success)/0.5))"
-                                : day.percent >= 60
-                                ? "linear-gradient(to top, hsl(var(--warning)), hsl(var(--warning)/0.5))"
+                                ? "hsl(var(--success))"
+                                : day.percent >= 50
+                                ? "hsl(var(--warning))"
                                 : day.percent > 0
-                                ? "linear-gradient(to top, hsl(var(--danger)), hsl(var(--danger)/0.5))"
+                                ? "hsl(var(--destructive))"
                                 : "transparent"
                             }}
                           />
@@ -292,72 +437,40 @@ export default function Analytics() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-3 sm:mt-4 text-center">
+                  <p className="text-xs text-muted-foreground mt-4 text-center">
                     Best: <span className="text-success font-medium">{bestDay?.day} ({bestDay?.percent || 0}%)</span>
-                  </p>
-                </>
-              )}
-            </div>
-
-            {/* XP Progression Chart */}
-            <div className="glass-card p-4 sm:p-6 rounded-2xl">
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-premium" />
-                  XP Progression
-                </h3>
-              </div>
-              {isLoadingChart ? (
-                <div className="flex items-center justify-center h-36 sm:h-48">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-end justify-between h-36 sm:h-48 gap-1">
-                    {xpHistory.slice(-7).map((day, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1 sm:gap-2">
-                        <div className="w-full bg-white/10 rounded-lg relative overflow-hidden" style={{ height: "120px" }}>
-                          <div 
-                            className="absolute bottom-0 w-full rounded-lg transition-all duration-500 bg-gradient-to-t from-primary to-primary/50"
-                            style={{ height: `${(day.xp / maxXp) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] sm:text-xs text-muted-foreground">{day.date}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-3 sm:mt-4 text-center">
-                    Total XP earned this {timeRange}: <span className="text-primary font-medium">{xpHistory[xpHistory.length - 1]?.xp || 0}</span>
                   </p>
                 </>
               )}
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mb-6 lg:mb-8">
+          {/* Goal Progress & Insights */}
+          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Goal Progress */}
             <div className="glass-card p-4 sm:p-6 rounded-2xl">
-              <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
                 <Target className="w-5 h-5 text-success" />
                 Goal Progress
               </h3>
               {activeGoals.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No active goals yet</p>
+                  <p className="text-muted-foreground text-sm">No active goals yet</p>
                 </div>
               ) : (
-                <div className="space-y-4 sm:space-y-6">
+                <div className="space-y-4">
                   {activeGoals.map((goal) => (
                     <div key={goal.id}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="flex items-center gap-2 text-sm sm:text-base">
-                          <span>{goal.emoji}</span> {goal.name}
+                        <span className="flex items-center gap-2 text-sm">
+                          <span>{goal.emoji}</span> 
+                          <span className="truncate max-w-[180px]">{goal.name}</span>
                         </span>
-                        <span className="text-xs sm:text-sm font-medium">{goal.progress || 0}%</span>
+                        <span className="text-xs font-medium">{goal.progress || 0}%</span>
                       </div>
-                      <div className="h-2 sm:h-3 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-primary to-blue-400 rounded-full transition-all duration-500" 
+                          className="h-full bg-primary rounded-full transition-all duration-500" 
                           style={{ width: `${goal.progress || 0}%` }} 
                         />
                       </div>
@@ -367,66 +480,40 @@ export default function Analytics() {
               )}
             </div>
 
-            {/* Streak Calendar */}
+            {/* Insights */}
             <div className="glass-card p-4 sm:p-6 rounded-2xl">
-              <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-orange-500" />
-                Streak History
+              <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                <Flame className="w-5 h-5 text-orange-500" />
+                Insights
               </h3>
-              <div className="grid grid-cols-7 gap-2">
-                {chartData.slice(-28).map((day, i) => {
-                  const isPerfect = day.percent === 100;
-                  const hasActivity = day.total > 0;
-                  return (
-                    <div
-                      key={i}
-                      className={`aspect-square rounded-md flex items-center justify-center text-xs font-medium transition-all ${
-                        isPerfect 
-                          ? 'bg-success/30 text-success border border-success/50' 
-                          : hasActivity && day.percent > 0
-                          ? 'bg-warning/20 text-warning border border-warning/30'
-                          : 'bg-white/5 text-muted-foreground'
-                      }`}
-                      title={`${day.date}: ${day.completed}/${day.total} tasks`}
-                    >
-                      {isPerfect ? '🔥' : day.percent > 0 ? Math.round(day.percent / 10) : '·'}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded bg-success/30 border border-success/50" /> Perfect
-                </span>
-                <span className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded bg-warning/20 border border-warning/30" /> Partial
-                </span>
-                <span className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded bg-white/5" /> No tasks
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Insights */}
-          <div className="glass-card p-4 sm:p-6 rounded-2xl">
-            <h3 className="text-base sm:text-lg font-semibold mb-4">💡 Insights</h3>
-            <div className="space-y-3 sm:space-y-4">
-              {insights.map((insight, index) => (
-                <div 
-                  key={index} 
-                  className="p-3 sm:p-4 rounded-xl bg-white/5 border-l-4"
-                  style={{
-                    borderColor: insight.type === "praise" 
-                      ? "hsl(var(--success))" 
-                      : insight.type === "tip"
-                      ? "hsl(var(--warning))"
-                      : "hsl(var(--primary))"
-                  }}
-                >
-                  <p className="text-xs sm:text-sm">{insight.text}</p>
+              <div className="space-y-3">
+                {insights.map((insight, i) => (
+                  <div 
+                    key={i} 
+                    className={`p-3 rounded-lg text-sm ${
+                      insight.type === 'praise' 
+                        ? 'bg-success/10 text-success border border-success/20' 
+                        : insight.type === 'insight'
+                        ? 'bg-primary/10 text-primary border border-primary/20'
+                        : 'bg-warning/10 text-warning border border-warning/20'
+                    }`}
+                  >
+                    {insight.text}
+                  </div>
+                ))}
+                
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="p-3 rounded-lg bg-muted/20 text-center">
+                    <p className="text-lg font-bold">{stats?.longest_streak || 0}</p>
+                    <p className="text-xs text-muted-foreground">Longest Streak</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20 text-center">
+                    <p className="text-lg font-bold">Lvl {stats?.level || 1}</p>
+                    <p className="text-xs text-muted-foreground">{(stats?.total_xp || 0).toLocaleString()} XP</p>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </div>

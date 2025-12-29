@@ -324,7 +324,7 @@ export default function Settings() {
                     <p className="text-xs sm:text-sm text-muted-foreground mb-3">Choose when to receive your daily task reminder</p>
                     <select 
                       className="w-full sm:w-auto px-4 py-2 rounded-lg bg-background border border-border text-sm"
-                      value={notificationSettings.reminderTime || "09:00"}
+                      value={notificationSettings.reminderTime || "06:00"}
                       onChange={(e) => updateNotificationSettings({ reminderTime: e.target.value })}
                     >
                       {Array.from({ length: 24 }, (_, i) => {

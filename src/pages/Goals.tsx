@@ -12,7 +12,7 @@ import { WhyBehindModal } from "@/components/WhyBehindModal";
 import { CreateSharedGoalModal } from "@/components/CreateSharedGoalModal";
 import { SharedGoalModal } from "@/components/SharedGoalModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2, Pause, Filter } from "lucide-react";
 import { useGoals, Goal } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
@@ -181,16 +181,63 @@ export default function Goals() {
       <main className="lg:pl-64 min-h-screen">
         <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2">My Goals 🎯</h1>
-              <p className="text-muted-foreground">Track and manage all your goals in one place</p>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1">My Goals</h1>
+              <p className="text-muted-foreground text-sm">Track and manage all your goals</p>
             </div>
             <Button variant="hero" className="gap-2 w-full sm:w-auto" onClick={() => setAddGoalOpen(true)}>
               <Plus className="w-5 h-5" />
               Add New Goal
             </Button>
           </div>
+
+          {/* Filters - Above stats on mobile */}
+          {goals.length > 0 && (
+            <div className="mb-4 lg:mb-6 flex flex-col sm:flex-row gap-3">
+              {/* Status Filter Dropdown */}
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                <SelectTrigger className="w-full sm:w-48 bg-background">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Goals</SelectItem>
+                  <SelectItem value="on-track">On Track</SelectItem>
+                  <SelectItem value="ahead">Crushing It</SelectItem>
+                  <SelectItem value="behind">Behind</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Category Filter Dropdown */}
+              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as CategoryFilter)}>
+                <SelectTrigger className="w-full sm:w-48 bg-background">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(cat => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Clear filters */}
+              {(statusFilter !== 'all' || categoryFilter !== 'all') && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => { setStatusFilter('all'); setCategoryFilter('all'); }}
+                  className="text-muted-foreground"
+                >
+                  <Filter className="w-4 h-4 mr-1" />
+                  Clear ({filteredGoals.length}/{goals.length})
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Stats Overview */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 lg:mb-8">
@@ -201,7 +248,7 @@ export default function Goals() {
                 </div>
                 <div>
                   <p className="text-xl sm:text-2xl font-bold">{allActiveGoals.length}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Active Goals</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Active</p>
                 </div>
               </div>
             </div>
@@ -239,58 +286,6 @@ export default function Goals() {
               </div>
             </div>
           </div>
-
-          {/* Filters */}
-          {goals.length > 0 && (
-            <div className="mb-6 lg:mb-8 space-y-4">
-              {/* Status Filter Tabs */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                  <TabsList className="bg-secondary/50 h-auto flex-wrap">
-                    <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
-                    <TabsTrigger value="on-track" className="text-xs sm:text-sm">✅ On Track</TabsTrigger>
-                    <TabsTrigger value="ahead" className="text-xs sm:text-sm">🚀 Crushing It</TabsTrigger>
-                    <TabsTrigger value="behind" className="text-xs sm:text-sm">⚠️ Behind</TabsTrigger>
-                    <TabsTrigger value="paused" className="text-xs sm:text-sm">⏸️ Paused</TabsTrigger>
-                    <TabsTrigger value="completed" className="text-xs sm:text-sm">🏆 Completed</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-              
-              {/* Category Filter */}
-              <div className="flex flex-wrap gap-2">
-                {categories.map(cat => (
-                  <Button
-                    key={cat.value}
-                    variant={categoryFilter === cat.value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCategoryFilter(cat.value as CategoryFilter)}
-                    className="text-xs"
-                  >
-                    {cat.label}
-                  </Button>
-                ))}
-              </div>
-              
-              {/* Active filter indicator */}
-              {(statusFilter !== 'all' || categoryFilter !== 'all') && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Filter className="w-4 h-4" />
-                  <span>
-                    Showing {filteredGoals.length} of {goals.length} goals
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => { setStatusFilter('all'); setCategoryFilter('all'); }}
-                    className="text-primary h-auto p-1"
-                  >
-                    Clear filters
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Empty State */}
           {goals.length === 0 && (
