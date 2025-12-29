@@ -184,9 +184,8 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // IMPORTANT: Resend requires a verified sending domain for custom addresses.
-        // Fallback to a Resend-managed domain to ensure emails deliver in development.
-        from: from || "CrushGoals <onboarding@resend.dev>",
+        // Use the verified hello.crushgoals.app domain for sending
+        from: from || "CrushGoals <no-reply@hello.crushgoals.app>",
         to: [to],
         subject,
         html,
