@@ -6,6 +6,7 @@ import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { WeeklySummary } from "@/components/WeeklySummary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { ProductTour } from "@/components/ProductTour";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
@@ -38,6 +39,25 @@ export default function Dashboard() {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [weeklySummaryOpen, setWeeklySummaryOpen] = useState(false);
   const [weekData, setWeekData] = useState<{ date: string; day: string; completed: number; total: number }[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Show onboarding for new users with no goals
+  useEffect(() => {
+    if (!goalsLoading && goals.length === 0 && profile) {
+      setShowOnboarding(true);
+    }
+  }, [goalsLoading, goals.length, profile]);
+
+  // Listen for the custom event to open the add goal modal
+  useEffect(() => {
+    const handleOpenAddGoalModal = () => {
+      setAddGoalOpen(true);
+    };
+    window.addEventListener('openAddGoalModal', handleOpenAddGoalModal);
+    return () => {
+      window.removeEventListener('openAddGoalModal', handleOpenAddGoalModal);
+    };
+  }, []);
   
   useStreakNotifications();
   const { processedInvites } = useInviteHandler();
@@ -546,6 +566,12 @@ export default function Dashboard() {
 
         {/* PWA Install Prompt */}
         <PWAInstallPrompt />
+
+        {/* Onboarding Tour */}
+        <ProductTour
+          open={showOnboarding}
+          onComplete={() => setShowOnboarding(false)}
+        />
       </main>
     </div>
   );
