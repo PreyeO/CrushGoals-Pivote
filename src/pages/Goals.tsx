@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { GoalCard } from "@/components/GoalCard";
 import { Button } from "@/components/ui/button";
@@ -12,21 +12,33 @@ import { WhyBehindModal } from "@/components/WhyBehindModal";
 import { CreateSharedGoalModal } from "@/components/CreateSharedGoalModal";
 import { SharedGoalModal } from "@/components/SharedGoalModal";
 import { ConfettiCelebration } from "@/components/ConfettiCelebration";
+import { GoalFiltersSheet } from "@/components/GoalFiltersSheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2, Pause, Filter } from "lucide-react";
 import { useGoals, Goal } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
 import { useSharedGoals } from "@/hooks/useSharedGoals";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 type StatusFilter = 'all' | 'on-track' | 'ahead' | 'behind' | 'paused' | 'completed';
 type CategoryFilter = 'all' | 'health' | 'finance' | 'career' | 'learning' | 'relationships' | 'personal' | 'fitness' | 'mindfulness' | 'content' | 'habits' | 'custom';
 
+interface GoalTaskCounts {
+  [goalId: string]: {
+    todayCompleted: number;
+    todayTotal: number;
+    remaining: number;
+  };
+}
+
 export default function Goals() {
   const { user } = useAuth();
-  const { goals, isLoading, addGoal, updateGoal, deleteGoal, duplicateGoal, pauseGoal, resumeGoal, firstGoalCelebration, clearFirstGoalCelebration } = useGoals();
+  const isMobile = useIsMobile();
+  const { goals, isLoading, addGoal, updateGoal, deleteGoal, duplicateGoal, pauseGoal, resumeGoal, recalculateProgress, firstGoalCelebration, clearFirstGoalCelebration } = useGoals();
   const { addTask } = useTasks();
   const { sharedGoals } = useSharedGoals();
   const [addGoalOpen, setAddGoalOpen] = useState(false);
@@ -41,6 +53,48 @@ export default function Goals() {
   const [whyBehindGoal, setWhyBehindGoal] = useState<Goal | null>(null);
   const [shareGoal, setShareGoal] = useState<Goal | null>(null);
   const [viewSharedGoal, setViewSharedGoal] = useState<{ id: string; name: string; isOwner: boolean } | null>(null);
+  const [goalTaskCounts, setGoalTaskCounts] = useState<GoalTaskCounts>({});
+
+  // Fetch task counts for all goals
+  useEffect(() => {
+    const fetchTaskCounts = async () => {
+      if (!user || goals.length === 0) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const goalIds = goals.map(g => g.id);
+
+      try {
+        // Get all tasks for user's goals
+        const { data: tasks, error } = await supabase
+          .from('tasks')
+          .select('id, goal_id, completed, due_date')
+          .eq('user_id', user.id)
+          .in('goal_id', goalIds);
+
+        if (error) throw error;
+
+        const counts: GoalTaskCounts = {};
+        
+        for (const goalId of goalIds) {
+          const goalTasks = tasks?.filter(t => t.goal_id === goalId) || [];
+          const todayTasks = goalTasks.filter(t => t.due_date === today);
+          const incompleteTasks = goalTasks.filter(t => !t.completed);
+
+          counts[goalId] = {
+            todayCompleted: todayTasks.filter(t => t.completed).length,
+            todayTotal: todayTasks.length,
+            remaining: incompleteTasks.length,
+          };
+        }
+
+        setGoalTaskCounts(counts);
+      } catch (error) {
+        console.error('Error fetching task counts:', error);
+      }
+    };
+
+    fetchTaskCounts();
+  }, [user, goals]);
 
   const handleAddGoal = async (goalData: { 
     category: string; 
@@ -215,49 +269,61 @@ export default function Goals() {
             </Button>
           </div>
 
-          {/* Filters - Above stats on mobile */}
+          {/* Filters */}
           {goals.length > 0 && (
-            <div className="mb-4 lg:mb-6 flex flex-col sm:flex-row gap-3">
-              {/* Status Filter Dropdown */}
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                <SelectTrigger className="w-full sm:w-48 bg-background">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Goals</SelectItem>
-                  <SelectItem value="on-track">On Track</SelectItem>
-                  <SelectItem value="ahead">Crushing It</SelectItem>
-                  <SelectItem value="behind">Behind</SelectItem>
-                  <SelectItem value="paused">Paused</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {/* Category Filter Dropdown */}
-              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as CategoryFilter)}>
-                <SelectTrigger className="w-full sm:w-48 bg-background">
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {/* Clear filters */}
-              {(statusFilter !== 'all' || categoryFilter !== 'all') && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => { setStatusFilter('all'); setCategoryFilter('all'); }}
-                  className="text-muted-foreground"
-                >
-                  <Filter className="w-4 h-4 mr-1" />
-                  Clear ({filteredGoals.length}/{goals.length})
-                </Button>
+            <div className="mb-4 lg:mb-6">
+              {/* Mobile: Bottom sheet filter */}
+              {isMobile ? (
+                <GoalFiltersSheet
+                  statusFilter={statusFilter}
+                  categoryFilter={categoryFilter}
+                  onStatusChange={setStatusFilter}
+                  onCategoryChange={setCategoryFilter}
+                  filteredCount={filteredGoals.length}
+                  totalCount={goals.length}
+                />
+              ) : (
+                /* Desktop: Inline filters */
+                <div className="flex flex-row gap-3">
+                  <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                    <SelectTrigger className="w-48 bg-background">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Goals</SelectItem>
+                      <SelectItem value="on-track">On Track</SelectItem>
+                      <SelectItem value="ahead">Crushing It</SelectItem>
+                      <SelectItem value="behind">Behind</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as CategoryFilter)}>
+                    <SelectTrigger className="w-48 bg-background">
+                      <SelectValue placeholder="Filter by category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(cat => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {(statusFilter !== 'all' || categoryFilter !== 'all') && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => { setStatusFilter('all'); setCategoryFilter('all'); }}
+                      className="text-muted-foreground"
+                    >
+                      <Filter className="w-4 h-4 mr-1" />
+                      Clear ({filteredGoals.length}/{goals.length})
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -358,6 +424,11 @@ export default function Goals() {
                         : 'No deadline'
                       }
                       status={getDisplayStatus(goal)}
+                      tasksToday={goalTaskCounts[goal.id] ? {
+                        completed: goalTaskCounts[goal.id].todayCompleted,
+                        total: goalTaskCounts[goal.id].todayTotal,
+                      } : undefined}
+                      totalRemainingTasks={goalTaskCounts[goal.id]?.remaining}
                       startDate={goal.start_date || undefined}
                       endDate={goal.deadline || undefined}
                       isPaused={goal.is_paused}
@@ -368,6 +439,7 @@ export default function Goals() {
                       onDuplicate={() => duplicateGoal(goal.id)}
                       onPauseToggle={() => setPauseGoalTarget(goal)}
                       onWhyBehind={goal.status === 'behind' ? () => setWhyBehindGoal(goal) : undefined}
+                      onRecalculate={() => recalculateProgress(goal.id)}
                       onShare={() => {
                         if (existingSharedGoal) {
                           setViewSharedGoal({
@@ -407,13 +479,19 @@ export default function Goals() {
                       ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
                       : 'No deadline'
                     }
-                     status={getDisplayStatus(goal)}
+                    status={getDisplayStatus(goal)}
+                    tasksToday={goalTaskCounts[goal.id] ? {
+                      completed: goalTaskCounts[goal.id].todayCompleted,
+                      total: goalTaskCounts[goal.id].todayTotal,
+                    } : undefined}
+                    totalRemainingTasks={goalTaskCounts[goal.id]?.remaining}
                     startDate={goal.start_date || undefined}
                     endDate={goal.deadline || undefined}
                     isPaused={goal.is_paused}
                     onEdit={() => setEditGoal(goal)}
                     onDelete={() => setDeleteGoalId(goal.id)}
                     onPauseToggle={() => setPauseGoalTarget(goal)}
+                    onRecalculate={() => recalculateProgress(goal.id)}
                   />
                 ))}
               </div>
