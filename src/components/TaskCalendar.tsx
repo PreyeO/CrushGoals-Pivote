@@ -130,11 +130,11 @@ export function TaskCalendar({ onDateSelect, selectedDate }: TaskCalendarProps) 
           day_today: "bg-accent text-accent-foreground",
         }}
         components={{
-          DayContent: ({ date }) => (
-            <div className="relative flex flex-col items-center">
-              <span>{date.getDate()}</span>
-              {getDayContent(date)}
-            </div>
+          DayButton: ({ day, ...buttonProps }) => (
+            <button {...buttonProps} className="relative flex flex-col items-center h-9 w-9 p-0 font-normal">
+              <span>{day.date.getDate()}</span>
+              {getDayContent(day.date)}
+            </button>
           ),
         }}
       />
