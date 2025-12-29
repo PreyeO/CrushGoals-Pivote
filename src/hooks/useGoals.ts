@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logError } from '@/lib/logger';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 export interface Goal {
   id: string;
@@ -80,6 +81,11 @@ export function useGoals() {
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [firstGoalCelebration, setFirstGoalCelebration] = useState(false);
+
+  const clearFirstGoalCelebration = useCallback(() => {
+    setFirstGoalCelebration(false);
+  }, []);
 
   const fetchGoals = async () => {
     if (!user) return;
@@ -173,6 +179,9 @@ export function useGoals() {
     if (!user) return null;
 
     try {
+      // Check if this is the user's first goal
+      const isFirstGoal = goals.length === 0;
+      
       const startDate = goalData.start_date || new Date().toISOString().split('T')[0];
       const frequency = goalData.task_frequency || 'daily';
       
@@ -194,6 +203,14 @@ export function useGoals() {
       if (error) throw error;
       
       setGoals(prev => [data as Goal, ...prev]);
+      
+      // Play level up sound for goal creation
+      playSoundEffect('levelUp');
+      
+      // Trigger first goal celebration if this is the first goal
+      if (isFirstGoal) {
+        setFirstGoalCelebration(true);
+      }
       
       // Auto-generate tasks based on frequency
       if (startDate && goalData.deadline) {
@@ -432,5 +449,7 @@ export function useGoals() {
     pauseGoal,
     resumeGoal,
     refreshGoals: fetchGoals,
+    firstGoalCelebration,
+    clearFirstGoalCelebration,
   };
 }

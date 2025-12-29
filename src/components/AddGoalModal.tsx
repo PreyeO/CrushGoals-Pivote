@@ -283,25 +283,25 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg w-[95vw] max-h-[90vh] overflow-hidden bg-card border-border p-0">
-        <div className="flex flex-col max-h-[90vh]">
+      <DialogContent className="sm:max-w-lg w-[95vw] max-h-[85vh] overflow-hidden bg-card border-border p-0">
+        <div className="flex flex-col max-h-[85vh]">
           {/* Fixed Header */}
-          <div className="p-4 pb-3 border-b border-border shrink-0">
+          <div className="p-3 sm:p-4 pb-2 sm:pb-3 border-b border-border shrink-0">
             <DialogHeader>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {step > 1 && (
                   <button 
                     onClick={() => setStep(step - 1)}
-                    className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+                    className="p-1 sm:p-1.5 rounded-lg hover:bg-muted transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 )}
                 <div className="flex-1 min-w-0">
-                  <DialogTitle className="text-lg font-bold">
+                  <DialogTitle className="text-base sm:text-lg font-bold">
                     {step === 1 ? "Choose Your Goal" : "Customize Your Goal"}
                   </DialogTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
                     {step === 1 
                       ? "Pick from popular goals or create your own" 
                       : config?.examples || "Set your goal details"
@@ -313,7 +313,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                     <div 
                       key={s}
                       className={cn(
-                        "w-2 h-2 rounded-full transition-colors",
+                        "w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-colors",
                         s <= step ? "bg-primary" : "bg-muted"
                       )}
                     />
@@ -324,7 +324,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4">
             {/* Step 1: Template Selection */}
             {step === 1 && (
               <SmartGoalTemplates

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { ALL_BADGES } from '@/hooks/useAchievements';
 import { logError } from '@/lib/logger';
 import { logTaskCompletionToSharedGoals } from '@/hooks/useSharedGoalActivities';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 export interface Task {
   id: string;
@@ -115,6 +116,9 @@ export function useTasks(date?: string) {
             badge_name: badge.name,
             badge_emoji: badge.emoji,
           });
+          
+          // Play milestone sound for achievement unlock
+          playSoundEffect('milestone');
           
           toast.success(`🏆 Badge Unlocked: ${badge.name}!`, {
             description: `+${badge.xpReward} XP`,
@@ -282,6 +286,11 @@ export function useTasks(date?: string) {
       const updatedTasks = tasks.map(t => t.id === taskId ? data as Task : t);
       setTasks(updatedTasks);
 
+      // Play sound for task completion
+      if (completed) {
+        playSoundEffect('taskComplete');
+      }
+
       // Auto-update goal progress
       if (data.goal_id) {
         await updateGoalProgress(data.goal_id);
@@ -344,6 +353,9 @@ export function useTasks(date?: string) {
             tasks_completed: newTasksCompleted,
             total_xp: (currentStats.total_xp || 0) + 10,
           };
+
+          // Play XP gain sound
+          playSoundEffect('xpGain');
 
           // Check for achievements immediately (including time-based)
           await checkAndUnlockAchievements(user.id, {

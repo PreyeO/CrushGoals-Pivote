@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { X } from 'lucide-react';
 
 interface Particle {
   id: number;
@@ -19,7 +20,7 @@ interface ConfettiCelebrationProps {
   onComplete?: () => void;
   particleCount?: number;
   duration?: number;
-  type?: 'default' | 'perfectDay' | 'milestone' | 'goalComplete';
+  type?: 'default' | 'perfectDay' | 'milestone' | 'goalComplete' | 'firstGoal';
 }
 
 const colors = {
@@ -27,6 +28,7 @@ const colors = {
   perfectDay: ['#FFD700', '#FFA500', '#FF6B6B', '#FF8E53', '#FFCC00', '#FFE066'],
   milestone: ['#8B5CF6', '#A78BFA', '#C4B5FD', '#DDD6FE', '#E9D5FF', '#F5D0FE'],
   goalComplete: ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0', '#D1FAE5', '#ECFDF5'],
+  firstGoal: ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#06B6D4'],
 };
 
 export function ConfettiCelebration({ 
@@ -39,6 +41,12 @@ export function ConfettiCelebration({
   const [particles, setParticles] = useState<Particle[]>([]);
   const [isActive, setIsActive] = useState(false);
   const { playSound } = useSoundEffects();
+
+  const handleDismiss = useCallback(() => {
+    setIsActive(false);
+    setParticles([]);
+    onComplete?.();
+  }, [onComplete]);
 
   const createParticles = useCallback(() => {
     const colorSet = colors[type];
@@ -71,7 +79,7 @@ export function ConfettiCelebration({
         playSound('perfectDay');
       } else if (type === 'milestone') {
         playSound('milestone');
-      } else if (type === 'goalComplete') {
+      } else if (type === 'goalComplete' || type === 'firstGoal') {
         playSound('levelUp');
       }
       
@@ -124,21 +132,70 @@ export function ConfettiCelebration({
       
       {/* Center celebration text for special events */}
       {type === 'perfectDay' && (
-        <div className="absolute inset-0 flex items-center justify-center animate-celebration-pop">
-          <div className="text-center bg-background/90 backdrop-blur-xl p-8 rounded-3xl border border-premium/30 shadow-2xl">
-            <span className="text-6xl block mb-4">🔥</span>
-            <h2 className="text-3xl font-bold text-premium mb-2">Perfect Day!</h2>
-            <p className="text-muted-foreground">+100 XP Bonus</p>
+        <div 
+          className="absolute inset-0 flex items-center justify-center animate-celebration-pop pointer-events-auto"
+          onClick={handleDismiss}
+        >
+          <div className="text-center bg-background/90 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-premium/30 shadow-2xl relative max-w-[90vw]">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDismiss();
+              }}
+              className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-muted transition-colors"
+              aria-label="Close celebration"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <span className="text-5xl sm:text-6xl block mb-3 sm:mb-4">🔥</span>
+            <h2 className="text-2xl sm:text-3xl font-bold text-premium mb-2">Perfect Day!</h2>
+            <p className="text-muted-foreground text-sm sm:text-base">+100 XP Bonus</p>
           </div>
         </div>
       )}
       
       {type === 'goalComplete' && (
-        <div className="absolute inset-0 flex items-center justify-center animate-celebration-pop">
-          <div className="text-center bg-background/90 backdrop-blur-xl p-8 rounded-3xl border border-success/30 shadow-2xl">
-            <span className="text-6xl block mb-4">🏆</span>
-            <h2 className="text-3xl font-bold text-success mb-2">Goal Crushed!</h2>
-            <p className="text-muted-foreground">Amazing work!</p>
+        <div 
+          className="absolute inset-0 flex items-center justify-center animate-celebration-pop pointer-events-auto"
+          onClick={handleDismiss}
+        >
+          <div className="text-center bg-background/90 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-success/30 shadow-2xl relative max-w-[90vw]">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDismiss();
+              }}
+              className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-muted transition-colors"
+              aria-label="Close celebration"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <span className="text-5xl sm:text-6xl block mb-3 sm:mb-4">🏆</span>
+            <h2 className="text-2xl sm:text-3xl font-bold text-success mb-2">Goal Crushed!</h2>
+            <p className="text-muted-foreground text-sm sm:text-base">Amazing work!</p>
+          </div>
+        </div>
+      )}
+
+      {type === 'firstGoal' && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center animate-celebration-pop pointer-events-auto"
+          onClick={handleDismiss}
+        >
+          <div className="text-center bg-background/90 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-primary/30 shadow-2xl relative max-w-[90vw]">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDismiss();
+              }}
+              className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-muted transition-colors"
+              aria-label="Close celebration"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <span className="text-5xl sm:text-6xl block mb-3 sm:mb-4">🎯</span>
+            <h2 className="text-2xl sm:text-3xl font-bold text-primary mb-2">First Goal Created!</h2>
+            <p className="text-muted-foreground text-sm sm:text-base">Your journey begins now! 🚀</p>
           </div>
         </div>
       )}
