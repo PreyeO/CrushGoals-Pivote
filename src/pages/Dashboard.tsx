@@ -6,10 +6,11 @@ import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { WeeklySummary } from "@/components/WeeklySummary";
 import { ProductTour } from "@/components/ProductTour";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
-import { Target, Zap, Trophy, Plus, ChevronRight, Loader2, Flame, Calendar, TrendingUp } from "lucide-react";
+import { Target, Zap, Trophy, Plus, ChevronRight, Loader2, Flame, Calendar, TrendingUp, ListTodo } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
@@ -223,69 +224,77 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Quick Stats Grid - Compact Cards */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '50ms' }}>
-          {/* Today's Progress */}
-          <Card variant="glass" className="p-3 hover-scale">
-            <div className="flex items-center gap-3">
+        {/* Main Stats - Today's Tasks + Active Goals in Flex */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '50ms' }}>
+          {/* Today's Tasks Card */}
+          <Card variant="glass" className="p-4 hover-scale">
+            <div className="flex items-center gap-4">
               <ProgressRing
                 progress={progressPercent}
-                size={44}
-                strokeWidth={4}
+                size={64}
+                strokeWidth={5}
                 variant={progressPercent >= 70 ? "success" : progressPercent >= 40 ? "default" : "warning"}
               >
-                <span className="text-[10px] font-bold">{progressPercent}%</span>
+                <span className="text-sm font-bold">{progressPercent}%</span>
               </ProgressRing>
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Today</p>
-                <p className="text-base font-bold">{completedTasks}/{totalTasks}</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <ListTodo className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Today's Tasks</h3>
+                </div>
+                <p className="text-2xl font-bold">
+                  <span className="text-primary">{completedTasks}</span>
+                  <span className="text-muted-foreground text-lg"> / {totalTasks}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {totalTasks - completedTasks > 0 
+                    ? `${totalTasks - completedTasks} remaining` 
+                    : totalTasks > 0 ? "All done! 🎉" : "No tasks scheduled"}
+                </p>
               </div>
             </div>
           </Card>
 
-          {/* Streak */}
-          <Card variant="glass" className="p-3 hover-scale">
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-11 h-11 rounded-xl flex items-center justify-center",
-                (stats?.current_streak || 0) > 0 
-                  ? "bg-gradient-to-br from-orange-500 to-red-500" 
-                  : "bg-muted"
-              )}>
-                <Flame className="w-5 h-5 text-white" />
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-3 gap-3">
+            {/* Streak */}
+            <Card variant="glass" className="p-3 hover-scale">
+              <div className="text-center">
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2",
+                  (stats?.current_streak || 0) > 0 
+                    ? "bg-gradient-to-br from-orange-500 to-red-500" 
+                    : "bg-muted"
+                )}>
+                  <Flame className="w-5 h-5 text-white" />
+                </div>
+                <p className="text-lg font-bold">{stats?.current_streak || 0}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">Day Streak</p>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Streak</p>
-                <p className="text-base font-bold">{stats?.current_streak || 0} days</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
 
-          {/* Active Goals */}
-          <Card variant="glass" className="p-3 hover-scale">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-primary flex items-center justify-center">
-                <Target className="w-5 h-5 text-white" />
+            {/* Goals */}
+            <Card variant="glass" className="p-3 hover-scale">
+              <div className="text-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center mx-auto mb-2">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                <p className="text-lg font-bold">{activeGoals.length}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">Active Goals</p>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Goals</p>
-                <p className="text-base font-bold">{activeGoals.length}</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
 
-          {/* Level */}
-          <Card variant="glass" className="p-3 hover-scale">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
+            {/* Level */}
+            <Card variant="glass" className="p-3 hover-scale">
+              <div className="text-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-2">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <p className="text-lg font-bold">{currentLevel}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">Level</p>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Level</p>
-                <p className="text-base font-bold">{currentLevel}</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         </section>
 
         {/* Quote Card - Compact */}
@@ -514,6 +523,9 @@ export default function Dashboard() {
           open={showProductTour} 
           onComplete={handleProductTourComplete} 
         />
+
+        {/* PWA Install Prompt */}
+        <PWAInstallPrompt />
       </main>
     </div>
   );
