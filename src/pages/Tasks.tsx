@@ -425,22 +425,23 @@ export default function Tasks() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Task Title</label>
+              <label className="text-sm font-medium mb-2 block">What do you need to do?</label>
               <Input
-                placeholder="What do you need to do?"
+                placeholder="e.g., Go for a 30-minute run"
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 className="bg-secondary border-border"
+                autoFocus
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Link to Goal (optional)</label>
+              <label className="text-sm font-medium mb-2 block">Link to Goal</label>
               <Select value={newTaskGoalId || "none"} onValueChange={(v) => setNewTaskGoalId(v === "none" ? "" : v)}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select a goal" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No Goal</SelectItem>
+                  <SelectItem value="none">📌 No Goal (standalone task)</SelectItem>
                   {goals.map(goal => (
                     <SelectItem key={goal.id} value={goal.id}>
                       {goal.emoji} {goal.name}
@@ -448,30 +449,22 @@ export default function Tasks() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Linking to a goal helps track your progress
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Priority</label>
-                <Select value={newTaskPriority} onValueChange={(v) => setNewTaskPriority(v as "high" | "medium" | "low")}>
-                  <SelectTrigger className="bg-secondary border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high">🔴 High</SelectItem>
-                    <SelectItem value="medium">🟡 Medium</SelectItem>
-                    <SelectItem value="low">🟢 Low</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Time Estimate</label>
-                <Input
-                  placeholder="e.g., 30 min"
-                  value={newTaskTime}
-                  onChange={(e) => setNewTaskTime(e.target.value)}
-                  className="bg-secondary border-border"
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Priority</label>
+              <Select value={newTaskPriority} onValueChange={(v) => setNewTaskPriority(v as "high" | "medium" | "low")}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">🔴 High - Do this first</SelectItem>
+                  <SelectItem value="medium">🟡 Medium - Important</SelectItem>
+                  <SelectItem value="low">🟢 Low - When you have time</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button variant="hero" className="w-full" onClick={handleAddTask} disabled={!newTaskTitle.trim()}>
               Add Task
