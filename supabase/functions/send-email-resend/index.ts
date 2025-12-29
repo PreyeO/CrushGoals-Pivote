@@ -20,6 +20,75 @@ interface EmailRequest {
 // Email validation regex
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// In-memory rate limiting store (per IP)
+// Format: { [ip]: { count: number, resetTime: number } }
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+// Rate limit configuration
+const RATE_LIMIT_MAX_REQUESTS = 5; // Max emails per window
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function getClientIP(req: Request): string {
+  // Try various headers that might contain the real IP
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0].trim();
+  }
+  
+  const realIP = req.headers.get("x-real-ip");
+  if (realIP) {
+    return realIP;
+  }
+  
+  const cfConnectingIP = req.headers.get("cf-connecting-ip");
+  if (cfConnectingIP) {
+    return cfConnectingIP;
+  }
+  
+  // Fallback - use a hash of user-agent + accept-language as pseudo-identifier
+  const userAgent = req.headers.get("user-agent") || "unknown";
+  const acceptLang = req.headers.get("accept-language") || "unknown";
+  return `fallback-${userAgent.slice(0, 20)}-${acceptLang.slice(0, 10)}`;
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number } {
+  const now = Date.now();
+  const record = rateLimitStore.get(ip);
+  
+  // Clean up expired entries periodically
+  if (rateLimitStore.size > 1000) {
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (now > value.resetTime) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+  
+  if (!record || now > record.resetTime) {
+    // First request or window expired - reset
+    rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetIn: RATE_LIMIT_WINDOW_MS };
+  }
+  
+  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+    // Rate limit exceeded
+    return { 
+      allowed: false, 
+      remaining: 0, 
+      resetIn: record.resetTime - now 
+    };
+  }
+  
+  // Increment counter
+  record.count++;
+  rateLimitStore.set(ip, record);
+  return { 
+    allowed: true, 
+    remaining: RATE_LIMIT_MAX_REQUESTS - record.count, 
+    resetIn: record.resetTime - now 
+  };
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -27,6 +96,27 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Rate limiting for unauthenticated requests
+    const clientIP = getClientIP(req);
+    const rateLimit = checkRateLimit(clientIP);
+    
+    if (!rateLimit.allowed) {
+      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Too many requests. Please try again later.",
+          retryAfter: Math.ceil(rateLimit.resetIn / 1000)
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            "Content-Type": "application/json",
+            "Retry-After": String(Math.ceil(rateLimit.resetIn / 1000)),
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
     // Optional authentication: this function can be called without a JWT (e.g. during signup OTP flow)
     const authHeader = req.headers.get("Authorization");
 
