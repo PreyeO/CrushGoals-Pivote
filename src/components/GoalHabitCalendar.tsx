@@ -211,12 +211,12 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
           day_today: "ring-1 ring-primary/50",
         }}
         components={{
-          DayContent: ({ date }) => (
-            <>
-              {getDayContent(date) || (
-                <span className="text-[10px]">{date.getDate()}</span>
+          DayButton: ({ day, ...buttonProps }) => (
+            <button {...buttonProps}>
+              {getDayContent(day.date) || (
+                <span className="text-[10px]">{day.date.getDate()}</span>
               )}
-            </>
+            </button>
           ),
         }}
         disabled={(date) => {
