@@ -15,6 +15,10 @@ export interface Achievement {
 
 // Simplified badges list - removed unnecessary ones
 export const ALL_BADGES = [
+  // Goal badges
+  { id: "goal_setter", name: "Goal Setter", description: "Create your first goal", emoji: "🎯", rarity: "common" as const, xpReward: 50, requirement: 1, type: "goal_created" },
+  { id: "goal_crusher", name: "Goal Crusher", description: "Complete a goal", emoji: "🏅", rarity: "epic" as const, xpReward: 2000, requirement: 100, type: "goal_completion" },
+  
   // Streak badges
   { id: "fire_starter", name: "Fire Starter", description: "Start a streak", emoji: "🔥", rarity: "common" as const, xpReward: 50, requirement: 1, type: "streak" },
   { id: "week_warrior", name: "Week Warrior", description: "7-day streak", emoji: "⚔️", rarity: "rare" as const, xpReward: 200, requirement: 7, type: "streak" },
@@ -26,9 +30,6 @@ export const ALL_BADGES = [
   { id: "task_hunter", name: "Task Hunter", description: "Complete 50 tasks", emoji: "🎯", rarity: "rare" as const, xpReward: 300, requirement: 50, type: "tasks" },
   { id: "task_master", name: "Task Master", description: "Complete 100 tasks", emoji: "🏆", rarity: "epic" as const, xpReward: 750, requirement: 100, type: "tasks" },
   { id: "task_legend", name: "Task Legend", description: "Complete 500 tasks", emoji: "⚡", rarity: "legendary" as const, xpReward: 2000, requirement: 500, type: "tasks" },
-  
-  // Goal badges
-  { id: "goal_crusher", name: "Goal Crusher", description: "Complete a goal", emoji: "🏅", rarity: "epic" as const, xpReward: 2000, requirement: 100, type: "goal_completion" },
   
   // Perfect day badges
   { id: "perfect_day", name: "Perfect Day", description: "All tasks in one day", emoji: "⭐", rarity: "common" as const, xpReward: 200, requirement: 1, type: "perfect_days" },
@@ -109,6 +110,11 @@ export function useAchievements() {
 
       if (!isUnlocked && stats) {
         switch (badge.type) {
+          case 'goal_created':
+            const goalsCount = goals.length;
+            progress = Math.min(100, (goalsCount / badge.requirement) * 100);
+            progressText = `${goalsCount}/${badge.requirement} goals`;
+            break;
           case 'streak':
             progress = Math.min(100, ((stats.current_streak || 0) / badge.requirement) * 100);
             progressText = `${stats.current_streak || 0}/${badge.requirement} days`;
