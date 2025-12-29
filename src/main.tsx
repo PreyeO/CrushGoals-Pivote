@@ -2,14 +2,20 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
+const isDevelopment = import.meta.env.DEV;
+
 // Register service worker for PWA push notifications
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('SW registered:', registration.scope);
+      if (isDevelopment) {
+        console.log('SW registered:', registration.scope);
+      }
     } catch (error) {
-      console.log('SW registration failed:', error);
+      if (isDevelopment) {
+        console.log('SW registration failed:', error);
+      }
     }
   });
 }

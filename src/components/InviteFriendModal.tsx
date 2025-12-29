@@ -11,7 +11,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useResendEmail } from "@/hooks/useResendEmail";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-
+import { logError } from "@/lib/logger";
 interface InviteFriendModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -100,7 +100,7 @@ export function InviteFriendModal({ open, onOpenChange, onSuccess }: InviteFrien
       const baseUrl = window.location.origin;
       return `${baseUrl}/?invite=${inviteData.invite_token}`;
     } catch (error) {
-      console.error("Error generating invite link:", error);
+      logError("Error generating invite link", error);
       return "";
     }
   };
@@ -144,12 +144,22 @@ export function InviteFriendModal({ open, onOpenChange, onSuccess }: InviteFrien
         .maybeSingle();
 
       if (existingProfile) {
-        // User exists - create friendship request
-        const { data: existingFriendship } = await supabase
+        // User exists - create friendship request (using separate queries to avoid string interpolation)
+        const { data: sentFriendship } = await supabase
           .from('friendships')
           .select('id, status')
-          .or(`and(user_id.eq.${user.id},friend_id.eq.${existingProfile.user_id}),and(user_id.eq.${existingProfile.user_id},friend_id.eq.${user.id})`)
+          .eq('user_id', user.id)
+          .eq('friend_id', existingProfile.user_id)
           .maybeSingle();
+
+        const { data: receivedFriendship } = await supabase
+          .from('friendships')
+          .select('id, status')
+          .eq('user_id', existingProfile.user_id)
+          .eq('friend_id', user.id)
+          .maybeSingle();
+
+        const existingFriendship = sentFriendship || receivedFriendship;
 
         if (existingFriendship) {
           if (existingFriendship.status === 'pending') {
@@ -255,7 +265,7 @@ export function InviteFriendModal({ open, onOpenChange, onSuccess }: InviteFrien
         onOpenChange(false);
       }, 1500);
     } catch (error: any) {
-      console.error("Invite error:", error);
+      logError("Invite error", error);
       toast.error(error.message || "Failed to send invitation");
     } finally {
       setIsLoading(false);

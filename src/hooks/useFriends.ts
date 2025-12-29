@@ -159,12 +159,22 @@ export function useFriends() {
         return false;
       }
 
-      // Check if friendship already exists
-      const { data: existing } = await supabase
+      // Check if friendship already exists (using separate queries to avoid string interpolation)
+      const { data: sentFriendship } = await supabase
         .from('friendships')
         .select('id, status')
-        .or(`and(user_id.eq.${user.id},friend_id.eq.${targetProfile.user_id}),and(user_id.eq.${targetProfile.user_id},friend_id.eq.${user.id})`)
+        .eq('user_id', user.id)
+        .eq('friend_id', targetProfile.user_id)
         .maybeSingle();
+
+      const { data: receivedFriendship } = await supabase
+        .from('friendships')
+        .select('id, status')
+        .eq('user_id', targetProfile.user_id)
+        .eq('friend_id', user.id)
+        .maybeSingle();
+
+      const existing = sentFriendship || receivedFriendship;
 
       if (existing) {
         if (existing.status === 'accepted') {
@@ -233,11 +243,20 @@ export function useFriends() {
     if (!user) return;
 
     try {
-      // Delete friendship in either direction
-      const { error } = await supabase
+      // Delete friendship in either direction (using separate queries to avoid string interpolation)
+      const { error: error1 } = await supabase
         .from('friendships')
         .delete()
-        .or(`and(user_id.eq.${user.id},friend_id.eq.${friendUserId}),and(user_id.eq.${friendUserId},friend_id.eq.${user.id})`);
+        .eq('user_id', user.id)
+        .eq('friend_id', friendUserId);
+
+      const { error: error2 } = await supabase
+        .from('friendships')
+        .delete()
+        .eq('user_id', friendUserId)
+        .eq('friend_id', user.id);
+
+      const error = error1 || error2;
 
       if (error) throw error;
 
