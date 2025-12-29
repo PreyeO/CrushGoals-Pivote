@@ -196,11 +196,11 @@ export default function Dashboard() {
                 {getGreeting()}, {profile?.full_name?.split(' ')[0] || 'Champion'}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {new Date().toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "short",
-                  day: "numeric",
-                })}
+                {totalTasks > 0 ? (
+                  <>You have <span className="text-primary font-semibold">{totalTasks - completedTasks} task{totalTasks - completedTasks !== 1 ? 's' : ''}</span> to crush today. Let's go!</>
+                ) : (
+                  "No tasks scheduled for today"
+                )}
               </p>
             </div>
             <Button 
@@ -334,13 +334,16 @@ export default function Dashboard() {
           )}
         </section>
 
-        {/* This Week - Compact */}
+        {/* This Week - Task Completion Summary */}
         <section className="mb-6 animate-slide-up opacity-0" style={{ animationDelay: '200ms' }}>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              This Week
-            </h2>
+            <div>
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                This Week
+              </h2>
+              <p className="text-xs text-muted-foreground">Daily task completion</p>
+            </div>
           </div>
           <Card variant="glass" className="p-3">
             <div className="grid grid-cols-7 gap-1.5">
@@ -369,19 +372,21 @@ export default function Dashboard() {
           </Card>
         </section>
 
-        {/* Goals Overview */}
+        {/* Goals Overview - Show only 4 */}
         <section className="animate-slide-up opacity-0" style={{ animationDelay: '250ms' }}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold">Active Goals</h2>
-            <Button variant="ghost" size="sm" className="text-primary h-8" onClick={() => navigate('/goals')}>
-              View All
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
+            {activeGoals.length > 4 && (
+              <Button variant="ghost" size="sm" className="text-primary h-8" onClick={() => navigate('/goals')}>
+                View All ({activeGoals.length})
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            )}
           </div>
 
           {goalsLoading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              {[1, 2, 3].map((i) => (
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map((i) => (
                 <Card key={i} variant="glass" className="p-4 animate-pulse">
                   <div className="h-8 bg-white/10 rounded mb-3" />
                   <div className="h-3 bg-white/10 rounded w-3/4 mb-2" />
@@ -399,8 +404,8 @@ export default function Dashboard() {
               </Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              {activeGoals.slice(0, 6).map((goal, index) => (
+            <div className="grid grid-cols-2 gap-3">
+              {activeGoals.slice(0, 4).map((goal, index) => (
                 <div
                   key={goal.id}
                   className="animate-slide-up opacity-0"

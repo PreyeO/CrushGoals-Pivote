@@ -1,28 +1,25 @@
 import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { 
-  User, Bell, Palette, Shield, CreditCard, 
+  User, Bell, Shield, CreditCard, 
   HelpCircle, Info, Camera, Lock, Crown, Check,
-  Moon, Sun, Monitor, Download, Loader2, LogOut, Volume2, AtSign, Trophy
+  Download, Loader2, LogOut, AtSign, Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/hooks/useCurrency";
-import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useNotifications } from "@/hooks/useNotifications";
 import { supabase } from "@/integrations/supabase/client";
 
 const settingsSections = [
   { id: "account", label: "Account", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "appearance", label: "Appearance", icon: Palette },
   { id: "privacy", label: "Privacy & Security", icon: Shield },
   { id: "subscription", label: "Subscription", icon: CreditCard },
   { id: "help", label: "Help & Support", icon: HelpCircle },
@@ -34,16 +31,10 @@ export default function Settings() {
   const { profile, isLoading: profileLoading, updateProfile } = useProfile();
   const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft } = useSubscription();
   const { getPricing } = useCurrency();
-  const { playSound, setEnabled: setSoundEnabled } = useSoundEffects();
-  const { theme, setTheme } = useTheme();
   const { settings: notificationSettings, updateSettings: updateNotificationSettings, requestPermission, permissionStatus } = useNotifications();
   const pricing = getPricing();
   
   const [activeSection, setActiveSection] = useState("account");
-  const [soundEffects, setSoundEffects] = useState(() => {
-    const saved = localStorage.getItem('soundEffects');
-    return saved !== 'false';
-  });
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
@@ -63,10 +54,6 @@ export default function Settings() {
     }
   }, [profile]);
 
-  useEffect(() => {
-    setSoundEnabled(soundEffects);
-    localStorage.setItem('soundEffects', String(soundEffects));
-  }, [soundEffects, setSoundEnabled]);
 
   const isLoading = profileLoading || subscriptionLoading;
 
@@ -419,59 +406,6 @@ export default function Settings() {
                 </div>
               )}
 
-              {activeSection === "appearance" && (
-                <div className="space-y-6">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Appearance</h2>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-white/5 rounded-xl">
-                      <h4 className="font-medium mb-4 text-sm sm:text-base">Theme</h4>
-                      <div className="flex flex-wrap gap-3 sm:gap-4">
-                        {[
-                          { id: "dark", icon: Moon, label: "Dark" },
-                          { id: "light", icon: Sun, label: "Light" },
-                          { id: "system", icon: Monitor, label: "Auto" },
-                        ].map((t) => (
-                          <button 
-                            key={t.id}
-                            onClick={() => setTheme(t.id)}
-                            className={cn(
-                              "p-3 sm:p-4 rounded-xl border-2 transition-all flex-1 min-w-[80px]",
-                              theme === t.id 
-                                ? "border-primary ring-2 ring-primary/30 bg-primary/10" 
-                                : "border-border/50 hover:border-border bg-card/50"
-                            )}
-                          >
-                            <t.icon className="w-5 h-5 mx-auto mb-2" />
-                            <span className="text-xs sm:text-sm">{t.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Sound Effects Toggle */}
-                    <div className="p-4 bg-white/5 rounded-xl">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <Volume2 className="w-5 h-5 text-muted-foreground" />
-                          <div>
-                            <h4 className="font-medium text-sm sm:text-base">Sound Effects</h4>
-                            <p className="text-xs sm:text-sm text-muted-foreground">Play sounds for celebrations and task completions</p>
-                          </div>
-                        </div>
-                        <Switch 
-                          checked={soundEffects} 
-                          onCheckedChange={(checked) => {
-                            setSoundEffects(checked);
-                            if (checked) {
-                              playSound('taskComplete');
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {activeSection === "privacy" && (
                 <div className="space-y-6">
