@@ -154,52 +154,11 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             })
             .eq('user_id', data.user.id);
 
-          // Generate OTP and send verification email via Resend
-          const { data: otpCode, error: otpError } = await supabase.rpc("generate_email_otp", {
-            p_email: email.trim(),
-            p_user_id: data.user.id,
-          });
-
-          if (!otpError && otpCode) {
-            // Send verification email via Resend
-            const { error: emailError } = await supabase.functions.invoke("send-email-resend", {
-              body: {
-                to: email.trim(),
-                subject: "Verify your CrushGoals email 🎯",
-                html: `
-                  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #0a0a0b;">
-                    <div style="text-align: center; margin-bottom: 32px;">
-                      <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-                        <span style="font-size: 32px;">🎯</span>
-                      </div>
-                      <h1 style="font-size: 28px; font-weight: 700; color: #ffffff; margin: 0;">Verify Your Email</h1>
-                    </div>
-                    <div style="background: #1a1a1d; border-radius: 16px; padding: 32px; margin-bottom: 24px;">
-                      <p style="font-size: 18px; color: #ffffff; margin: 0 0 16px 0;">Hey ${name.trim()}! 👋</p>
-                      <p style="font-size: 16px; color: #a1a1aa; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
-                        Enter this code to verify your email and start crushing your goals:
-                      </p>
-                      <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 24px; border-radius: 16px; text-align: center; margin-bottom: 24px;">
-                        <span style="font-size: 40px; font-weight: 700; letter-spacing: 12px; color: #ffffff; font-family: monospace;">${otpCode}</span>
-                      </div>
-                      <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
-                        This code expires in 10 minutes.
-                      </p>
-                    </div>
-                    <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
-                      If you didn't create an account, you can safely ignore this email.
-                    </p>
-                  </div>
-                `,
-              },
-            });
-
-            if (emailError) {
-              // Don't block signup success, but do tell the user what happened.
-              toast.error(emailError.message || "We couldn't send the verification email. You can resend it from the verification screen.");
-            }
-          } else if (otpError) {
-            toast.error(otpError.message || "Could not generate verification code. Please try again.");
+          // Send welcome email
+          try {
+            await sendWelcomeEmail(email.trim(), name.trim());
+          } catch (e) {
+            // Don't block signup for welcome email failure
           }
 
           // Store pending invite token if exists (for after verification)
@@ -209,7 +168,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             localStorage.setItem('pendingInviteToken', inviteToken);
           }
           
-          // Navigate to success page immediately to avoid Landing auto-redirect race
+          // Navigate to success page
           navigate('/signup-success', { replace: true });
           onOpenChange(false);
           
