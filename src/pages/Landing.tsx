@@ -102,20 +102,40 @@ export default function Landing() {
 
   const pricingPlans = [
     {
-      name: "Monthly",
-      price: pricing.monthly.formatted,
+      name: "Basic",
+      subtitle: "Solo Crusher",
+      price: pricing.basic.monthly.formatted,
       period: "/month",
-      description: "Billed monthly. Cancel anytime.",
-      features: ["Unlimited goals", "Full analytics", "All achievements", "Priority support"],
+      description: "Perfect for personal goal tracking",
+      features: [
+        "5 active goals",
+        "Full gamification & achievements",
+        "All analytics & insights",
+        "Email reminders",
+        "Global leaderboard",
+      ],
       popular: false,
+      annualPrice: pricing.basic.annual.formatted,
+      annualSavings: pricing.basic.annual.savings,
     },
     {
-      name: "Annual",
-      price: pricing.annual.formatted,
-      period: "/year",
-      description: `${pricing.annual.perMonth}/month — Save ${pricing.annual.savings}!`,
-      features: ["Everything in Monthly", "2 months free", "Early access to features", "Exclusive badges"],
+      name: "Premium",
+      subtitle: "Social Crusher",
+      price: pricing.premium.monthly.formatted,
+      period: "/month",
+      description: "For ambitious goal crushers",
+      features: [
+        "Unlimited goals",
+        "Everything in Basic, PLUS:",
+        "Add friends & compete",
+        "Join group challenges",
+        "Create shared goals",
+        "WhatsApp reminders",
+        "Real-time activity feeds",
+      ],
       popular: true,
+      annualPrice: pricing.premium.annual.formatted,
+      annualSavings: pricing.premium.annual.savings,
     },
   ];
 
@@ -316,13 +336,13 @@ export default function Landing() {
 
       {/* Pricing Section */}
       <section className="py-12 sm:py-20 px-4 sm:px-6 relative z-10">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
               Simple, <span className="text-primary-gradient">Affordable</span> Pricing
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground mb-4">
-              Start with a 7-day free trial. No credit card required.
+              Start with a 3-day free trial. No credit card required.
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <span>Prices shown in {currentCurrency.name}</span>
@@ -330,7 +350,7 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
             {pricingPlans.map((plan) => (
               <Card
                 key={plan.name}
@@ -339,22 +359,30 @@ export default function Landing() {
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-primary rounded-full text-xs sm:text-sm font-semibold text-primary-foreground">
-                    🔥 Most Popular
+                    ⭐ Most Popular
                   </div>
                 )}
                 <div className="text-center mb-6">
-                  <h3 className="text-lg sm:text-xl font-bold mb-2">{plan.name}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold">{plan.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">{plan.subtitle}</p>
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-3xl sm:text-4xl font-extrabold">{plan.price}</span>
                     <span className="text-muted-foreground">{plan.period}</span>
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-2">{plan.description}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{plan.description}</p>
+                  {plan.annualPrice && (
+                    <div className="mt-3 p-2 rounded-lg bg-success/10 border border-success/20">
+                      <p className="text-xs text-success font-medium">
+                        💰 Annual: {plan.annualPrice}/year — Save {plan.annualSavings}!
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <ul className="space-y-3 mb-6 sm:mb-8">
+                <ul className="space-y-2 mb-6 sm:mb-8">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-success flex-shrink-0" />
-                      <span className="text-foreground-secondary text-sm sm:text-base">{feature}</span>
+                      <Check className="w-4 h-4 text-success flex-shrink-0" />
+                      <span className="text-foreground-secondary text-sm">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -364,14 +392,14 @@ export default function Landing() {
                   className="w-full"
                   onClick={() => setAuthOpen(true)}
                 >
-                  Start Free Trial
+                  Start 3-Day Free Trial
                 </Button>
               </Card>
             ))}
           </div>
 
           <p className="text-center text-xs sm:text-sm text-muted-foreground mt-6 sm:mt-8">
-            🔒 Secure payment • 30-day money-back guarantee
+            🔒 Secure payment • Cancel anytime • 3-day free trial
           </p>
         </div>
       </section>

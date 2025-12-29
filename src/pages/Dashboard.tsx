@@ -41,12 +41,22 @@ export default function Dashboard() {
   const [weekData, setWeekData] = useState<{ date: string; day: string; completed: number; total: number }[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Show onboarding for new users with no goals
+  // Show onboarding for new users with no goals (check localStorage to not show again)
   useEffect(() => {
-    if (!goalsLoading && goals.length === 0 && profile) {
-      setShowOnboarding(true);
+    const hasSeenTour = localStorage.getItem('crushgoals_onboarding_completed');
+    if (!goalsLoading && goals.length === 0 && profile && !hasSeenTour) {
+      // Small delay to ensure dashboard is fully rendered
+      const timer = setTimeout(() => {
+        setShowOnboarding(true);
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [goalsLoading, goals.length, profile]);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('crushgoals_onboarding_completed', 'true');
+    setShowOnboarding(false);
+  };
 
   // Listen for the custom event to open the add goal modal
   useEffect(() => {
@@ -570,7 +580,7 @@ export default function Dashboard() {
         {/* Onboarding Tour */}
         <ProductTour
           open={showOnboarding}
-          onComplete={() => setShowOnboarding(false)}
+          onComplete={handleOnboardingComplete}
         />
       </main>
     </div>
