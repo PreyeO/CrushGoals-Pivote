@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  Dumbbell, DollarSign, BookOpen, Briefcase, Heart, 
-  Palette, Brain, Plane, Edit3, ChevronLeft, ChevronRight,
-  Target, Calendar, Sparkles, CalendarDays, Zap
+  ChevronLeft, ChevronRight, Target, Calendar, 
+  Sparkles, CalendarDays, Dumbbell, DollarSign, 
+  BookOpen, Briefcase, Heart, Palette, Brain, 
+  Plane, Edit3, TrendingUp, Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GoalTemplates, GoalTemplate, goalTemplates } from "./GoalTemplates";
+import { SmartGoalTemplates, SmartTemplate, goalCategories } from "./SmartGoalTemplates";
 import { addDays, format } from "date-fns";
 
 interface AddGoalModalProps {
@@ -30,7 +31,7 @@ export interface GoalData {
   frequency: 'daily' | 'weekly' | 'monthly';
 }
 
-// Category-specific content
+// Category-specific config for custom goals
 const categoryConfig: Record<string, {
   label: string;
   emoji: string;
@@ -39,105 +40,107 @@ const categoryConfig: Record<string, {
   targetLabel: string;
   targetPlaceholder: string;
   targetHint: string;
-  timelineLabel: string;
   frequencyTip: string;
-  breakdownPrefix: string;
 }> = {
-  fitness: {
-    label: "Fitness & Health",
-    emoji: "💪",
-    icon: Dumbbell,
-    examples: "Transform your body, build strength, improve endurance",
-    targetLabel: "Your fitness target",
-    targetPlaceholder: "e.g., '10 kg loss' or '50 km running'",
-    targetHint: "Enter your measurable goal (weight, distance, reps)",
-    timelineLabel: "When do you want to achieve this?",
-    frequencyTip: "Daily works best for habits. Weekly for workout schedules.",
-    breakdownPrefix: "Progress",
-  },
-  financial: {
-    label: "Financial Goals",
+  finance: {
+    label: "Finance",
     emoji: "💰",
     icon: DollarSign,
-    examples: "Save for emergency fund, pay off debt, build investments",
+    examples: "Save money, pay debt, invest",
     targetLabel: "Enter the total amount",
-    targetPlaceholder: "e.g., '$10,000' or '₦500,000'",
+    targetPlaceholder: "e.g., '₦500,000' or '$10,000'",
     targetHint: "Enter the exact amount you want to save or pay off",
-    timelineLabel: "When do you want to reach this?",
-    frequencyTip: "Monthly works best for payday-aligned savings. Daily for micro-savings habits.",
-    breakdownPrefix: "Save",
+    frequencyTip: "Monthly works best for payday-aligned savings. Daily for micro-savings.",
+  },
+  fitness: {
+    label: "Fitness",
+    emoji: "💪",
+    icon: Dumbbell,
+    examples: "Lose weight, run, build muscle",
+    targetLabel: "Your fitness target",
+    targetPlaceholder: "e.g., '10 kg' or '50 km'",
+    targetHint: "Enter your measurable goal (weight, distance, workouts)",
+    frequencyTip: "Daily works best for habits. Weekly for workout schedules.",
   },
   learning: {
-    label: "Learning & Skills",
+    label: "Learning",
     emoji: "📚",
     icon: BookOpen,
-    examples: "Master a language, read books, get certified",
+    examples: "Read books, learn skills, get certified",
     targetLabel: "What will you complete?",
-    targetPlaceholder: "e.g., '12 books' or '365 lessons'",
-    targetHint: "Enter books, lessons, courses, or hours to complete",
-    timelineLabel: "When will you finish learning?",
-    frequencyTip: "Daily for language learning. Weekly/monthly for courses and books.",
-    breakdownPrefix: "Complete",
+    targetPlaceholder: "e.g., '12 books' or '100 lessons'",
+    targetHint: "Enter books, lessons, courses, or hours",
+    frequencyTip: "Daily for language learning. Weekly/monthly for books.",
   },
   career: {
-    label: "Career & Business",
+    label: "Career",
     emoji: "🚀",
     icon: Briefcase,
-    examples: "Launch your project, grow your network, get promoted",
+    examples: "Get promoted, network, switch jobs",
     targetLabel: "Your milestone target",
-    targetPlaceholder: "e.g., '1 launch' or '12 connections'",
-    targetHint: "Enter launches, connections, or milestones",
-    timelineLabel: "When is your deadline?",
-    frequencyTip: "Daily for ongoing projects. Weekly for networking and reviews.",
-    breakdownPrefix: "Complete",
+    targetPlaceholder: "e.g., '50 applications' or '24 connections'",
+    targetHint: "Enter milestones, applications, or achievements",
+    frequencyTip: "Daily for job search. Weekly for networking.",
   },
-  relationships: {
-    label: "Relationships",
+  'side-hustle': {
+    label: "Side Hustle",
+    emoji: "💼",
+    icon: TrendingUp,
+    examples: "Launch business, freelance, earn extra",
+    targetLabel: "Your business target",
+    targetPlaceholder: "e.g., '₦500,000' or '10 clients'",
+    targetHint: "Enter income target or client count",
+    frequencyTip: "Daily for building. Monthly for income goals.",
+  },
+  spiritual: {
+    label: "Spiritual",
+    emoji: "🙏",
+    icon: Sparkles,
+    examples: "Prayer, meditation, scripture reading",
+    targetLabel: "Your spiritual practice target",
+    targetPlaceholder: "e.g., '90 sessions' or '365 chapters'",
+    targetHint: "Enter sessions, chapters, or days",
+    frequencyTip: "Daily works best for spiritual habits.",
+  },
+  'mental-health': {
+    label: "Mental Health",
+    emoji: "🧠",
+    icon: Brain,
+    examples: "Meditation, journaling, therapy",
+    targetLabel: "Your wellness target",
+    targetPlaceholder: "e.g., '60 sessions' or '90 entries'",
+    targetHint: "Enter sessions, entries, or days",
+    frequencyTip: "Daily works best for meditation and journaling.",
+  },
+  relationship: {
+    label: "Relationship",
     emoji: "❤️",
     icon: Heart,
-    examples: "Quality time with family, meet new people, reconnect",
+    examples: "Quality time, date nights, reconnect",
     targetLabel: "Your relationship goal",
-    targetPlaceholder: "e.g., '12 date nights' or '52 family dinners'",
-    targetHint: "Enter activities or quality time sessions",
-    timelineLabel: "Over what period?",
+    targetPlaceholder: "e.g., '52 date nights' or '24 meetups'",
+    targetHint: "Enter activities or time sessions",
     frequencyTip: "Weekly for date nights. Monthly for bigger gatherings.",
-    breakdownPrefix: "Schedule",
   },
-  creative: {
-    label: "Creative Projects",
-    emoji: "🎨",
+  content: {
+    label: "Content",
+    emoji: "🎬",
     icon: Palette,
-    examples: "Write a book, create art, start a podcast",
-    targetLabel: "Your creative output",
-    targetPlaceholder: "e.g., '50000 words' or '12 pieces'",
-    targetHint: "Enter words, pieces, episodes, or creations",
-    timelineLabel: "When will you finish?",
-    frequencyTip: "Daily for writing. Weekly for larger creative pieces.",
-    breakdownPrefix: "Create",
+    examples: "YouTube, blog, podcast, social media",
+    targetLabel: "Your content output",
+    targetPlaceholder: "e.g., '52 videos' or '180 posts'",
+    targetHint: "Enter videos, posts, episodes, or articles",
+    frequencyTip: "Weekly for YouTube/podcast. Daily for social media.",
   },
-  wellness: {
-    label: "Mental Wellness",
-    emoji: "🧘",
-    icon: Brain,
-    examples: "Meditate daily, reduce stress, sleep better",
-    targetLabel: "Your wellness target",
-    targetPlaceholder: "e.g., '30 sessions' or '21 nights'",
-    targetHint: "Enter sessions, nights, or practice days",
-    timelineLabel: "How long will you practice?",
-    frequencyTip: "Daily works best for meditation and sleep habits.",
-    breakdownPrefix: "Complete",
-  },
-  travel: {
-    label: "Travel & Adventure",
-    emoji: "✈️",
-    icon: Plane,
-    examples: "Visit countries, take trips, explore locally",
-    targetLabel: "Your adventure goal",
-    targetPlaceholder: "e.g., '5 countries' or '12 trips'",
-    targetHint: "Enter destinations or adventures planned",
-    timelineLabel: "By when?",
-    frequencyTip: "Monthly for regular trips. Weekly for local adventures.",
-    breakdownPrefix: "Experience",
+  lifestyle: {
+    label: "Lifestyle",
+    emoji: "✨",
+    icon: Users,
+    examples: "Morning routine, travel, cooking, habits",
+    targetLabel: "Your lifestyle target",
+    targetPlaceholder: "e.g., '66 days' or '12 trips'",
+    targetHint: "Enter days, trips, or activities",
+    frequencyTip: "Daily for habits. Monthly for bigger goals.",
   },
   custom: {
     label: "Custom Goal",
@@ -147,16 +150,9 @@ const categoryConfig: Record<string, {
     targetLabel: "Your measurable target",
     targetPlaceholder: "e.g., '30 days' or '100 units'",
     targetHint: "Enter a number with unit for smart breakdown",
-    timelineLabel: "When will you achieve this?",
     frequencyTip: "Choose based on your goal type.",
-    breakdownPrefix: "Complete",
   },
 };
-
-const goalCategories = Object.entries(categoryConfig).map(([id, config]) => ({
-  id,
-  ...config,
-}));
 
 // Calculate days between two dates
 const getDaysBetween = (start: string, end: string): number => {
@@ -167,9 +163,8 @@ const getDaysBetween = (start: string, end: string): number => {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 };
 
-// Generate breakdown preview based on category and frequency
+// Generate breakdown preview
 const getBreakdownPreview = (
-  category: string,
   targetValue: string, 
   days: number, 
   frequency: 'daily' | 'weekly' | 'monthly'
@@ -181,7 +176,6 @@ const getBreakdownPreview = (
   
   const value = parseFloat(match[1].replace(/,/g, ''));
   const unit = match[2].trim() || 'units';
-  const config = categoryConfig[category] || categoryConfig.custom;
   
   let periodsCount: number;
   let periodLabel: string;
@@ -202,17 +196,16 @@ const getBreakdownPreview = (
   }
   
   const perPeriod = value / periodsCount;
-  const displayValue = perPeriod % 1 === 0 ? perPeriod : perPeriod.toFixed(2);
+  const displayValue = perPeriod % 1 === 0 ? perPeriod : perPeriod.toFixed(1);
   
-  // Format currency nicely
   const isCurrency = targetValue.startsWith('$') || targetValue.startsWith('₦');
-  const currencySymbol = targetValue.startsWith('₦') ? '₦' : '$';
+  const currencySymbol = targetValue.startsWith('$') ? '$' : '₦';
   
   if (isCurrency) {
-    return `${config.breakdownPrefix} ${currencySymbol}${Number(displayValue).toLocaleString()} per ${periodLabel}`;
+    return `${currencySymbol}${Number(displayValue).toLocaleString()} per ${periodLabel}`;
   }
   
-  return `${config.breakdownPrefix} ${displayValue} ${unit} per ${periodLabel}`;
+  return `${displayValue} ${unit} per ${periodLabel}`;
 };
 
 const taskFrequencies = [
@@ -231,28 +224,58 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   const [reason, setReason] = useState("");
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
-  const config = selectedCategory ? categoryConfig[selectedCategory] : null;
+  const config = selectedCategory ? categoryConfig[selectedCategory] || categoryConfig.custom : null;
 
-  const handleCategorySelect = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-    setStep(2);
-  };
-
-  const handleTemplateSelect = (template: GoalTemplate) => {
+  // Handle template selection from SmartGoalTemplates
+  const handleTemplateSelect = (template: SmartTemplate, fieldValues: Record<string, string>) => {
     setSelectedCategory(template.category);
-    setGoalName(template.name);
-    setGoalTarget(template.target);
+    
+    // Build goal name from template
+    let name = template.smartPrompt;
+    Object.entries(fieldValues).forEach(([key, value]) => {
+      if (value) {
+        const field = template.fields.find(f => f.key === key);
+        const displayValue = field?.type === 'currency' 
+          ? `₦${Number(value).toLocaleString()}`
+          : field?.suffix ? `${value} ${field.suffix}` : value;
+        name = name.replace(`{${key}}`, displayValue);
+      }
+    });
+    name = name.replace(/\{[^}]+\}/g, '').replace(/\s+/g, ' ').trim();
+    name = name.replace(' by ', ''); // Remove "by" for deadline
+    setGoalName(name);
+    
+    // Build target from primary field
+    const primaryField = template.fields[0];
+    if (primaryField && fieldValues[primaryField.key]) {
+      const value = fieldValues[primaryField.key];
+      if (primaryField.type === 'currency') {
+        setGoalTarget(`₦${Number(value).toLocaleString()}`);
+      } else if (primaryField.suffix) {
+        setGoalTarget(`${value} ${primaryField.suffix}`);
+      } else {
+        setGoalTarget(value);
+      }
+    }
+    
     setFrequency(template.frequency);
-    setReason(template.reason);
+    
+    // Set dates
     const start = new Date();
-    const end = addDays(start, template.durationDays);
+    const end = addDays(start, template.defaultDuration);
     setStartDate(format(start, 'yyyy-MM-dd'));
     setDeadline(format(end, 'yyyy-MM-dd'));
+    
+    // Set reason
+    setReason(`I want to ${template.description.toLowerCase()}`);
+    
     setStep(2);
   };
 
-  const handleCreateCustom = () => {
-    setStep(1);
+  // Handle custom goal creation
+  const handleCreateCustom = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    setStep(2);
   };
 
   const handleSubmit = () => {
@@ -290,7 +313,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
 
   const daysToAchieve = getDaysBetween(startDate, deadline);
   const canProceed = goalName && startDate && deadline && daysToAchieve > 0;
-  const breakdownPreview = config ? getBreakdownPreview(selectedCategory!, goalTarget, daysToAchieve, frequency) : '';
+  const breakdownPreview = goalTarget ? getBreakdownPreview(goalTarget, daysToAchieve, frequency) : '';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -308,14 +331,18 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
               )}
               <div className="flex-1">
                 <DialogTitle className="text-xl font-bold">
-                  {step === 1 ? "Get Started in 30 Seconds 🎯" : step === 2 ? "Define Your Goal" : "Ready to Crush It!"}
+                  {step === 1 
+                    ? "Create a New Goal 🎯" 
+                    : step === 2 
+                    ? "Customize Your Goal" 
+                    : "Ready to Start!"}
                 </DialogTitle>
                 <p className="text-sm text-muted-foreground mt-1">
                   {step === 1 
-                    ? "Pick a template or create your own" 
+                    ? "Pick a category to get started" 
                     : step === 2 
                     ? config?.examples || "Set your goal details"
-                    : "Review your goal and let's go!"
+                    : "Review and launch your goal"
                   }
                 </p>
               </div>
@@ -333,48 +360,15 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
             </div>
           </DialogHeader>
 
+          {/* Step 1: Category & Template Selection */}
           {step === 1 && (
-            <div className="space-y-6">
-              {/* Quick Templates Section */}
-              <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-success/10 border border-primary/20">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-5 h-5 text-primary" />
-                  <span className="font-semibold">Quick Start Templates</span>
-                </div>
-                <GoalTemplates 
-                  onSelectTemplate={handleTemplateSelect} 
-                  onCreateCustom={handleCreateCustom}
-                />
-              </div>
-
-              {/* Or Choose Category */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border/50" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or pick a category</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                {goalCategories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => handleCategorySelect(category.id)}
-                    className={cn(
-                      "p-3 sm:p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/50 transition-all text-left group"
-                    )}
-                  >
-                    <span className="text-2xl sm:text-3xl mb-1 sm:mb-2 block">{category.emoji}</span>
-                    <p className="font-medium text-xs sm:text-sm mb-0.5 sm:mb-1 line-clamp-1">{category.label}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2">{category.examples}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <SmartGoalTemplates
+              onSelectTemplate={handleTemplateSelect}
+              onCreateCustom={handleCreateCustom}
+            />
           )}
 
+          {/* Step 2: Goal Details */}
           {step === 2 && config && (
             <div className="space-y-5">
               <div className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/30">
@@ -400,8 +394,8 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="goalTarget" className="flex items-center gap-2">
-                  <span>{config.targetLabel}</span>
+                <Label htmlFor="goalTarget">
+                  {config.targetLabel}
                 </Label>
                 <Input
                   id="goalTarget"
@@ -419,7 +413,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
               <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                   <CalendarDays className="w-5 h-5 text-primary" />
-                  <span className="font-medium">{config.timelineLabel}</span>
+                  <span className="font-medium">Timeline</span>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -456,7 +450,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                   <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-success/10 border border-success/30">
                     <Calendar className="w-4 h-4 text-success" />
                     <span className="text-sm font-medium text-success">
-                      {daysToAchieve} days to crush this goal!
+                      {daysToAchieve} days to achieve this goal!
                     </span>
                   </div>
                 )}
@@ -508,7 +502,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                   </div>
                   <p className="text-lg font-bold text-premium">{breakdownPreview}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {goalTarget} in {daysToAchieve} days = {breakdownPreview.toLowerCase()}
+                    {goalTarget} in {daysToAchieve} days
                   </p>
                 </div>
               )}
@@ -543,6 +537,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
             </div>
           )}
 
+          {/* Step 3: Review & Create */}
           {step === 3 && config && (
             <div className="space-y-5">
               <div className="p-6 rounded-xl bg-gradient-to-br from-primary/20 to-transparent border border-primary/30">
@@ -597,7 +592,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                   <div className="flex items-center gap-2 mb-2">
                     <Target className="w-5 h-5 text-success" />
                     <span className="font-semibold">
-                      Your {frequency === 'daily' ? 'Daily' : frequency === 'weekly' ? 'Weekly' : 'Monthly'} Mission
+                      Your {frequency === 'daily' ? 'Daily' : frequency === 'weekly' ? 'Weekly' : 'Monthly'} Target
                     </span>
                   </div>
                   <p className="text-lg font-bold">{breakdownPreview}</p>
@@ -624,7 +619,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                 onClick={handleSubmit}
               >
                 <Target className="w-4 h-4 mr-2" />
-                Create Goal & Start Crushing! 🎯
+                Create Goal & Start! 🎯
               </Button>
             </div>
           )}

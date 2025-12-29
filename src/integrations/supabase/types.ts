@@ -181,6 +181,54 @@ export type Database = {
         }
         Relationships: []
       }
+      goal_templates: {
+        Row: {
+          category: string
+          clarifying_questions: Json
+          created_at: string
+          daily_task_patterns: Json
+          default_duration_days: number
+          description: string
+          emoji: string
+          id: string
+          name: string
+          participant_count: number | null
+          success_rate: number | null
+          template_phases: Json
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          clarifying_questions?: Json
+          created_at?: string
+          daily_task_patterns?: Json
+          default_duration_days?: number
+          description: string
+          emoji?: string
+          id?: string
+          name: string
+          participant_count?: number | null
+          success_rate?: number | null
+          template_phases?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          clarifying_questions?: Json
+          created_at?: string
+          daily_task_patterns?: Json
+          default_duration_days?: number
+          description?: string
+          emoji?: string
+          id?: string
+          name?: string
+          participant_count?: number | null
+          success_rate?: number | null
+          template_phases?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           category: string
@@ -189,6 +237,7 @@ export type Database = {
           current_value: string | null
           deadline: string | null
           emoji: string | null
+          goal_metadata: Json | null
           id: string
           is_paused: boolean | null
           name: string
@@ -209,6 +258,7 @@ export type Database = {
           current_value?: string | null
           deadline?: string | null
           emoji?: string | null
+          goal_metadata?: Json | null
           id?: string
           is_paused?: boolean | null
           name: string
@@ -229,6 +279,7 @@ export type Database = {
           current_value?: string | null
           deadline?: string | null
           emoji?: string | null
+          goal_metadata?: Json | null
           id?: string
           is_paused?: boolean | null
           name?: string
