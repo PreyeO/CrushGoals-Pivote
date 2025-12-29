@@ -11,6 +11,7 @@ import { PauseGoalModal } from "@/components/PauseGoalModal";
 import { WhyBehindModal } from "@/components/WhyBehindModal";
 import { CreateSharedGoalModal } from "@/components/CreateSharedGoalModal";
 import { SharedGoalModal } from "@/components/SharedGoalModal";
+import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Target, TrendingUp, Calendar, Trophy, Loader2, Pause, Filter } from "lucide-react";
@@ -25,7 +26,7 @@ type CategoryFilter = 'all' | 'health' | 'finance' | 'career' | 'learning' | 're
 
 export default function Goals() {
   const { user } = useAuth();
-  const { goals, isLoading, addGoal, updateGoal, deleteGoal, duplicateGoal, pauseGoal, resumeGoal } = useGoals();
+  const { goals, isLoading, addGoal, updateGoal, deleteGoal, duplicateGoal, pauseGoal, resumeGoal, firstGoalCelebration, clearFirstGoalCelebration } = useGoals();
   const { addTask } = useTasks();
   const { sharedGoals } = useSharedGoals();
   const [addGoalOpen, setAddGoalOpen] = useState(false);
@@ -544,6 +545,13 @@ export default function Goals() {
           isOwner={viewSharedGoal.isOwner}
         />
       )}
+
+      {/* First Goal Celebration */}
+      <ConfettiCelebration
+        trigger={firstGoalCelebration}
+        onComplete={clearFirstGoalCelebration}
+        type="firstGoal"
+      />
     </div>
   );
 }

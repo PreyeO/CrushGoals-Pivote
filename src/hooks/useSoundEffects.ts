@@ -190,5 +190,29 @@ export function useSoundEffects() {
   return { playSound, setEnabled, haptic };
 }
 
+// Standalone function to play sounds from anywhere (e.g., other hooks)
+export function playSoundEffect(type: SoundType) {
+  switch (type) {
+    case 'taskComplete':
+      synthesizer.playTaskComplete();
+      break;
+    case 'perfectDay':
+      synthesizer.playPerfectDay();
+      break;
+    case 'levelUp':
+      synthesizer.playLevelUp();
+      break;
+    case 'milestone':
+      synthesizer.playMilestone();
+      break;
+    case 'xpGain':
+      synthesizer.playXPGain();
+      break;
+    case 'error':
+      synthesizer.playError();
+      break;
+  }
+}
+
 export { synthesizer, triggerHaptic };
 

@@ -31,7 +31,7 @@ const motivationalQuotes = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, stats } = useAuth();
-  const { goals, isLoading: goalsLoading, addGoal, refreshGoals } = useGoals();
+  const { goals, isLoading: goalsLoading, addGoal, refreshGoals, firstGoalCelebration, clearFirstGoalCelebration } = useGoals();
   const today = new Date().toISOString().split('T')[0];
   const { tasks, isLoading: tasksLoading, toggleTask, addTask, celebrationTrigger, clearCelebration } = useTasks(today);
   const [addGoalOpen, setAddGoalOpen] = useState(false);
@@ -516,6 +516,13 @@ export default function Dashboard() {
               ? "milestone"
               : "default"
           }
+        />
+
+        {/* First Goal Celebration */}
+        <ConfettiCelebration
+          trigger={firstGoalCelebration}
+          onComplete={clearFirstGoalCelebration}
+          type="firstGoal"
         />
 
         {/* Product Tour */}

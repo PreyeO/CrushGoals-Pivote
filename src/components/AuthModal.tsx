@@ -195,8 +195,6 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             });
           }
 
-          toast.success("Account created! Please verify your email.");
-          
           // Store pending invite token if exists (for after verification)
           const urlParams = new URLSearchParams(window.location.search);
           const inviteToken = urlParams.get('invite');
@@ -204,10 +202,13 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             localStorage.setItem('pendingInviteToken', inviteToken);
           }
           
+          // Close modal first, then navigate after a brief delay to ensure smooth transition
           onOpenChange(false);
           
-          // Redirect to verification page
-          navigate('/verify-email');
+          // Navigate to verification page after modal closes
+          setTimeout(() => {
+            navigate('/verify-email');
+          }, 150);
           
           // Reset form
           setName("");
