@@ -8,10 +8,10 @@ import {
   ChevronLeft, ChevronRight, Target, Calendar, 
   Sparkles, CalendarDays, Dumbbell, DollarSign, 
   BookOpen, Briefcase, Heart, Palette, Brain, 
-  Plane, Edit3, TrendingUp, Users
+  Plane, Edit3, TrendingUp, Users, Flame
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SmartGoalTemplates, SmartTemplate, goalCategories } from "./SmartGoalTemplates";
+import { SmartGoalTemplates, PopularGoalTemplate, GoalConfig } from "./SmartGoalTemplates";
 import { addDays, format } from "date-fns";
 
 interface AddGoalModalProps {
@@ -214,75 +214,59 @@ const taskFrequencies = [
   { id: 'monthly', label: 'Monthly', desc: 'Once a month' },
 ] as const;
 
+// Get emoji for category
+const getCategoryEmoji = (category: string): string => {
+  const emojiMap: Record<string, string> = {
+    fitness: '💪',
+    finance: '💰',
+    learning: '📚',
+    career: '🚀',
+    'side-hustle': '💼',
+    spiritual: '🙏',
+    'mental-health': '🧠',
+    relationship: '❤️',
+    content: '🎬',
+    lifestyle: '✨',
+    custom: '✏️',
+  };
+  return emojiMap[category] || '🎯';
+};
+
 export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProps) {
   const [step, setStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [goalName, setGoalName] = useState("");
   const [goalTarget, setGoalTarget] = useState("");
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [deadline, setDeadline] = useState("");
+  const [startDate, setStartDate] = useState('2026-01-01');
+  const [deadline, setDeadline] = useState(() => format(addDays(new Date('2026-01-01'), 90), 'yyyy-MM-dd'));
   const [reason, setReason] = useState("");
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   const config = selectedCategory ? categoryConfig[selectedCategory] || categoryConfig.custom : null;
 
   // Handle template selection from SmartGoalTemplates
-  const handleTemplateSelect = (template: SmartTemplate, fieldValues: Record<string, string>) => {
+  const handleTemplateSelect = (template: PopularGoalTemplate, goalConfig: GoalConfig) => {
     setSelectedCategory(template.category);
-    
-    // Build goal name from template
-    let name = template.smartPrompt;
-    Object.entries(fieldValues).forEach(([key, value]) => {
-      if (value) {
-        const field = template.fields.find(f => f.key === key);
-        const displayValue = field?.type === 'currency' 
-          ? `₦${Number(value).toLocaleString()}`
-          : field?.suffix ? `${value} ${field.suffix}` : value;
-        name = name.replace(`{${key}}`, displayValue);
-      }
-    });
-    name = name.replace(/\{[^}]+\}/g, '').replace(/\s+/g, ' ').trim();
-    name = name.replace(' by ', ''); // Remove "by" for deadline
-    setGoalName(name);
-    
-    // Build target from primary field
-    const primaryField = template.fields[0];
-    if (primaryField && fieldValues[primaryField.key]) {
-      const value = fieldValues[primaryField.key];
-      if (primaryField.type === 'currency') {
-        setGoalTarget(`₦${Number(value).toLocaleString()}`);
-      } else if (primaryField.suffix) {
-        setGoalTarget(`${value} ${primaryField.suffix}`);
-      } else {
-        setGoalTarget(value);
-      }
-    }
-    
-    setFrequency(template.frequency);
-    
-    // Set dates
-    const start = new Date();
-    const end = addDays(start, template.defaultDuration);
-    setStartDate(format(start, 'yyyy-MM-dd'));
-    setDeadline(format(end, 'yyyy-MM-dd'));
-    
-    // Set reason
+    setGoalName(goalConfig.name);
+    setGoalTarget(goalConfig.target);
+    setStartDate(goalConfig.startDate);
+    setDeadline(goalConfig.deadline);
+    setFrequency(goalConfig.frequency);
     setReason(`I want to ${template.description.toLowerCase()}`);
-    
     setStep(2);
   };
 
   // Handle custom goal creation
-  const handleCreateCustom = (categoryId: string) => {
-    setSelectedCategory(categoryId);
+  const handleCreateCustom = () => {
+    setSelectedCategory('custom');
     setStep(2);
   };
 
   const handleSubmit = () => {
-    if (selectedCategory && goalName && startDate && config) {
+    if (selectedCategory && goalName && startDate) {
       onSuccess?.({
         category: selectedCategory,
-        emoji: config.emoji,
+        emoji: getCategoryEmoji(selectedCategory),
         name: goalName,
         target: goalTarget,
         startDate,
@@ -300,8 +284,8 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setSelectedCategory(null);
     setGoalName("");
     setGoalTarget("");
-    setStartDate(new Date().toISOString().split('T')[0]);
-    setDeadline("");
+    setStartDate('2026-01-01');
+    setDeadline(format(addDays(new Date('2026-01-01'), 90), 'yyyy-MM-dd'));
     setReason("");
     setFrequency('daily');
   };
@@ -332,14 +316,14 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
               <div className="flex-1">
                 <DialogTitle className="text-xl font-bold">
                   {step === 1 
-                    ? "Create a New Goal 🎯" 
+                    ? "Choose Your Goal" 
                     : step === 2 
                     ? "Customize Your Goal" 
                     : "Ready to Start!"}
                 </DialogTitle>
                 <p className="text-sm text-muted-foreground mt-1">
                   {step === 1 
-                    ? "Pick a category to get started" 
+                    ? "Pick from popular goals or create your own" 
                     : step === 2 
                     ? config?.examples || "Set your goal details"
                     : "Review and launch your goal"
@@ -360,7 +344,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
             </div>
           </DialogHeader>
 
-          {/* Step 1: Category & Template Selection */}
+          {/* Step 1: Template Selection */}
           {step === 1 && (
             <SmartGoalTemplates
               onSelectTemplate={handleTemplateSelect}
