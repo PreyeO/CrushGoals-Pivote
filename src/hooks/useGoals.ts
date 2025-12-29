@@ -98,7 +98,13 @@ export function useGoals() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setGoals(data as Goal[]);
+      setGoals((data as Goal[]).map((g) => ({
+        ...g,
+        current_value: g.current_value ?? '0',
+        progress: g.progress ?? 0,
+        status: (g.status as any) ?? 'on-track',
+        is_paused: g.is_paused ?? false,
+      })));
     } catch (error) {
       logError('Error fetching goals:', error);
       toast.error('Failed to load goals');
@@ -185,18 +191,22 @@ export function useGoals() {
       const startDate = goalData.start_date || new Date().toISOString().split('T')[0];
       const frequency = goalData.task_frequency || 'daily';
       
-      const { data, error } = await supabase
-        .from('goals')
-        .insert({
-          user_id: user.id,
-          name: goalData.name,
-          emoji: goalData.emoji,
-          category: goalData.category,
-          target_value: goalData.target_value || null,
-          start_date: startDate,
-          deadline: goalData.deadline || null,
-          task_frequency: frequency,
-        })
+       const { data, error } = await supabase
+         .from('goals')
+         .insert({
+           user_id: user.id,
+           name: goalData.name,
+           emoji: goalData.emoji,
+           category: goalData.category,
+           target_value: goalData.target_value || null,
+           current_value: '0',
+           progress: 0,
+           status: 'on-track',
+           is_paused: false,
+           start_date: startDate,
+           deadline: goalData.deadline || null,
+           task_frequency: frequency,
+         })
         .select()
         .single();
 

@@ -19,16 +19,8 @@ export default function VerifyEmail() {
   const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
-    // If no user, redirect to landing
-    if (!user) {
-      navigate("/");
-      return;
-    }
-
-    // Check if email is already confirmed
-    if (user.email_confirmed_at) {
-      navigate("/dashboard");
-    }
+    // Stay on this screen even if already confirmed; this screen is the post-signup instruction step.
+    // If there's no user session, show the screen but disable verification actions.
   }, [user, navigate]);
 
   useEffect(() => {
@@ -145,9 +137,13 @@ export default function VerifyEmail() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow-md">
               <Target className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">Verify Your Email</h1>
+            <h1 className="text-2xl font-bold mb-2">Check your email</h1>
             <p className="text-muted-foreground">
-              We sent a 6-digit code to <span className="text-foreground font-medium">{user?.email}</span>
+              {user?.email ? (
+                <>We sent a 6-digit code to <span className="text-foreground font-medium">{user.email}</span></>
+              ) : (
+                <>Sign in to verify your email, or go back and try signing up again.</>
+              )}
             </p>
           </div>
 
@@ -167,10 +163,15 @@ export default function VerifyEmail() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   className="pl-12 text-center text-2xl tracking-[0.5em] font-mono h-14"
-                  disabled={isLoading}
+                  disabled={isLoading || !user}
                   autoFocus
                 />
               </div>
+              {!user && (
+                <p className="text-xs text-muted-foreground">
+                  You need to be signed in to verify. Go back to the home page and sign in.
+                </p>
+              )}
             </div>
 
             <Button
@@ -178,7 +179,7 @@ export default function VerifyEmail() {
               variant="hero"
               size="lg"
               className="w-full"
-              disabled={otp.length !== 6 || isLoading}
+              disabled={!user || otp.length !== 6 || isLoading}
             >
               {isLoading ? (
                 <>
@@ -198,7 +199,7 @@ export default function VerifyEmail() {
               variant="ghost"
               size="sm"
               onClick={handleResend}
-              disabled={countdown > 0 || isResending}
+              disabled={!user || countdown > 0 || isResending}
               className="gap-2"
             >
               {isResending ? (
@@ -217,15 +218,15 @@ export default function VerifyEmail() {
             </Button>
           </div>
 
-          {/* Skip for now */}
+          {/* Back */}
           <div className="mt-6 pt-6 border-t border-border text-center">
             <Button
               variant="link"
               size="sm"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/")}
               className="text-muted-foreground"
             >
-              Skip for now (verify later in settings)
+              Back to home
             </Button>
           </div>
         </div>

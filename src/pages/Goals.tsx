@@ -153,15 +153,37 @@ export default function Goals() {
     ? new Date(upcomingDeadlines[0].deadline).toLocaleDateString('en-US', { month: 'short' })
     : 'None';
 
-  // Calculate expected progress for "why behind" modal
   const calculateExpectedProgress = (goal: Goal) => {
     if (!goal.start_date || !goal.deadline) return goal.progress || 0;
     const start = new Date(goal.start_date).getTime();
     const end = new Date(goal.deadline).getTime();
     const now = Date.now();
+
+    if (now <= start) return 0;
+
     const totalDuration = end - start;
     const elapsed = now - start;
-    return Math.min(100, Math.round((elapsed / totalDuration) * 100));
+    if (totalDuration <= 0) return 0;
+
+    return Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)));
+  };
+
+  const getDisplayStatus = (goal: Goal): 'on-track' | 'ahead' | 'behind' | 'completed' => {
+    if (goal.status === 'completed' || (goal.progress ?? 0) >= 100) return 'completed';
+
+    // If goal hasn't started yet, it cannot be behind.
+    if (goal.start_date) {
+      const start = new Date(goal.start_date).getTime();
+      if (Date.now() < start) return 'on-track';
+    }
+
+    const progress = goal.progress ?? 0;
+    const expected = calculateExpectedProgress(goal);
+
+    // Small buffer to avoid instant "behind" right after creating a goal.
+    if (progress + 5 < expected) return 'behind';
+    if (progress > expected + 10) return 'ahead';
+    return 'on-track';
   };
 
   if (isLoading) {
@@ -335,8 +357,7 @@ export default function Goals() {
                         ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
                         : 'No deadline'
                       }
-                      status={goal.status as 'on-track' | 'ahead' | 'behind' | 'completed'}
-                      tasksToday={{ completed: 0, total: 0 }}
+                      status={getDisplayStatus(goal)}
                       startDate={goal.start_date || undefined}
                       endDate={goal.deadline || undefined}
                       isPaused={goal.is_paused}
@@ -386,8 +407,7 @@ export default function Goals() {
                       ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
                       : 'No deadline'
                     }
-                    status={goal.status as 'on-track' | 'ahead' | 'behind' | 'completed'}
-                    tasksToday={{ completed: 0, total: 0 }}
+                     status={getDisplayStatus(goal)}
                     startDate={goal.start_date || undefined}
                     endDate={goal.deadline || undefined}
                     isPaused={goal.is_paused}
