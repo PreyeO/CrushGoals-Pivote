@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   achievements: true,
   email: true,
   push: false,
-  reminderTime: '09:00',
+  reminderTime: '06:00',
   weeklyReminderDay: 1, // Monday
 };
 
