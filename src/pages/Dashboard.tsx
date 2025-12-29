@@ -7,6 +7,7 @@ import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
 import { WeeklySummary } from "@/components/WeeklySummary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { ProductTour } from "@/components/ProductTour";
+import { TrialExpiryModal } from "@/components/TrialExpiryModal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
@@ -17,6 +18,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
 import { useStreakNotifications } from "@/hooks/useStreakNotifications";
 import { useInviteHandler } from "@/hooks/useInviteHandler";
+import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/logger";
@@ -71,6 +73,7 @@ export default function Dashboard() {
   
   useStreakNotifications();
   const { processedInvites } = useInviteHandler();
+  const { showExpiryModal, acknowledgeExpiry, getTrialMessage } = useTrialNotifications();
   
   useEffect(() => {
     if (processedInvites) {
@@ -581,6 +584,12 @@ export default function Dashboard() {
         <ProductTour
           open={showOnboarding}
           onComplete={handleOnboardingComplete}
+        />
+
+        {/* Trial Expiry Modal */}
+        <TrialExpiryModal
+          open={showExpiryModal}
+          onAcknowledge={acknowledgeExpiry}
         />
       </main>
     </div>

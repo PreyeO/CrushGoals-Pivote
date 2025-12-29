@@ -18,33 +18,61 @@ export const currencies: CurrencyInfo[] = [
   { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', flag: '🇦🇺' },
 ];
 
-// Base pricing in NGN
-const basePricing = {
-  basicMonthly: 1500,
-  basicAnnual: 16000,
-  premiumMonthly: 2500,
-  premiumAnnual: 25000,
-};
+// Pricing structure per currency
+interface PricingTier {
+  basicMonthly: number;
+  basicAnnual: number;
+  premiumMonthly: number;
+  premiumAnnual: number;
+}
 
-// Exchange rates from NGN (approximate)
-const exchangeRates: Record<Currency, number> = {
-  NGN: 1,
-  USD: 0.00067, // ~1500 NGN = 1 USD
-  GBP: 0.00053, // ~1900 NGN = 1 GBP
-  EUR: 0.00061, // ~1650 NGN = 1 EUR
-  CAD: 0.00091, // ~1100 NGN = 1 CAD
-  AUD: 0.00102, // ~980 NGN = 1 AUD
+const pricingByCurrency: Record<Currency, PricingTier> = {
+  NGN: {
+    basicMonthly: 1500,
+    basicAnnual: 16000,
+    premiumMonthly: 2500,
+    premiumAnnual: 25000,
+  },
+  USD: {
+    basicMonthly: 3,
+    basicAnnual: 30, // ~$2.50/month - saves $6
+    premiumMonthly: 5,
+    premiumAnnual: 50, // ~$4.17/month - saves $10
+  },
+  GBP: {
+    basicMonthly: 2.50,
+    basicAnnual: 25,
+    premiumMonthly: 4,
+    premiumAnnual: 40,
+  },
+  EUR: {
+    basicMonthly: 2.80,
+    basicAnnual: 28,
+    premiumMonthly: 4.50,
+    premiumAnnual: 45,
+  },
+  CAD: {
+    basicMonthly: 4,
+    basicAnnual: 40,
+    premiumMonthly: 6.50,
+    premiumAnnual: 65,
+  },
+  AUD: {
+    basicMonthly: 4.50,
+    basicAnnual: 45,
+    premiumMonthly: 7,
+    premiumAnnual: 70,
+  },
 };
 
 function formatPrice(amount: number, currency: Currency, symbol: string): string {
-  // For NGN, show full amount; for others, round to nice numbers
   if (currency === 'NGN') {
     return `${symbol}${amount.toLocaleString()}`;
   }
-  // Convert and round to nearest .99 or whole number
-  const converted = amount * exchangeRates[currency];
-  const rounded = Math.ceil(converted * 100) / 100;
-  return `${symbol}${rounded.toFixed(2)}`;
+  // For other currencies, show 2 decimal places if needed
+  return Number.isInteger(amount) 
+    ? `${symbol}${amount}` 
+    : `${symbol}${amount.toFixed(2)}`;
 }
 
 export function useCurrency() {
@@ -89,57 +117,52 @@ export function useCurrency() {
 
   const getPricing = () => {
     const currencyInfo = currencies.find(c => c.code === currency)!;
-    const rate = exchangeRates[currency];
+    const prices = pricingByCurrency[currency];
     
-    const basicMonthly = currency === 'NGN' ? basePricing.basicMonthly : Math.round(basePricing.basicMonthly * rate * 100) / 100;
-    const basicAnnual = currency === 'NGN' ? basePricing.basicAnnual : Math.round(basePricing.basicAnnual * rate * 100) / 100;
-    const premiumMonthly = currency === 'NGN' ? basePricing.premiumMonthly : Math.round(basePricing.premiumMonthly * rate * 100) / 100;
-    const premiumAnnual = currency === 'NGN' ? basePricing.premiumAnnual : Math.round(basePricing.premiumAnnual * rate * 100) / 100;
+    const basicMonthly = prices.basicMonthly;
+    const basicAnnual = prices.basicAnnual;
+    const premiumMonthly = prices.premiumMonthly;
+    const premiumAnnual = prices.premiumAnnual;
     
-    const basicAnnualPerMonth = basicAnnual / 12;
-    const premiumAnnualPerMonth = premiumAnnual / 12;
-    const basicSavings = (basePricing.basicMonthly * 12) - basePricing.basicAnnual;
-    const premiumSavings = (basePricing.premiumMonthly * 12) - basePricing.premiumAnnual;
+    // Calculate savings
+    const basicSavings = (basicMonthly * 12) - basicAnnual;
+    const premiumSavings = (premiumMonthly * 12) - premiumAnnual;
 
     return {
       basic: {
         monthly: {
           amount: basicMonthly,
-          formatted: formatPrice(basePricing.basicMonthly, currency, currencyInfo.symbol),
+          formatted: formatPrice(basicMonthly, currency, currencyInfo.symbol),
         },
         annual: {
           amount: basicAnnual,
-          formatted: formatPrice(basePricing.basicAnnual, currency, currencyInfo.symbol),
-          perMonth: formatPrice(basePricing.basicAnnual / 12, currency, currencyInfo.symbol),
-          savings: currency === 'NGN' 
-            ? `₦${basicSavings.toLocaleString()}`
-            : formatPrice(basicSavings, currency, currencyInfo.symbol),
+          formatted: formatPrice(basicAnnual, currency, currencyInfo.symbol),
+          perMonth: formatPrice(basicAnnual / 12, currency, currencyInfo.symbol),
+          savings: formatPrice(basicSavings, currency, currencyInfo.symbol),
         },
       },
       premium: {
         monthly: {
           amount: premiumMonthly,
-          formatted: formatPrice(basePricing.premiumMonthly, currency, currencyInfo.symbol),
+          formatted: formatPrice(premiumMonthly, currency, currencyInfo.symbol),
         },
         annual: {
           amount: premiumAnnual,
-          formatted: formatPrice(basePricing.premiumAnnual, currency, currencyInfo.symbol),
-          perMonth: formatPrice(basePricing.premiumAnnual / 12, currency, currencyInfo.symbol),
-          savings: currency === 'NGN'
-            ? `₦${premiumSavings.toLocaleString()}`
-            : formatPrice(premiumSavings, currency, currencyInfo.symbol),
+          formatted: formatPrice(premiumAnnual, currency, currencyInfo.symbol),
+          perMonth: formatPrice(premiumAnnual / 12, currency, currencyInfo.symbol),
+          savings: formatPrice(premiumSavings, currency, currencyInfo.symbol),
         },
       },
       // Legacy format for backwards compatibility
       monthly: {
         amount: basicMonthly,
-        formatted: formatPrice(basePricing.basicMonthly, currency, currencyInfo.symbol),
+        formatted: formatPrice(basicMonthly, currency, currencyInfo.symbol),
       },
       annual: {
         amount: basicAnnual,
-        formatted: formatPrice(basePricing.basicAnnual, currency, currencyInfo.symbol),
-        perMonth: formatPrice(basePricing.basicAnnual / 12, currency, currencyInfo.symbol),
-        savings: `${Math.round((1 - basePricing.basicAnnual / (basePricing.basicMonthly * 12)) * 100)}%`,
+        formatted: formatPrice(basicAnnual, currency, currencyInfo.symbol),
+        perMonth: formatPrice(basicAnnual / 12, currency, currencyInfo.symbol),
+        savings: `${Math.round((1 - basicAnnual / (basicMonthly * 12)) * 100)}%`,
       },
       symbol: currencyInfo.symbol,
       code: currency,
