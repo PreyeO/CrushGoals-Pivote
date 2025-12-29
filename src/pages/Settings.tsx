@@ -15,6 +15,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useNotifications } from "@/hooks/useNotifications";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { supabase } from "@/integrations/supabase/client";
 
 const settingsSections = [
@@ -32,6 +33,7 @@ export default function Settings() {
   const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft } = useSubscription();
   const { getPricing } = useCurrency();
   const { settings: notificationSettings, updateSettings: updateNotificationSettings, requestPermission, permissionStatus } = useNotifications();
+  const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission, settings: pushSettings, updateSettings: updatePushSettings } = usePushNotifications();
   const pricing = getPricing();
   
   const [activeSection, setActiveSection] = useState("account");
@@ -295,13 +297,39 @@ export default function Settings() {
                 <div className="space-y-6">
                   <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Notification Preferences</h2>
                   
-                  {/* Push Notification Permission */}
-                  {permissionStatus !== 'granted' && (
-                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
-                      <p className="text-sm mb-3">Enable push notifications to get reminders about your goals and streaks.</p>
-                      <Button onClick={requestPermission} size="sm">
-                        Enable Notifications
-                      </Button>
+                  {/* Push Notification Setup */}
+                  {pushSupported && (
+                    <div className={cn(
+                      "p-4 rounded-xl border",
+                      pushPermission === 'granted' 
+                        ? "bg-success/10 border-success/30" 
+                        : "bg-primary/10 border-primary/30"
+                    )}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <h4 className="font-medium text-sm sm:text-base">
+                            {pushPermission === 'granted' ? 'Push Notifications Enabled' : 'Enable Push Notifications'}
+                          </h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
+                            {pushPermission === 'granted' 
+                              ? "You'll receive reminders even when the app is closed" 
+                              : "Get reminders about your goals and streaks"}
+                          </p>
+                        </div>
+                        {pushPermission !== 'granted' && (
+                          <Button onClick={requestPushPermission} size="sm">
+                            Enable
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {!pushSupported && (
+                    <div className="p-4 rounded-xl bg-muted border border-border">
+                      <p className="text-sm text-muted-foreground">
+                        Push notifications are not supported in this browser. Try using Chrome, Firefox, or Safari on a mobile device.
+                      </p>
                     </div>
                   )}
 
