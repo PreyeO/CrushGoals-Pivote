@@ -418,7 +418,19 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
 
             {tab === "signin" && (
               <div className="flex items-center space-x-3">
-                <Checkbox id="remember" className="mt-0.5" />
+                <Checkbox 
+                  id="remember" 
+                  className="mt-0.5"
+                  onCheckedChange={(checked) => {
+                    // Store preference in localStorage for session persistence
+                    if (checked) {
+                      localStorage.setItem('crushgoals_remember_me', 'true');
+                    } else {
+                      localStorage.removeItem('crushgoals_remember_me');
+                    }
+                  }}
+                  defaultChecked={localStorage.getItem('crushgoals_remember_me') === 'true'}
+                />
                 <Label htmlFor="remember" className="text-sm text-muted-foreground">
                   Remember me
                 </Label>
