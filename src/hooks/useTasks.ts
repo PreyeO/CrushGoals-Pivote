@@ -313,6 +313,7 @@ export function useTasks(date?: string) {
         const now = new Date();
         const hour = now.getHours();
         const dayOfWeek = now.getDay();
+        const todayStr = now.toISOString().split('T')[0];
         
         // Time-based achievement checks
         const isEarlyMorning = hour < 7;
@@ -320,7 +321,6 @@ export function useTasks(date?: string) {
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
         // Count tasks completed today
-        const todayStr = now.toISOString().split('T')[0];
         const todayCompletedTasks = updatedTasks.filter(
           t => t.due_date === todayStr && t.completed
         ).length;
@@ -328,7 +328,7 @@ export function useTasks(date?: string) {
         // Get or create user stats
         let { data: currentStats } = await supabase
           .from('user_stats')
-          .select('tasks_completed, total_xp, current_streak, longest_streak, perfect_days, last_activity_date, level')
+          .select('tasks_completed, current_streak, longest_streak, perfect_days, last_activity_date')
           .eq('user_id', user.id)
           .maybeSingle();
         
@@ -351,18 +351,48 @@ export function useTasks(date?: string) {
           const newTasksCompleted = (currentStats.tasks_completed || 0) + 1;
           const statsUpdate: any = {
             tasks_completed: newTasksCompleted,
-            total_xp: (currentStats.total_xp || 0) + 10,
           };
 
-          // Play XP gain sound
-          playSoundEffect('xpGain');
+          // Update streak on ANY task completion (not just perfect days)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const lastActivity = currentStats.last_activity_date 
+            ? new Date(currentStats.last_activity_date)
+            : null;
+          
+          if (lastActivity) {
+            lastActivity.setHours(0, 0, 0, 0);
+          }
 
-          // Check for achievements immediately (including time-based)
+          // Check if we already updated streak today
+          const alreadyUpdatedToday = lastActivity && lastActivity.getTime() === today.getTime();
+
+          if (!alreadyUpdatedToday) {
+            // Check if yesterday had activity (continuing streak)
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            const isConsecutive = lastActivity && lastActivity.getTime() === yesterday.getTime();
+            
+            const newStreak = isConsecutive 
+              ? (currentStats.current_streak || 0) + 1 
+              : 1;
+            
+            statsUpdate.current_streak = newStreak;
+            statsUpdate.longest_streak = Math.max(newStreak, currentStats.longest_streak || 0);
+            statsUpdate.last_activity_date = todayStr;
+
+            if (newStreak > 1) {
+              toast.success(`🔥 ${newStreak} day streak!`);
+            }
+          }
+
+          // Check for achievements
           await checkAndUnlockAchievements(user.id, {
-            current_streak: currentStats.current_streak || 0,
+            current_streak: statsUpdate.current_streak || currentStats.current_streak || 0,
             tasks_completed: newTasksCompleted,
             perfect_days: currentStats.perfect_days || 0,
-            level: currentStats.level || 1,
           }, {
             isEarlyMorning,
             isNightOwl,
@@ -371,57 +401,13 @@ export function useTasks(date?: string) {
           });
 
           // Check if all tasks for today are now completed (Perfect Day)
-          const todayStr = new Date().toISOString().split('T')[0];
           const todayTasks = updatedTasks.filter(t => t.due_date === todayStr);
           const allCompleted = todayTasks.length > 0 && todayTasks.every(t => t.completed);
 
-          if (allCompleted) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const lastActivity = currentStats.last_activity_date 
-              ? new Date(currentStats.last_activity_date)
-              : null;
-            
-            if (lastActivity) {
-              lastActivity.setHours(0, 0, 0, 0);
-            }
-
-            // Check if we already counted today
-            const alreadyCountedToday = lastActivity && lastActivity.getTime() === today.getTime();
-
-            if (!alreadyCountedToday) {
-              // Check if yesterday was also a perfect day (continuing streak)
-              const yesterday = new Date(today);
-              yesterday.setDate(yesterday.getDate() - 1);
-              
-              const isConsecutive = lastActivity && lastActivity.getTime() === yesterday.getTime();
-              
-              const newStreak = isConsecutive 
-                ? (currentStats.current_streak || 0) + 1 
-                : 1;
-              
-              statsUpdate.current_streak = newStreak;
-              statsUpdate.longest_streak = Math.max(newStreak, currentStats.longest_streak || 0);
-              statsUpdate.perfect_days = (currentStats.perfect_days || 0) + 1;
-              statsUpdate.last_activity_date = todayStr;
-              statsUpdate.total_xp = statsUpdate.total_xp + 100; // Perfect Day bonus!
-
-              // Trigger celebration
-              setCelebrationTrigger('perfectDay');
-
-              toast.success('🔥 Perfect Day! +100 XP bonus!', {
-                description: `Streak: ${newStreak} day${newStreak > 1 ? 's' : ''}`,
-              });
-
-              // Check and unlock achievements for perfect day/streak
-              await checkAndUnlockAchievements(user.id, {
-                current_streak: newStreak,
-                tasks_completed: statsUpdate.tasks_completed,
-                perfect_days: statsUpdate.perfect_days,
-                level: currentStats.level || 1,
-              });
-            }
+          if (allCompleted && !alreadyUpdatedToday) {
+            statsUpdate.perfect_days = (currentStats.perfect_days || 0) + 1;
+            setCelebrationTrigger('perfectDay');
+            toast.success('🎉 Perfect Day! All tasks completed!');
           }
 
           await supabase
