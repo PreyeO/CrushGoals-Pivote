@@ -5,12 +5,12 @@ import {
   Target, Scale, Flame, GraduationCap, Wallet,
   Rocket, Handshake, PenTool, 
   Mic, Globe, Zap, Trophy, Plus, Coffee,
-  Cigarette, Clock, Utensils, Moon
+  Cigarette, Clock, Utensils, Moon, Droplets
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// Popular goal template with participant counts
+// Challenge-based goal template
 export interface PopularGoalTemplate {
   id: string;
   name: string;
@@ -19,7 +19,7 @@ export interface PopularGoalTemplate {
   description: string;
   participants: number;
   frequency: 'daily' | 'weekly' | 'monthly';
-  defaultDuration: number;
+  defaultDuration: number; // days
   smartType: 'simple' | 'measured' | 'habit';
   targetLabel?: string;
   targetPlaceholder?: string;
@@ -28,453 +28,414 @@ export interface PopularGoalTemplate {
   actionVerb?: string;
   customInputLabel?: string;
   customInputPlaceholder?: string;
+  badge?: string; // Challenge badge emoji
 }
 
-// Category definitions
+// Category definitions with challenge focus
 export const goalCategories = [
-  { id: 'all', label: 'All', icon: Sparkles },
+  { id: 'all', label: 'All Challenges', icon: Sparkles },
+  { id: 'popular', label: 'Popular', icon: Flame },
   { id: 'fitness', label: 'Fitness', icon: Dumbbell },
   { id: 'finance', label: 'Finance', icon: DollarSign },
   { id: 'learning', label: 'Learning', icon: BookOpen },
-  { id: 'career', label: 'Career', icon: Briefcase },
-  { id: 'side-hustle', label: 'Side Hustle', icon: TrendingUp },
-  { id: 'spiritual', label: 'Spiritual', icon: Sparkles },
-  { id: 'mental-health', label: 'Wellness', icon: Brain },
-  { id: 'relationship', label: 'Relationship', icon: Heart },
-  { id: 'content', label: 'Content', icon: Palette },
+  { id: 'wellness', label: 'Wellness', icon: Brain },
   { id: 'lifestyle', label: 'Lifestyle', icon: Users },
+  { id: 'content', label: 'Content', icon: Palette },
 ];
 
-// Popular goal templates - SMART, actionable yearly goals
+// Challenge-based templates - Focus on achievable durations (7, 14, 21, 30, 60, 90 days)
 export const popularTemplates: PopularGoalTemplate[] = [
-  // Fitness - Actionable & Popular
+  // 🔥 POPULAR CHALLENGES (7-30 days)
   {
-    id: 'lose-weight-gym',
-    name: 'Lose Weight (Gym)',
+    id: '75-hard',
+    name: '75 Hard Challenge',
+    icon: Flame,
+    category: 'popular',
+    description: 'Complete 75 days of discipline: 2 workouts, diet, water, reading, progress photo',
+    participants: 12500,
+    frequency: 'daily',
+    defaultDuration: 75,
+    smartType: 'habit',
+    actionVerb: 'Complete all 75 Hard requirements',
+    badge: '🔥',
+    tips: ['Two 45-min workouts daily', 'Follow a diet (no cheat meals)', 'Drink 1 gallon of water', 'Read 10 pages', 'Take progress photo'],
+  },
+  {
+    id: '30-day-no-sugar',
+    name: '30-Day No Sugar Challenge',
+    icon: Utensils,
+    category: 'popular',
+    description: 'Eliminate added sugars for 30 days',
+    participants: 8900,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'habit',
+    actionVerb: 'Stay sugar-free today',
+    badge: '🍎',
+    tips: ['Read food labels carefully', 'Prepare meals at home', 'Replace with fruits when craving'],
+  },
+  {
+    id: '21-day-gratitude',
+    name: '21-Day Gratitude Challenge',
+    icon: Heart,
+    category: 'popular',
+    description: 'Write 3 things you\'re grateful for daily',
+    participants: 7200,
+    frequency: 'daily',
+    defaultDuration: 21,
+    smartType: 'habit',
+    actionVerb: 'Write 3 gratitude items',
+    badge: '🙏',
+    tips: ['Do it first thing in morning', 'Be specific, not generic', 'Include people in your life'],
+  },
+  {
+    id: '7-day-digital-detox',
+    name: '7-Day Digital Detox',
+    icon: Zap,
+    category: 'popular',
+    description: 'No social media or unnecessary screen time for 7 days',
+    participants: 6500,
+    frequency: 'daily',
+    defaultDuration: 7,
+    smartType: 'habit',
+    actionVerb: 'Stay off social media',
+    badge: '📵',
+    tips: ['Delete apps from phone', 'Use app blockers', 'Replace with reading or exercise'],
+  },
+  {
+    id: '30-day-cold-shower',
+    name: '30-Day Cold Shower Challenge',
+    icon: Droplets,
+    category: 'popular',
+    description: 'Take a cold shower every day for 30 days',
+    participants: 5800,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'habit',
+    actionVerb: 'Take a cold shower',
+    badge: '🧊',
+    tips: ['Start with 30 seconds cold at end', 'Deep breathing helps', 'Builds mental resilience'],
+  },
+
+  // 💪 FITNESS CHALLENGES
+  {
+    id: '30-day-plank',
+    name: '30-Day Plank Challenge',
+    icon: Dumbbell,
+    category: 'fitness',
+    description: 'Hold plank for increasing durations each day',
+    participants: 9200,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'habit',
+    actionVerb: 'Complete plank hold',
+    badge: '💪',
+    tips: ['Start with 20 seconds', 'Add 10 seconds every few days', 'Keep your core tight'],
+  },
+  {
+    id: '10k-steps-30-days',
+    name: '10K Steps for 30 Days',
+    icon: Flame,
+    category: 'fitness',
+    description: 'Walk 10,000 steps every day for 30 days',
+    participants: 11300,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'habit',
+    actionVerb: 'Complete 10,000 steps',
+    badge: '🚶',
+    tips: ['Take stairs instead of elevator', 'Walk during lunch break', 'Park farther away'],
+  },
+  {
+    id: '30-day-pushup',
+    name: '30-Day Push-Up Challenge',
+    icon: Dumbbell,
+    category: 'fitness',
+    description: 'Do push-ups every day, increasing reps',
+    participants: 7800,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'habit',
+    actionVerb: 'Complete push-ups',
+    badge: '🏋️',
+    tips: ['Start with 10 reps', 'Add 5 reps every 3 days', 'Proper form over quantity'],
+  },
+  {
+    id: '21-day-yoga',
+    name: '21-Day Yoga Challenge',
+    icon: Brain,
+    category: 'fitness',
+    description: 'Practice yoga for at least 15 minutes daily',
+    participants: 6900,
+    frequency: 'daily',
+    defaultDuration: 21,
+    smartType: 'habit',
+    actionVerb: 'Complete yoga session',
+    badge: '🧘',
+    tips: ['Follow YouTube yoga videos', 'Morning or evening works best', 'Start with gentle flows'],
+  },
+  {
+    id: '90-day-gym',
+    name: '90-Day Gym Transformation',
     icon: Scale,
     category: 'fitness',
-    description: 'Go to gym 4-5x per week to lose weight',
-    participants: 8247,
+    description: 'Go to the gym 4-5x per week for 90 days',
+    participants: 8500,
     frequency: 'daily',
-    defaultDuration: 180,
+    defaultDuration: 90,
     smartType: 'measured',
     targetLabel: 'How many kg do you want to lose?',
     targetPlaceholder: '10',
     targetSuffix: 'kg',
     actionVerb: 'Complete gym session',
-    tips: ['Track calories with an app', 'Aim for 4-5 gym sessions/week', 'Mix strength + cardio'],
+    badge: '🏆',
+    tips: ['Track calories with an app', 'Mix strength + cardio', 'Take progress photos weekly'],
   },
   {
-    id: 'drink-water',
-    name: 'Drink 8 Glasses of Water Daily',
+    id: '30-day-water',
+    name: '30-Day Hydration Challenge',
     icon: Coffee,
     category: 'fitness',
-    description: 'Stay hydrated with 8 glasses every day',
-    participants: 6234,
+    description: 'Drink 8 glasses of water every day',
+    participants: 7400,
     frequency: 'daily',
-    defaultDuration: 66,
+    defaultDuration: 30,
     smartType: 'habit',
     actionVerb: 'Drink 8 glasses of water',
-    tips: ['Carry a water bottle', 'Set hourly reminders', 'Drink before each meal'],
-  },
-  {
-    id: 'walk-10k-steps',
-    name: 'Walk 10,000 Steps Daily',
-    icon: Flame,
-    category: 'fitness',
-    description: 'Hit 10k steps every single day',
-    participants: 5421,
-    frequency: 'daily',
-    defaultDuration: 90,
-    smartType: 'habit',
-    actionVerb: 'Complete 10,000 steps',
-    tips: ['Take stairs instead of elevator', 'Walk during lunch break', 'Park farther away'],
-  },
-  
-  // Finance - Top yearly goals
-  {
-    id: 'save-money',
-    name: 'Save Money',
-    icon: Wallet,
-    category: 'finance',
-    description: 'Transfer to savings account regularly',
-    participants: 6521,
-    frequency: 'monthly',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'Total amount to save this year',
-    targetPlaceholder: '500000',
-    targetSuffix: '',
-    actionVerb: 'Transfer to savings',
-    tips: ['Automate monthly transfers', 'Start with 10% of income', 'Track spending weekly'],
-  },
-  {
-    id: 'pay-off-debt',
-    name: 'Pay Off Debt',
-    icon: DollarSign,
-    category: 'finance',
-    description: 'Make regular payments to clear your debt',
-    participants: 4156,
-    frequency: 'monthly',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'Total debt to pay off',
-    targetPlaceholder: '200000',
-    targetSuffix: '',
-    actionVerb: 'Make debt payment',
-    tips: ['Use debt snowball method', 'Pay more than minimum', 'Celebrate each milestone'],
-  },
-  {
-    id: 'first-investment',
-    name: 'Start Investing Monthly',
-    icon: TrendingUp,
-    category: 'finance',
-    description: 'Invest a fixed amount every month',
-    participants: 3432,
-    frequency: 'monthly',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'Total to invest this year',
-    targetPlaceholder: '100000',
-    targetSuffix: '',
-    actionVerb: 'Invest monthly amount',
-    tips: ['Start with index funds', 'Set up automatic investments', 'Stay consistent regardless of market'],
+    badge: '💧',
+    tips: ['Carry a water bottle everywhere', 'Set hourly reminders', 'Drink before each meal'],
   },
 
-  // Learning - Popular self-improvement goals
+  // 💰 FINANCE CHALLENGES
   {
-    id: 'read-books',
-    name: 'Read 1 Book Per Month',
-    icon: BookOpen,
-    category: 'learning',
-    description: 'Read 20-30 pages daily to finish 12 books',
-    participants: 7234,
+    id: '30-day-no-spend',
+    name: '30-Day No-Spend Challenge',
+    icon: Wallet,
+    category: 'finance',
+    description: 'Only spend on essentials for 30 days',
+    participants: 6200,
     frequency: 'daily',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'How many books this year?',
-    targetPlaceholder: '12',
-    targetSuffix: 'books',
-    actionVerb: 'Read for 30 minutes',
-    tips: ['Read 20-30 pages daily', 'Read before bed', 'Keep book by your bed'],
+    defaultDuration: 30,
+    smartType: 'habit',
+    actionVerb: 'No non-essential spending today',
+    badge: '💵',
+    tips: ['Define essentials clearly upfront', 'Unsubscribe from promo emails', 'Avoid browsing online shops'],
   },
   {
-    id: 'learn-language',
-    name: 'Learn a New Language',
+    id: '30-day-save',
+    name: '30-Day Savings Challenge',
+    icon: DollarSign,
+    category: 'finance',
+    description: 'Save a set amount every day for 30 days',
+    participants: 7100,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'measured',
+    targetLabel: 'Daily amount to save',
+    targetPlaceholder: '500',
+    targetSuffix: '',
+    actionVerb: 'Transfer to savings',
+    badge: '🏦',
+    tips: ['Automate daily transfers', 'Start small, stay consistent', 'Watch your total grow'],
+  },
+  {
+    id: '60-day-budget',
+    name: '60-Day Budget Mastery',
+    icon: TrendingUp,
+    category: 'finance',
+    description: 'Track every expense for 60 days',
+    participants: 4800,
+    frequency: 'daily',
+    defaultDuration: 60,
+    smartType: 'habit',
+    actionVerb: 'Log all expenses today',
+    badge: '📊',
+    tips: ['Use a budgeting app', 'Categorize all spending', 'Review weekly'],
+  },
+
+  // 📚 LEARNING CHALLENGES
+  {
+    id: '30-day-reading',
+    name: '30-Day Reading Challenge',
+    icon: BookOpen,
+    category: 'learning',
+    description: 'Read for 30 minutes every day',
+    participants: 9500,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'habit',
+    actionVerb: 'Read for 30 minutes',
+    badge: '📖',
+    tips: ['Keep book on nightstand', 'Read before bed', 'No phones while reading'],
+  },
+  {
+    id: '30-day-language',
+    name: '30-Day Language Challenge',
     icon: Globe,
     category: 'learning',
-    description: 'Complete 1 lesson per day on Duolingo/app',
-    participants: 5876,
+    description: 'Practice a new language for 15 minutes daily',
+    participants: 8100,
     frequency: 'daily',
-    defaultDuration: 365,
+    defaultDuration: 30,
     smartType: 'habit',
     actionVerb: 'Complete language lesson',
     customInputLabel: 'Which language?',
     customInputPlaceholder: 'e.g. Spanish, French, Japanese',
-    tips: ['Use Duolingo daily', '15-30 minutes each day', 'Practice speaking weekly'],
+    badge: '🗣️',
+    tips: ['Use Duolingo or similar app', 'Consistency beats intensity', 'Practice speaking out loud'],
   },
   {
-    id: 'get-certified',
-    name: 'Get Professional Certification',
+    id: '21-day-skill',
+    name: '21-Day New Skill Challenge',
     icon: GraduationCap,
     category: 'learning',
-    description: 'Study 1-2 hours daily for your exam',
-    participants: 3654,
+    description: 'Dedicate 1 hour daily to learning a new skill',
+    participants: 5600,
     frequency: 'daily',
-    defaultDuration: 90,
+    defaultDuration: 21,
     smartType: 'habit',
-    actionVerb: 'Study for 1-2 hours',
-    customInputLabel: 'Which certification?',
-    customInputPlaceholder: 'e.g. AWS, PMP, CPA',
-    tips: ['Block same time daily', 'Practice exams weekly', 'Set exam date now'],
-  },
-
-  // Career - Actionable professional goals
-  {
-    id: 'new-job',
-    name: 'Land a New Job',
-    icon: Target,
-    category: 'career',
-    description: 'Send job applications daily',
-    participants: 3234,
-    frequency: 'daily',
-    defaultDuration: 90,
-    smartType: 'measured',
-    targetLabel: 'Total applications to send',
-    targetPlaceholder: '50',
-    targetSuffix: 'applications',
-    actionVerb: 'Apply to 1-2 jobs',
-    tips: ['Tailor resume for each role', 'Network alongside applying', 'Practice interviewing weekly'],
-  },
-  {
-    id: 'build-network',
-    name: 'Grow Professional Network',
-    icon: Handshake,
-    category: 'career',
-    description: 'Reach out to 1 new person weekly',
-    participants: 2187,
-    frequency: 'weekly',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'New connections this year',
-    targetPlaceholder: '52',
-    targetSuffix: 'people',
-    actionVerb: 'Connect with someone new',
-    tips: ['Attend 1 event per month', 'Send 1 LinkedIn message/week', 'Offer value first'],
-  },
-
-  // Side Hustle
-  {
-    id: 'launch-business',
-    name: 'Launch a Side Business',
-    icon: Rocket,
-    category: 'side-hustle',
-    description: 'Work 1-2 hours daily on your business',
-    participants: 3543,
-    frequency: 'daily',
-    defaultDuration: 90,
-    smartType: 'habit',
-    actionVerb: 'Work on business for 1-2hrs',
-    customInputLabel: 'What business?',
-    customInputPlaceholder: 'e.g. Online store, Consulting, SaaS',
-    tips: ['Validate idea before building', 'Launch MVP in 30 days', 'Get first customer fast'],
-  },
-  {
-    id: 'freelance-income',
-    name: 'Build Freelance Income',
-    icon: Zap,
-    category: 'side-hustle',
-    description: 'Work on client projects & find new clients',
-    participants: 4134,
-    frequency: 'weekly',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'Target income this year',
-    targetPlaceholder: '500000',
-    targetSuffix: '',
-    actionVerb: 'Complete freelance work',
+    actionVerb: 'Practice for 1 hour',
     customInputLabel: 'What skill?',
-    customInputPlaceholder: 'e.g. Web design, Writing, Consulting',
-    tips: ['Start on Upwork/Fiverr', 'Build portfolio first', 'Raise rates every 3 months'],
+    customInputPlaceholder: 'e.g. Coding, Guitar, Design',
+    badge: '🎓',
+    tips: ['Block same time each day', 'Use tutorials and courses', 'Build a small project'],
   },
 
-  // Spiritual
+  // 🧠 WELLNESS CHALLENGES
   {
-    id: 'daily-prayer',
-    name: 'Pray Every Morning',
-    icon: Sparkles,
-    category: 'spiritual',
-    description: 'Start each day with 10-15 min prayer',
-    participants: 5421,
-    frequency: 'daily',
-    defaultDuration: 365,
-    smartType: 'habit',
-    actionVerb: 'Complete morning prayer',
-    tips: ['Same time each day', 'Start with 10 minutes', 'Keep a prayer journal'],
-  },
-  {
-    id: 'daily-bible',
-    name: 'Daily Bible Reading',
-    icon: BookOpen,
-    category: 'spiritual',
-    description: 'Read 3-4 chapters of the Bible daily',
-    participants: 4567,
-    frequency: 'daily',
-    defaultDuration: 365,
-    smartType: 'habit',
-    actionVerb: 'Read Bible chapters',
-    tips: ['Use a reading plan', '3-4 chapters per day', 'Journal key insights'],
-  },
-
-  // Mental Health / Wellness
-  {
-    id: 'daily-meditation',
-    name: 'Meditate 10 Minutes Daily',
+    id: '21-day-meditation',
+    name: '21-Day Meditation Challenge',
     icon: Brain,
-    category: 'mental-health',
-    description: 'Calm your mind with 10 min meditation',
-    participants: 4876,
+    category: 'wellness',
+    description: 'Meditate for 10 minutes every day',
+    participants: 8700,
     frequency: 'daily',
-    defaultDuration: 90,
+    defaultDuration: 21,
     smartType: 'habit',
     actionVerb: 'Complete 10 min meditation',
-    tips: ['Start with 5 minutes', 'Use Headspace or Calm app', 'Morning is best time'],
+    badge: '🧘',
+    tips: ['Start with 5 minutes if needed', 'Use Headspace or Calm', 'Morning works best'],
   },
   {
-    id: 'quit-smoking',
-    name: 'Quit Smoking',
-    icon: Cigarette,
-    category: 'mental-health',
-    description: 'Stay smoke-free every single day',
-    participants: 3156,
-    frequency: 'daily',
-    defaultDuration: 90,
-    smartType: 'habit',
-    actionVerb: 'Stay smoke-free today',
-    tips: ['Set quit date', 'Use nicotine replacement', 'Avoid triggers'],
-  },
-  {
-    id: 'sleep-by-10pm',
-    name: 'Sleep by 10PM Every Night',
-    icon: Moon,
-    category: 'mental-health',
-    description: 'Be in bed by 10PM for better rest',
-    participants: 3432,
-    frequency: 'daily',
-    defaultDuration: 66,
-    smartType: 'habit',
-    actionVerb: 'In bed by 10PM',
-    tips: ['No screens after 9PM', 'Set bedtime alarm', 'Keep bedroom cool & dark'],
-  },
-  {
-    id: 'journal-daily',
-    name: 'Write in Journal Daily',
+    id: '30-day-journal',
+    name: '30-Day Journaling Challenge',
     icon: PenTool,
-    category: 'mental-health',
-    description: 'Write 1 page in your journal each day',
-    participants: 3876,
-    frequency: 'daily',
-    defaultDuration: 66,
-    smartType: 'habit',
-    actionVerb: 'Write 1 journal page',
-    tips: ['Write same time daily', 'Morning or before bed', 'Dont overthink, just write'],
-  },
-
-  // Relationship
-  {
-    id: 'weekly-date-night',
-    name: 'Weekly Date Night',
-    icon: Heart,
-    category: 'relationship',
-    description: 'Go on a date with your partner weekly',
-    participants: 2987,
-    frequency: 'weekly',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'Date nights this year',
-    targetPlaceholder: '52',
-    targetSuffix: 'dates',
-    actionVerb: 'Go on date night',
-    tips: ['Schedule like a meeting', 'Try new experiences', 'Phones away during date'],
-  },
-  {
-    id: 'call-parents',
-    name: 'Call Parents Weekly',
-    icon: Users,
-    category: 'relationship',
-    description: 'Call your parents at least once a week',
-    participants: 2234,
-    frequency: 'weekly',
-    defaultDuration: 365,
-    smartType: 'habit',
-    actionVerb: 'Call parents',
-    tips: ['Set weekly reminder', 'Video call is better', 'Schedule regular time'],
-  },
-
-  // Content Creation
-  {
-    id: 'youtube-weekly',
-    name: 'Post 1 YouTube Video Weekly',
-    icon: Mic,
-    category: 'content',
-    description: 'Create & upload 1 video every week',
-    participants: 3345,
-    frequency: 'weekly',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'Videos to post this year',
-    targetPlaceholder: '52',
-    targetSuffix: 'videos',
-    actionVerb: 'Post YouTube video',
-    tips: ['Batch film content', 'Consistency beats perfection', 'Repurpose across platforms'],
-  },
-  {
-    id: 'grow-socials',
-    name: 'Grow Your Social Media',
-    icon: Users,
-    category: 'content',
-    description: 'Post content daily to grow followers',
-    participants: 6123,
-    frequency: 'daily',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'How many followers do you want?',
-    targetPlaceholder: '10000',
-    targetSuffix: 'followers',
-    actionVerb: 'Post content today',
-    customInputLabel: 'Which platform?',
-    customInputPlaceholder: 'e.g. Instagram, TikTok, Twitter',
-    tips: ['Post 1-3 times daily', 'Engage with your audience', 'Be consistent with your niche'],
-  },
-  {
-    id: 'write-500-words',
-    name: 'Write 500 Words Daily',
-    icon: PenTool,
-    category: 'content',
-    description: 'Write 500 words every day for your book',
-    participants: 2567,
-    frequency: 'daily',
-    defaultDuration: 365,
-    smartType: 'measured',
-    targetLabel: 'Total words to write',
-    targetPlaceholder: '50000',
-    targetSuffix: 'words',
-    actionVerb: 'Write 500 words',
-    tips: ['Write at same time daily', 'Dont edit while writing', 'Just get words on page'],
-  },
-
-  // Lifestyle
-  {
-    id: 'wake-5am',
-    name: 'Wake Up at 5AM Daily',
-    icon: Clock,
-    category: 'lifestyle',
-    description: 'Wake up at 5AM every morning',
-    participants: 4345,
-    frequency: 'daily',
-    defaultDuration: 365,
-    smartType: 'habit',
-    actionVerb: 'Wake up at 5AM',
-    tips: ['Sleep by 9-10PM', 'No snooze button', 'Put alarm across room'],
-  },
-  {
-    id: 'eat-3-meals',
-    name: 'Eat 3 Meals Every Day',
-    icon: Utensils,
-    category: 'lifestyle',
-    description: 'Eat breakfast, lunch & dinner daily',
-    participants: 5876,
-    frequency: 'daily',
-    defaultDuration: 365,
-    smartType: 'habit',
-    actionVerb: 'Eat all 3 meals',
-    tips: ['Set meal time reminders', 'Meal prep on Sundays', 'Never skip breakfast'],
-  },
-  {
-    id: 'no-social-media',
-    name: 'No Social Media for 30 Days',
-    icon: Zap,
-    category: 'lifestyle',
-    description: 'Stay off social media completely',
-    participants: 3654,
+    category: 'wellness',
+    description: 'Write in your journal every day',
+    participants: 6300,
     frequency: 'daily',
     defaultDuration: 30,
     smartType: 'habit',
-    actionVerb: 'Stay off social media',
-    tips: ['Delete apps from phone', 'Use website blockers', 'Replace with reading'],
+    actionVerb: 'Write 1 journal entry',
+    badge: '📝',
+    tips: ['Write same time daily', 'No editing, just flow', 'Include gratitude and goals'],
   },
   {
-    id: 'brush-teeth-twice',
-    name: 'Brush Teeth Twice Daily',
+    id: '14-day-sleep',
+    name: '14-Day Sleep Challenge',
+    icon: Moon,
+    category: 'wellness',
+    description: 'Be in bed by 10PM every night',
+    participants: 5400,
+    frequency: 'daily',
+    defaultDuration: 14,
+    smartType: 'habit',
+    actionVerb: 'In bed by 10PM',
+    badge: '😴',
+    tips: ['No screens after 9PM', 'Set bedtime alarm', 'Keep bedroom cool and dark'],
+  },
+  {
+    id: '30-day-quit-smoking',
+    name: '30-Day Quit Smoking',
+    icon: Cigarette,
+    category: 'wellness',
+    description: 'Stay smoke-free for 30 days',
+    participants: 4200,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'habit',
+    actionVerb: 'Stay smoke-free today',
+    badge: '🚭',
+    tips: ['Use nicotine replacement if needed', 'Avoid triggers', 'Celebrate each smoke-free day'],
+  },
+
+  // ✨ LIFESTYLE CHALLENGES
+  {
+    id: '21-day-wake-early',
+    name: '21-Day Early Riser Challenge',
+    icon: Clock,
+    category: 'lifestyle',
+    description: 'Wake up at 5AM or 6AM every day',
+    participants: 7600,
+    frequency: 'daily',
+    defaultDuration: 21,
+    smartType: 'habit',
+    actionVerb: 'Wake up early',
+    badge: '⏰',
+    tips: ['Sleep by 10PM', 'Put alarm across the room', 'Have a morning routine ready'],
+  },
+  {
+    id: '30-day-clean',
+    name: '30-Day Declutter Challenge',
     icon: Sparkles,
     category: 'lifestyle',
-    description: 'Brush morning and night every day',
-    participants: 4123,
+    description: 'Declutter one area of your home each day',
+    participants: 5100,
     frequency: 'daily',
-    defaultDuration: 66,
+    defaultDuration: 30,
     smartType: 'habit',
-    actionVerb: 'Brush teeth twice today',
-    tips: ['Morning after waking', 'Night before bed', 'Use a timer for 2 mins'],
+    actionVerb: 'Declutter one area',
+    badge: '🏠',
+    tips: ['Start small - one drawer', 'Donate what you don\'t need', 'Take before/after photos'],
+  },
+  {
+    id: '14-day-no-complaining',
+    name: '14-Day No Complaints Challenge',
+    icon: Heart,
+    category: 'lifestyle',
+    description: 'Go 14 days without complaining',
+    participants: 4300,
+    frequency: 'daily',
+    defaultDuration: 14,
+    smartType: 'habit',
+    actionVerb: 'No complaints today',
+    badge: '😊',
+    tips: ['Replace complaints with gratitude', 'Use a rubber band reminder', 'Focus on solutions not problems'],
+  },
+
+  // 🎬 CONTENT CHALLENGES
+  {
+    id: '30-day-post',
+    name: '30-Day Content Challenge',
+    icon: Mic,
+    category: 'content',
+    description: 'Post content every day for 30 days',
+    participants: 6800,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'habit',
+    actionVerb: 'Post content today',
+    customInputLabel: 'Which platform?',
+    customInputPlaceholder: 'e.g. Instagram, TikTok, Twitter',
+    badge: '📱',
+    tips: ['Batch create content in advance', 'Consistency beats perfection', 'Engage with your audience'],
+  },
+  {
+    id: '30-day-writing',
+    name: '30-Day Writing Challenge',
+    icon: PenTool,
+    category: 'content',
+    description: 'Write 500 words every day',
+    participants: 5200,
+    frequency: 'daily',
+    defaultDuration: 30,
+    smartType: 'measured',
+    targetLabel: 'Total words to write',
+    targetPlaceholder: '15000',
+    targetSuffix: 'words',
+    actionVerb: 'Write 500 words',
+    badge: '✍️',
+    tips: ['Write at same time daily', 'Don\'t edit while writing', 'Just get words on the page'],
   },
 ];
 
@@ -498,7 +459,6 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
     const templates = selectedCategory === 'all' 
       ? popularTemplates 
       : popularTemplates.filter(t => t.category === selectedCategory);
-    
     return templates.sort((a, b) => b.participants - a.participants);
   }, [selectedCategory]);
 
@@ -510,83 +470,74 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
   };
 
   return (
-    <div className="space-y-2 sm:space-y-3">
-
-      {/* Category Filters - Horizontal scroll on mobile */}
-      <div className="overflow-x-auto">
-        <div className="flex gap-1 sm:gap-1.5 pb-1.5 sm:pb-2 min-w-max sm:flex-wrap sm:min-w-0">
-          {goalCategories.map((category) => {
-            const Icon = category.icon;
-            return (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={cn(
-                  "flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium whitespace-nowrap transition-all shrink-0",
-                  selectedCategory === category.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                <span>{category.label}</span>
-              </button>
-            );
-          })}
-        </div>
+    <div className="space-y-4">
+      {/* Category Filter - Horizontal scroll */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin -mx-1 px-1">
+        {goalCategories.map((cat) => {
+          const Icon = cat.icon;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 border",
+                selectedCategory === cat.id 
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                  : "bg-secondary border-border hover:bg-secondary/80 text-foreground"
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {cat.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Templates Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 max-h-[35vh] sm:max-h-[40vh] overflow-y-auto pr-1">
+      {/* Challenge Templates Grid */}
+      <div className="grid gap-2">
         {filteredTemplates.map((template) => {
           const Icon = template.icon;
           return (
             <button
               key={template.id}
               onClick={() => onSelectTemplate(template)}
-              className={cn(
-                  "p-2 sm:p-3 rounded-lg sm:rounded-xl border border-border/40 bg-card/30",
-                  "hover:bg-card/80 hover:border-primary/40 hover:shadow-sm transition-all text-left group"
-                )}
-              >
-                <div className="flex items-start gap-2 sm:gap-2.5">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
-                    <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              className="w-full p-3 rounded-xl border border-border bg-secondary/50 hover:bg-secondary hover:border-primary/30 transition-all text-left group"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-lg">{template.badge || '🎯'}</span>
+                    <h3 className="font-semibold text-sm truncate">{template.name}</h3>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors leading-tight">
-                      {template.name}
-                    </p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-snug line-clamp-2">
-                      {template.description}
-                    </p>
-                    <div className="flex items-center gap-1 mt-1 sm:mt-1.5">
-                      <Trophy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-500" />
-                      <span className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 font-medium">
-                        {formatParticipants(template.participants)}
-                      </span>
-                      <span className="text-[10px] sm:text-xs text-muted-foreground">crushing it</span>
-                    </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{template.description}</p>
+                  <div className="flex items-center gap-3 text-[10px]">
+                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                      {template.defaultDuration} days
+                    </span>
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Users className="w-3 h-3" />
+                      {formatParticipants(template.participants)} joined
+                    </span>
                   </div>
                 </div>
-              </button>
-            );
+              </div>
+            </button>
+          );
         })}
       </div>
 
-      {/* Custom Goal Button */}
-      <button
+      {/* Create Custom Goal */}
+      <Button
+        variant="outline"
+        className="w-full h-12 border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all"
         onClick={onCreateCustom}
-        className="w-full p-2 sm:p-3 rounded-lg sm:rounded-xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2 sm:gap-2.5 text-primary group"
       >
-        <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        </div>
-        <div className="text-left">
-          <p className="font-medium text-xs sm:text-sm">Create Custom Goal</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Build your own unique goal</p>
-        </div>
-      </button>
+        <Plus className="w-4 h-4 mr-2" />
+        Create Custom Challenge
+      </Button>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { ProgressRing } from "@/components/ProgressRing";
 import { cn } from "@/lib/utils";
-import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, Plus, CalendarDays, Copy, Pause, Play, HelpCircle, Users, RefreshCw } from "lucide-react";
+import { TrendingUp, Calendar, MoreVertical, Pencil, Trash2, CalendarDays, Copy, Pause, Play, HelpCircle, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,13 +27,11 @@ interface GoalCardProps {
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
-  onAddTask?: () => void;
   onViewCalendar?: () => void;
   onDuplicate?: () => void;
   onPauseToggle?: () => void;
   onWhyBehind?: () => void;
   onShare?: () => void;
-  onRecalculate?: () => void;
 }
 
 export function GoalCard({
@@ -46,19 +44,15 @@ export function GoalCard({
   status,
   tasksToday,
   totalRemainingTasks,
-  startDate,
-  endDate,
   isPaused,
   onClick,
   onEdit,
   onDelete,
-  onAddTask,
   onViewCalendar,
   onDuplicate,
   onPauseToggle,
   onWhyBehind,
   onShare,
-  onRecalculate,
 }: GoalCardProps) {
   const statusConfig = {
     "on-track": { label: "On Track", color: "text-success", bg: "bg-success/20" },
@@ -112,7 +106,7 @@ export function GoalCard({
               {isPaused && <Pause className="w-3 h-3" />}
               {label}
             </span>
-            {(onEdit || onDelete || onAddTask || onViewCalendar || onDuplicate || onPauseToggle || onShare || onRecalculate) && (
+            {(onEdit || onDelete || onViewCalendar || onDuplicate || onPauseToggle || onShare) && (
               <DropdownMenu>
                 <DropdownMenuTrigger 
                   onClick={(e) => e.stopPropagation()}
@@ -120,23 +114,11 @@ export function GoalCard({
                 >
                   <MoreVertical className="w-4 h-4 text-muted-foreground" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-card border-white/10 z-50">
-                  {onAddTask && (
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAddTask(); }}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Task
-                    </DropdownMenuItem>
-                  )}
+                <DropdownMenuContent align="end" className="bg-card border-white/10 z-[100]">
                   {onViewCalendar && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewCalendar(); }}>
                       <CalendarDays className="w-4 h-4 mr-2" />
                       View Calendar
-                    </DropdownMenuItem>
-                  )}
-                  {onRecalculate && (
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRecalculate(); }}>
-                      <RefreshCw className="w-4 h-4 mr-2 text-blue-400" />
-                      Recalculate Progress
                     </DropdownMenuItem>
                   )}
                   {onShare && (
@@ -166,7 +148,7 @@ export function GoalCard({
                       )}
                     </DropdownMenuItem>
                   )}
-                  {(onAddTask || onViewCalendar || onDuplicate || onPauseToggle || onShare || onRecalculate) && (onEdit || onDelete) && <DropdownMenuSeparator />}
+                  {(onViewCalendar || onDuplicate || onPauseToggle || onShare) && (onEdit || onDelete) && <DropdownMenuSeparator />}
                   {onEdit && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                       <Pencil className="w-4 h-4 mr-2" />
