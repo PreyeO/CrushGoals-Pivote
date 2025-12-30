@@ -470,9 +470,19 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
   };
 
   return (
-    <div className="space-y-4">
-      {/* Category Filter - Horizontal scroll */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin -mx-1 px-1">
+    <div className="space-y-3">
+      {/* Custom Goal Button - Top */}
+      <Button
+        variant="outline"
+        className="w-full h-10 border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all"
+        onClick={onCreateCustom}
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Create Custom Challenge
+      </Button>
+
+      {/* Category Filter - Wrapped Grid */}
+      <div className="flex flex-wrap gap-1.5">
         {goalCategories.map((cat) => {
           const Icon = cat.icon;
           return (
@@ -480,42 +490,42 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 border",
+                "flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-all border",
                 selectedCategory === cat.id 
                   ? "bg-primary text-primary-foreground border-primary shadow-sm" 
                   : "bg-secondary border-border hover:bg-secondary/80 text-foreground"
               )}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-3 h-3" />
               {cat.label}
             </button>
           );
         })}
       </div>
 
-      {/* Challenge Templates Grid - 2 columns on mobile, responsive */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Challenge Templates Grid - 3 columns */}
+      <div className="grid grid-cols-3 gap-2 max-h-[280px] overflow-y-auto pr-1">
         {filteredTemplates.map((template) => {
           const Icon = template.icon;
           return (
             <button
               key={template.id}
               onClick={() => onSelectTemplate(template)}
-              className="p-3 rounded-xl border border-border bg-secondary/50 hover:bg-secondary hover:border-primary/30 transition-all text-left group flex flex-col h-full"
+              className="p-2 rounded-lg border border-border bg-secondary/50 hover:bg-secondary hover:border-primary/30 transition-all text-left group flex flex-col"
             >
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
-                  <Icon className="w-4 h-4" />
+              <div className="flex items-center gap-1 mb-1">
+                <span className="text-sm">{template.badge || '🎯'}</span>
+                <div className="p-1 rounded bg-primary/10 text-primary shrink-0">
+                  <Icon className="w-3 h-3" />
                 </div>
-                <span className="text-base">{template.badge || '🎯'}</span>
               </div>
-              <h3 className="font-semibold text-xs leading-tight line-clamp-2 mb-1">{template.name}</h3>
-              <div className="flex items-center gap-2 text-[10px] mt-auto">
-                <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+              <h3 className="font-medium text-[10px] leading-tight line-clamp-2 mb-1">{template.name}</h3>
+              <div className="flex items-center gap-1.5 text-[9px] mt-auto">
+                <span className="px-1 py-0.5 rounded bg-primary/10 text-primary font-medium">
                   {template.defaultDuration}d
                 </span>
                 <span className="text-muted-foreground flex items-center gap-0.5">
-                  <Users className="w-2.5 h-2.5" />
+                  <Users className="w-2 h-2" />
                   {formatParticipants(template.participants)}
                 </span>
               </div>
@@ -523,16 +533,6 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
           );
         })}
       </div>
-
-      {/* Create Custom Goal */}
-      <Button
-        variant="outline"
-        className="w-full h-12 border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all"
-        onClick={onCreateCustom}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Create Custom Challenge
-      </Button>
     </div>
   );
 }
