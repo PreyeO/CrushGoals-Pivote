@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logError } from '@/lib/logger';
@@ -24,7 +24,7 @@ export function useSubscription() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchSubscription = async () => {
+  const fetchSubscription = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -41,28 +41,28 @@ export function useSubscription() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const isPremium = () => {
+  const isPremium = useCallback(() => {
     if (!subscription) return false;
     if (subscription.status === 'trial') {
       const trialEnd = subscription.trial_ends_at ? new Date(subscription.trial_ends_at) : null;
       return trialEnd ? trialEnd > new Date() : false;
     }
     return subscription.status === 'active' && subscription.plan !== 'free';
-  };
+  }, [subscription]);
 
-  const getTrialDaysLeft = () => {
+  const getTrialDaysLeft = useCallback(() => {
     if (!subscription || subscription.status !== 'trial' || !subscription.trial_ends_at) return 0;
     const trialEnd = new Date(subscription.trial_ends_at);
     const now = new Date();
     const diff = trialEnd.getTime() - now.getTime();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  };
+  }, [subscription]);
 
   useEffect(() => {
     fetchSubscription();
-  }, [user?.id]);
+  }, [fetchSubscription]);
 
   return {
     subscription,
