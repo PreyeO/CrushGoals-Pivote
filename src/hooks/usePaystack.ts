@@ -5,7 +5,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
 import { logError } from '@/lib/logger';
 
-export type PaystackPlan = 'basic_monthly' | 'basic_annual' | 'premium_monthly' | 'premium_annual';
+export type PaystackPlan = 'monthly' | 'annual';
 
 interface PaystackInitResponse {
   authorization_url: string;
@@ -29,14 +29,10 @@ export function usePaystack() {
     const pricing = getPricing();
     
     switch (plan) {
-      case 'basic_monthly':
-        return Math.round(pricing.basic.monthly.amount * 100);
-      case 'basic_annual':
-        return Math.round(pricing.basic.annual.amount * 100);
-      case 'premium_monthly':
-        return Math.round(pricing.premium.monthly.amount * 100);
-      case 'premium_annual':
-        return Math.round(pricing.premium.annual.amount * 100);
+      case 'monthly':
+        return Math.round(pricing.monthly.amount * 100);
+      case 'annual':
+        return Math.round(pricing.annual.amount * 100);
       default:
         return 0;
     }

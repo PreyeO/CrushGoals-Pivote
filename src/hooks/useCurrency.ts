@@ -18,50 +18,36 @@ export const currencies: CurrencyInfo[] = [
   { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', flag: '🇦🇺' },
 ];
 
-// Pricing structure per currency
+// Simplified pricing: one plan - monthly and yearly (yearly = 11 months)
 interface PricingTier {
-  basicMonthly: number;
-  basicAnnual: number;
-  premiumMonthly: number;
-  premiumAnnual: number;
+  monthly: number;
+  annual: number; // 11 months worth (one month free)
 }
 
 const pricingByCurrency: Record<Currency, PricingTier> = {
   NGN: {
-    basicMonthly: 1500,
-    basicAnnual: 16000,
-    premiumMonthly: 2500,
-    premiumAnnual: 25000,
+    monthly: 1500,
+    annual: 16500, // ₦1,500 × 11 = ₦16,500
   },
   USD: {
-    basicMonthly: 3,
-    basicAnnual: 30, // ~$2.50/month - saves $6
-    premiumMonthly: 5,
-    premiumAnnual: 50, // ~$4.17/month - saves $10
+    monthly: 3,
+    annual: 33, // $3 × 11 = $33
   },
   GBP: {
-    basicMonthly: 2.50,
-    basicAnnual: 25,
-    premiumMonthly: 4,
-    premiumAnnual: 40,
+    monthly: 2.50,
+    annual: 27.50, // £2.50 × 11 = £27.50
   },
   EUR: {
-    basicMonthly: 2.80,
-    basicAnnual: 28,
-    premiumMonthly: 4.50,
-    premiumAnnual: 45,
+    monthly: 2.80,
+    annual: 30.80, // €2.80 × 11 = €30.80
   },
   CAD: {
-    basicMonthly: 4,
-    basicAnnual: 40,
-    premiumMonthly: 6.50,
-    premiumAnnual: 65,
+    monthly: 4,
+    annual: 44, // C$4 × 11 = C$44
   },
   AUD: {
-    basicMonthly: 4.50,
-    basicAnnual: 45,
-    premiumMonthly: 7,
-    premiumAnnual: 70,
+    monthly: 4.50,
+    annual: 49.50, // A$4.50 × 11 = A$49.50
   },
 };
 
@@ -119,50 +105,23 @@ export function useCurrency() {
     const currencyInfo = currencies.find(c => c.code === currency)!;
     const prices = pricingByCurrency[currency];
     
-    const basicMonthly = prices.basicMonthly;
-    const basicAnnual = prices.basicAnnual;
-    const premiumMonthly = prices.premiumMonthly;
-    const premiumAnnual = prices.premiumAnnual;
+    const monthlyAmount = prices.monthly;
+    const annualAmount = prices.annual;
     
-    // Calculate savings
-    const basicSavings = (basicMonthly * 12) - basicAnnual;
-    const premiumSavings = (premiumMonthly * 12) - premiumAnnual;
+    // Savings = 1 month free
+    const savings = monthlyAmount;
 
     return {
-      basic: {
-        monthly: {
-          amount: basicMonthly,
-          formatted: formatPrice(basicMonthly, currency, currencyInfo.symbol),
-        },
-        annual: {
-          amount: basicAnnual,
-          formatted: formatPrice(basicAnnual, currency, currencyInfo.symbol),
-          perMonth: formatPrice(basicAnnual / 12, currency, currencyInfo.symbol),
-          savings: formatPrice(basicSavings, currency, currencyInfo.symbol),
-        },
-      },
-      premium: {
-        monthly: {
-          amount: premiumMonthly,
-          formatted: formatPrice(premiumMonthly, currency, currencyInfo.symbol),
-        },
-        annual: {
-          amount: premiumAnnual,
-          formatted: formatPrice(premiumAnnual, currency, currencyInfo.symbol),
-          perMonth: formatPrice(premiumAnnual / 12, currency, currencyInfo.symbol),
-          savings: formatPrice(premiumSavings, currency, currencyInfo.symbol),
-        },
-      },
-      // Legacy format for backwards compatibility
       monthly: {
-        amount: basicMonthly,
-        formatted: formatPrice(basicMonthly, currency, currencyInfo.symbol),
+        amount: monthlyAmount,
+        formatted: formatPrice(monthlyAmount, currency, currencyInfo.symbol),
       },
       annual: {
-        amount: basicAnnual,
-        formatted: formatPrice(basicAnnual, currency, currencyInfo.symbol),
-        perMonth: formatPrice(basicAnnual / 12, currency, currencyInfo.symbol),
-        savings: `${Math.round((1 - basicAnnual / (basicMonthly * 12)) * 100)}%`,
+        amount: annualAmount,
+        formatted: formatPrice(annualAmount, currency, currencyInfo.symbol),
+        perMonth: formatPrice(annualAmount / 12, currency, currencyInfo.symbol),
+        savings: formatPrice(savings, currency, currencyInfo.symbol),
+        savingsText: '1 month free',
       },
       symbol: currencyInfo.symbol,
       code: currency,
