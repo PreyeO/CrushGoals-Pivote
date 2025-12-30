@@ -53,29 +53,43 @@ export function usePaystack() {
         throw new Error('Invalid plan amount');
       }
 
-      console.log(`Initializing Paystack payment for plan: ${plan}, amount: ${amount} kobo`);
+      // Map plan to full plan name for edge function
+      const planName = plan === 'monthly' ? 'premium_monthly' : 'premium_annual';
+
+      console.log(`Initializing Paystack payment for plan: ${planName}, amount: ${amount} kobo`);
 
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await supabase.functions.invoke('paystack-payment', {
-        body: { amount, plan },
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to initialize payment');
+      if (!session?.access_token) {
+        toast.error('Please sign in to continue');
+        setIsLoading(false);
+        return null;
       }
 
-      const data = response.data as PaystackInitResponse;
+      // Use fetch directly with query parameter for action
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/paystack-payment?action=initialize`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ amount, plan: planName }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to initialize payment');
+      }
       
       // Redirect to Paystack checkout
       if (data.authorization_url) {
         window.location.href = data.authorization_url;
       }
 
-      return data;
+      return data as PaystackInitResponse;
     } catch (error) {
       logError('Paystack initialization error:', error);
       toast.error('Failed to initialize payment. Please try again.');
@@ -97,24 +111,34 @@ export function usePaystack() {
 
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await supabase.functions.invoke('paystack-payment', {
-        body: { reference },
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Payment verification failed');
+      if (!session?.access_token) {
+        setIsLoading(false);
+        return null;
       }
 
-      const data = response.data as PaystackVerifyResponse;
+      // Use fetch directly with query parameter for action
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/paystack-payment?action=verify`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ reference }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Payment verification failed');
+      }
       
       if (data.success) {
         toast.success('Payment successful! Your subscription is now active.');
       }
 
-      return data;
+      return data as PaystackVerifyResponse;
     } catch (error) {
       logError('Paystack verification error:', error);
       toast.error('Payment verification failed. Please contact support.');
