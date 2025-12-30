@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -288,6 +288,9 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
           {/* Fixed Header */}
           <div className="p-3 sm:p-4 pb-2 sm:pb-3 border-b border-border shrink-0">
             <DialogHeader>
+              <DialogDescription className="sr-only">
+                Create a new goal by selecting a template and setting your timeline and frequency.
+              </DialogDescription>
               <div className="flex items-center gap-2 sm:gap-3">
                 {step > 1 && (
                   <button 

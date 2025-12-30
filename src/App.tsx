@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import Goals from "./pages/Goals";
@@ -30,53 +31,79 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/admin-login" element={<AdminLogin />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/signup-success" element={<SignupSuccess />} />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/goals" element={
-                <ProtectedRoute>
-                  <Goals />
-                </ProtectedRoute>
-              } />
-              <Route path="/tasks" element={
-                <ProtectedRoute>
-                  <Tasks />
-                </ProtectedRoute>
-              } />
-              <Route path="/analytics" element={
-                <ProtectedRoute>
-                  <Analytics />
-                </ProtectedRoute>
-              } />
-              <Route path="/achievements" element={
-                <ProtectedRoute>
-                  <Achievements />
-                </ProtectedRoute>
-              } />
-              <Route path="/leaderboard" element={
-                <ProtectedRoute>
-                  <Leaderboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin" element={
-                <ProtectedRoute requireAdmin>
-                  <Admin />
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <ErrorBoundary fallbackTitle="App error">
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/admin-login" element={<AdminLogin />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/signup-success" element={<SignupSuccess />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/goals"
+                  element={
+                    <ProtectedRoute>
+                      <Goals />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/tasks"
+                  element={
+                    <ProtectedRoute>
+                      <Tasks />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/analytics"
+                  element={
+                    <ProtectedRoute>
+                      <Analytics />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/achievements"
+                  element={
+                    <ProtectedRoute>
+                      <Achievements />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/leaderboard"
+                  element={
+                    <ProtectedRoute>
+                      <Leaderboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute requireAdmin>
+                      <Admin />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
