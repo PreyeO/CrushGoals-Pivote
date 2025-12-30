@@ -464,16 +464,22 @@ src/
 
 #### `handle_new_user()`
 Trigger function that runs on new user signup:
-- Creates profile record
+- Creates profile record with username and leaderboard visibility preference
 - Initializes user_stats
 - Assigns default 'user' role
-- Creates 7-day trial subscription
+- Creates 3-day trial subscription
 
 #### `get_leaderboard_data(limit_count)`
 Secure RPC function for leaderboard:
 - Returns user_id, display_name, stats
 - Excludes admin users
+- Only shows users who opted in (`show_on_leaderboard = true`)
 - Orders by total_xp DESC
+
+#### `get_leaderboard_data_filtered(limit_count, time_filter)`
+Filtered leaderboard with time-based options:
+- Supports 'week' (last 7 days activity) and 'alltime' filters
+- Same exclusions and ordering as base function
 
 #### `check_login_rate_limit(check_email)`
 Rate limiting for regular users:
@@ -501,13 +507,25 @@ Returns member progress for shared goals:
 - current_streak, goal_progress percentage
 - Only accessible by members/owners
 
+#### `generate_email_otp(p_user_id, p_email)`
+Secure OTP generation for email verification:
+- Generates 6-digit cryptographically secure code
+- Rate limited: 1 minute between requests, max 5 per 10 minutes
+- Auto-deletes previous OTPs for user
+
+#### `verify_email_otp(p_user_id, p_otp)`
+OTP verification function:
+- Max 5 verification attempts per OTP
+- Marks OTP as verified on success
+- Returns boolean result
+
 ---
 
 ## Authentication & Security
 
 ### Authentication Flow
 
-1. **Signup**: Email/password with full name
+1. **Signup**: Email/password with full name, username, and leaderboard visibility preference
 2. **Email Verification**: 6-digit OTP-based verification sent via Resend from verified domain (hello.crushgoals.app)
 3. **Login**: Email/password with rate limiting
 4. **Session Management**: 30-minute inactivity timeout with 5-minute warning
@@ -520,7 +538,7 @@ Returns member progress for shared goals:
 - **Verified Domain**: hello.crushgoals.app
 - **Sender**: CrushGoals <no-reply@hello.crushgoals.app>
 - **Edge Functions**:
-  - `send-email-resend`: Primary email function for OTP codes, invitations, and transactional emails
+  - `send-email-resend`: Primary email function for OTP codes, invitations, and transactional emails (verify_jwt: false)
   - `send-email`: Legacy Brevo-based function (deprecated)
 
 ### Security Features
@@ -528,12 +546,22 @@ Returns member progress for shared goals:
 #### Row Level Security (RLS)
 All tables have RLS enabled with policies:
 - Users can only access their own data
+- Profile emails restricted to owner and accepted friends only
 - Admins have elevated read access
-- Public data (leaderboard) accessed via secure RPC
+- Public data (leaderboard) accessed via secure RPC functions
+- email_verification_otps table protected by default-deny
+
+#### Payment Security
+- **Paystack Integration**: Open redirect prevention via URL whitelisting
+- **Allowed Callback Paths**: `/settings`, `/dashboard`, `/subscription` only
+- **Hardcoded Domain**: Production domain (crushgoals.app) enforced server-side
+- **Webhook Verification**: Paystack signature validation for payment events
 
 #### Rate Limiting
 - **Regular Login**: 5 attempts / 15 minutes
 - **Admin Login**: 3 attempts / 30 minutes
+- **OTP Generation**: 1 minute cooldown, max 5 per 10 minutes
+- **OTP Verification**: Max 5 attempts per code
 - Server-side enforcement via SQL functions
 
 #### Secure Logging
@@ -558,9 +586,17 @@ Zod schemas for all user inputs:
 
 - Separate `/admin-login` page
 - Dedicated admin account with 'admin' role
-- Stricter rate limiting
-- Full audit logging
+- Stricter rate limiting (3 attempts / 30 minutes)
+- Full audit logging with IP address and user agent tracking
 - Excluded from user-facing features (leaderboards)
+
+### Edge Functions
+
+| Function | JWT Required | Purpose |
+|----------|--------------|---------|
+| `paystack-payment` | No | Payment initialization and webhook handling |
+| `send-email` | Yes | Legacy email function (deprecated) |
+| `send-email-resend` | No | Primary email service via Resend API |
 
 ---
 
@@ -711,8 +747,9 @@ npm run preview
 ## Subscription Model
 
 ### Free Trial
-- 7 days, no credit card required
+- 3 days, no credit card required
 - Full feature access
+- Auto-created on signup via `handle_new_user()` trigger
 
 ### Free Tier (Post-Trial)
 - 1 goal limit
@@ -778,5 +815,20 @@ const channel = supabase
 
 ---
 
+## Known Security Considerations
+
+### Addressed Issues
+- ✅ Open redirect in Paystack payment callback (whitelisted paths + hardcoded domain)
+- ✅ Rate limiting on login and OTP generation
+- ✅ Secure RPC functions for leaderboard data
+- ✅ Admin exclusion from public leaderboards
+
+### Monitoring Required
+- Profile email exposure policies (restrict to owner + accepted friends)
+- email_verification_otps table access policies
+- Regular security scans via Lovable Cloud
+
+---
+
 *Last Updated: December 2024*
-*Version: 1.2.0*
+*Version: 1.3.0*
