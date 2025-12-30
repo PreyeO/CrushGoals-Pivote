@@ -78,6 +78,12 @@ serve(async (req) => {
   }
 });
 
+// Allowed callback paths - whitelist to prevent open redirect attacks
+const ALLOWED_CALLBACK_PATHS = ['/settings', '/dashboard', '/subscription'];
+
+// Production domain - hardcoded to prevent manipulation
+const PRODUCTION_DOMAIN = 'https://crushgoals.app';
+
 async function handleInitialize(req: Request, userId: string, userEmail: string) {
   const body: InitializePaymentRequest = await req.json();
   const { amount, plan, callbackUrl } = body;
@@ -93,6 +99,25 @@ async function handleInitialize(req: Request, userId: string, userEmail: string)
 
   const reference = `cg_${userId.slice(0, 8)}_${Date.now()}`;
 
+  // Sanitize callback URL to prevent open redirect attacks
+  // Only allow whitelisted paths, default to /settings
+  let sanitizedPath = '/settings?payment=success';
+  if (callbackUrl) {
+    try {
+      // Extract just the pathname if a full URL is provided
+      const urlPath = callbackUrl.startsWith('/') ? callbackUrl : new URL(callbackUrl).pathname;
+      const basePath = urlPath.split('?')[0]; // Get path without query params
+      
+      if (ALLOWED_CALLBACK_PATHS.includes(basePath)) {
+        sanitizedPath = `${basePath}?payment=success`;
+      } else {
+        console.warn(`Blocked callback URL attempt: ${callbackUrl}`);
+      }
+    } catch (e) {
+      console.warn(`Invalid callback URL format: ${callbackUrl}`);
+    }
+  }
+
   const response = await fetch('https://api.paystack.co/transaction/initialize', {
     method: 'POST',
     headers: {
@@ -103,7 +128,7 @@ async function handleInitialize(req: Request, userId: string, userEmail: string)
       email: userEmail,
       amount, // Amount in kobo
       reference,
-      callback_url: callbackUrl || `${req.headers.get('origin')}/settings?payment=success`,
+      callback_url: `${PRODUCTION_DOMAIN}${sanitizedPath}`,
       metadata: {
         user_id: userId,
         plan,
