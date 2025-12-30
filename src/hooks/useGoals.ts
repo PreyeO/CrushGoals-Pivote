@@ -87,7 +87,7 @@ export function useGoals() {
     setFirstGoalCelebration(false);
   }, []);
 
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -111,7 +111,7 @@ export function useGoals() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   const generateTasks = async (
     goalId: string, 
