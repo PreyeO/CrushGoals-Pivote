@@ -181,7 +181,11 @@ export function GoalCard({
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground">Progress</p>
             <p className="text-sm font-medium truncate">
-              {currentValue} <span className="text-muted-foreground">/ {targetValue}</span>
+              {targetValue === 'Complete' || !targetValue ? (
+                <span>{Math.round(progress)}% complete</span>
+              ) : (
+                <>{currentValue} <span className="text-muted-foreground">/ {targetValue}</span></>
+              )}
             </p>
           </div>
         </div>
