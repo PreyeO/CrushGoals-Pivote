@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Flame, Trophy, Zap, Target, Crown, Check } from 'lucide-react';
+import { Flame, Trophy, Zap, Target, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useSubscription } from '@/hooks/useSubscription';
+import { usePaystack } from '@/hooks/usePaystack';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TrialExpiryModalProps {
@@ -24,8 +25,9 @@ interface UserAchievementStats {
 
 export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps) {
   const { user, stats } = useAuth();
-  const { getPricing, currentCurrency } = useCurrency();
-  const { subscription, getTrialDaysLeft } = useSubscription();
+  const { getPricing } = useCurrency();
+  const { getTrialDaysLeft } = useSubscription();
+  const { initializePayment, isLoading: paystackLoading } = usePaystack();
   const [userStats, setUserStats] = useState<UserAchievementStats>({
     tasksCompleted: 0,
     xpEarned: 0,
@@ -72,11 +74,15 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
     }
   }, [open, user?.id, stats]);
 
-  const handleUpgrade = (plan: 'basic' | 'premium' | 'premium-annual') => {
-    // This will be connected to payment gateway
-    console.log('Upgrading to:', plan);
-    // For now, acknowledge and close
-    onAcknowledge();
+  const handleUpgrade = async (plan: 'monthly' | 'annual') => {
+    // Use Paystack for NGN payments
+    if (pricing.isNigeria) {
+      await initializePayment(plan);
+    } else {
+      // For international payments, will integrate Stripe later
+      console.log('International payment for:', plan);
+      onAcknowledge();
+    }
   };
 
   return (
@@ -91,7 +97,7 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center gap-3 text-2xl">
               <Flame className="w-8 h-8 animate-pulse" />
-              Your 3-Day Streak is About to Die
+              Your Streak is About to Die
               <Flame className="w-8 h-8 animate-pulse" />
             </DialogTitle>
           </DialogHeader>
@@ -130,59 +136,39 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
 
           {/* Plan Options */}
           <div className="space-y-3 mb-4">
-            {/* Basic Plan */}
+            {/* Monthly Plan */}
             <Card 
               className="p-4 cursor-pointer hover:border-primary transition-colors"
-              onClick={() => handleUpgrade('basic')}
+              onClick={() => !paystackLoading && handleUpgrade('monthly')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold">Basic - Solo Crusher</h3>
-                  <p className="text-sm text-muted-foreground">5 goals, solo crushing</p>
+                  <h3 className="font-semibold">Monthly</h3>
+                  <p className="text-sm text-muted-foreground">Pay as you go</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold">{pricing.basic.monthly.formatted}</p>
+                  <p className="text-lg font-bold">{pricing.monthly.formatted}</p>
                   <p className="text-xs text-muted-foreground">/month</p>
                 </div>
               </div>
             </Card>
 
-            {/* Premium Plan */}
+            {/* Annual Plan */}
             <Card 
               className="p-4 cursor-pointer border-2 border-primary bg-primary/5 hover:bg-primary/10 transition-colors relative"
-              onClick={() => handleUpgrade('premium')}
+              onClick={() => !paystackLoading && handleUpgrade('annual')}
             >
               <Badge className="absolute -top-2 left-4 bg-primary">
                 <Crown className="w-3 h-3 mr-1" />
-                MOST POPULAR
+                BEST VALUE
               </Badge>
               <div className="flex items-center justify-between mt-2">
                 <div>
-                  <h3 className="font-semibold">Premium - Social Crusher</h3>
-                  <p className="text-sm text-muted-foreground">Unlimited + social features</p>
+                  <h3 className="font-semibold">Annual</h3>
+                  <p className="text-sm text-muted-foreground">Save {pricing.annual.savings}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-primary">{pricing.premium.monthly.formatted}</p>
-                  <p className="text-xs text-muted-foreground">/month</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Premium Annual */}
-            <Card 
-              className="p-4 cursor-pointer hover:border-primary transition-colors"
-              onClick={() => handleUpgrade('premium-annual')}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold flex items-center gap-2">
-                    Premium Annual
-                    <Badge variant="secondary" className="text-xs">Save {pricing.premium.annual.savings}</Badge>
-                  </h3>
-                  <p className="text-sm text-muted-foreground">Best value for crushers</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold">{pricing.premium.annual.formatted}</p>
+                  <p className="text-lg font-bold text-primary">{pricing.annual.formatted}</p>
                   <p className="text-xs text-muted-foreground">/year</p>
                 </div>
               </div>
@@ -193,15 +179,26 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
           <Button 
             variant="hero" 
             className="w-full mb-3"
-            onClick={() => handleUpgrade('premium')}
+            onClick={() => handleUpgrade('annual')}
+            disabled={paystackLoading}
           >
-            <Crown className="w-4 h-4 mr-2" />
-            Pay Now and Keep Your Streak
+            {paystackLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Crown className="w-4 h-4 mr-2" />
+                Pay Now and Keep Your Streak
+              </>
+            )}
           </Button>
 
           <button
             onClick={onAcknowledge}
             className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+            disabled={paystackLoading}
           >
             Not ready? Your progress will be saved, but your streak resets to 0.
           </button>

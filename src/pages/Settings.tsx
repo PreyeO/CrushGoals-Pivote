@@ -14,6 +14,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/hooks/useCurrency";
+import { usePaystack } from "@/hooks/usePaystack";
 import { useNotifications } from "@/hooks/useNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,7 @@ export default function Settings() {
   const { profile, isLoading: profileLoading, updateProfile } = useProfile();
   const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft } = useSubscription();
   const { getPricing } = useCurrency();
+  const { initializePayment, isLoading: paystackLoading } = usePaystack();
   const { settings: notificationSettings, updateSettings: updateNotificationSettings, requestPermission, permissionStatus } = useNotifications();
   const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission, settings: pushSettings, updateSettings: updatePushSettings } = usePushNotifications();
   const pricing = getPricing();
@@ -108,8 +110,13 @@ export default function Settings() {
     await updateProfile({ show_on_leaderboard: checked });
   };
 
-  const handleManageSubscription = () => {
-    toast.info("Subscription management coming soon!");
+  const handleUpgrade = async (plan: 'monthly' | 'annual') => {
+    if (pricing.isNigeria) {
+      await initializePayment(plan);
+    } else {
+      // For international payments, will integrate Stripe later
+      toast.info("International payments coming soon!");
+    }
   };
 
   const handleExportData = () => {
@@ -398,9 +405,11 @@ export default function Settings() {
                           </p>
                         </div>
                       </div>
-                      <Button variant="outline" onClick={handleManageSubscription} className="text-sm w-full sm:w-auto">
-                        {isPremium() ? 'Manage' : 'Upgrade'}
-                      </Button>
+                      {isPremium() && (
+                        <Button variant="outline" className="text-sm w-full sm:w-auto" onClick={() => toast.info("Subscription management coming soon!")}>
+                          Manage
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -417,17 +426,31 @@ export default function Settings() {
                   {/* Pricing */}
                   {!isPremium() && (
                     <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="p-4 sm:p-6 rounded-2xl border border-white/10 bg-white/5">
+                      <div className="p-4 sm:p-6 rounded-2xl border border-white/10 bg-white/5">
                         <h4 className="font-semibold mb-2">Monthly</h4>
                         <p className="text-2xl sm:text-3xl font-bold mb-4">{pricing.monthly.formatted}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                        <Button variant="outline" className="w-full">Choose Monthly</Button>
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => handleUpgrade('monthly')}
+                          disabled={paystackLoading}
+                        >
+                          {paystackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Choose Monthly'}
+                        </Button>
                       </div>
                       <div className="p-4 sm:p-6 rounded-2xl border-2 border-premium/50 bg-premium/10 relative">
-                        <span className="absolute -top-3 left-4 px-2 py-1 bg-premium text-xs font-bold rounded-full">BEST VALUE</span>
+                        <span className="absolute -top-3 left-4 px-2 py-1 bg-premium text-xs font-bold rounded-full">1 MONTH FREE</span>
                         <h4 className="font-semibold mb-2">Annual</h4>
                         <p className="text-2xl sm:text-3xl font-bold mb-1">{pricing.annual.formatted}<span className="text-sm font-normal text-muted-foreground">/yr</span></p>
-                        <p className="text-xs text-success mb-4">Save 31%</p>
-                        <Button variant="hero" className="w-full">Choose Annual</Button>
+                        <p className="text-xs text-success mb-4">Save {pricing.annual.savings}</p>
+                        <Button 
+                          variant="hero" 
+                          className="w-full"
+                          onClick={() => handleUpgrade('annual')}
+                          disabled={paystackLoading}
+                        >
+                          {paystackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Choose Annual'}
+                        </Button>
                       </div>
                     </div>
                   )}
