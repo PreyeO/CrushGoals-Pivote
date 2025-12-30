@@ -1,5 +1,8 @@
 project_id = "jnoqlbqilwohfyfudnss"
 
+[functions.paystack-payment]
+verify_jwt = false
+
 [functions.send-email]
 verify_jwt = true
 
