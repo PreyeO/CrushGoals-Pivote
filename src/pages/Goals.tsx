@@ -434,12 +434,10 @@ export default function Goals() {
                       isPaused={goal.is_paused}
                       onEdit={() => setEditGoal(goal)}
                       onDelete={() => setDeleteGoalId(goal.id)}
-                      onAddTask={() => setAddTaskGoal(goal)}
                       onViewCalendar={() => setCalendarGoal(goal)}
                       onDuplicate={() => duplicateGoal(goal.id)}
                       onPauseToggle={() => setPauseGoalTarget(goal)}
                       onWhyBehind={goal.status === 'behind' ? () => setWhyBehindGoal(goal) : undefined}
-                      onRecalculate={() => recalculateProgress(goal.id)}
                       onShare={() => {
                         if (existingSharedGoal) {
                           setViewSharedGoal({
@@ -491,7 +489,6 @@ export default function Goals() {
                     onEdit={() => setEditGoal(goal)}
                     onDelete={() => setDeleteGoalId(goal.id)}
                     onPauseToggle={() => setPauseGoalTarget(goal)}
-                    onRecalculate={() => recalculateProgress(goal.id)}
                   />
                 ))}
               </div>
