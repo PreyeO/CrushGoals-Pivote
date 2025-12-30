@@ -493,36 +493,31 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
         })}
       </div>
 
-      {/* Challenge Templates Grid */}
-      <div className="grid gap-2">
+      {/* Challenge Templates Grid - 2 columns on mobile, responsive */}
+      <div className="grid grid-cols-2 gap-2">
         {filteredTemplates.map((template) => {
           const Icon = template.icon;
           return (
             <button
               key={template.id}
               onClick={() => onSelectTemplate(template)}
-              className="w-full p-3 rounded-xl border border-border bg-secondary/50 hover:bg-secondary hover:border-primary/30 transition-all text-left group"
+              className="p-3 rounded-xl border border-border bg-secondary/50 hover:bg-secondary hover:border-primary/30 transition-all text-left group flex flex-col h-full"
             >
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
-                  <Icon className="w-5 h-5" />
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <Icon className="w-4 h-4" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-lg">{template.badge || '🎯'}</span>
-                    <h3 className="font-semibold text-sm truncate">{template.name}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{template.description}</p>
-                  <div className="flex items-center gap-3 text-[10px]">
-                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                      {template.defaultDuration} days
-                    </span>
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {formatParticipants(template.participants)} joined
-                    </span>
-                  </div>
-                </div>
+                <span className="text-base">{template.badge || '🎯'}</span>
+              </div>
+              <h3 className="font-semibold text-xs leading-tight line-clamp-2 mb-1">{template.name}</h3>
+              <div className="flex items-center gap-2 text-[10px] mt-auto">
+                <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                  {template.defaultDuration}d
+                </span>
+                <span className="text-muted-foreground flex items-center gap-0.5">
+                  <Users className="w-2.5 h-2.5" />
+                  {formatParticipants(template.participants)}
+                </span>
               </div>
             </button>
           );

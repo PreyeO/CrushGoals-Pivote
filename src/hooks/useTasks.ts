@@ -25,7 +25,7 @@ export interface Task {
   };
 }
 
-export type CelebrationTrigger = 'perfectDay' | 'milestone' | null;
+export type CelebrationTrigger = 'perfectDay' | 'milestone' | 'goalComplete' | null;
 
 export function useTasks(date?: string) {
   const { user } = useAuth();
@@ -251,7 +251,12 @@ export function useTasks(date?: string) {
         if (allDone) {
           updates.status = 'completed';
           updates.completed_at = new Date().toISOString();
-          toast.success('🏆 Goal Completed! Amazing work!');
+          // Return true to indicate goal completion for celebration
+          await supabase
+            .from('goals')
+            .update(updates)
+            .eq('id', goalId);
+          return { goalCompleted: true };
         }
       }
 
@@ -310,8 +315,12 @@ export function useTasks(date?: string) {
 
       // Auto-update goal progress
       if (data.goal_id) {
-        await updateGoalProgress(data.goal_id);
+        const goalResult = await updateGoalProgress(data.goal_id);
         
+        // Trigger goal completion celebration
+        if (goalResult?.goalCompleted) {
+          setCelebrationTrigger('goalComplete');
+        }
         // Log activity to shared goals for real-time notifications
         if (completed && user) {
           const { data: profile } = await supabase

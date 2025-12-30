@@ -186,7 +186,7 @@ export default function Dashboard() {
   }
 
   // Get display name - prefer username, fallback to first name
-  const displayName = profile?.username || profile?.full_name?.split(' ')[0] || 'there';
+  const displayName = profile?.username || profile?.full_name?.split(' ')[0] || 'Champion';
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -463,11 +463,13 @@ export default function Dashboard() {
 
         {/* Celebrations */}
         <ConfettiCelebration
-          trigger={celebrationTrigger === 'perfectDay' || showMilestoneCelebration}
+          trigger={celebrationTrigger === 'perfectDay' || celebrationTrigger === 'goalComplete' || showMilestoneCelebration}
           onComplete={clearCelebration}
           type={
             celebrationTrigger === 'perfectDay'
               ? "perfectDay"
+              : celebrationTrigger === 'goalComplete'
+              ? "goalComplete"
               : stats?.current_streak === 30
               ? "milestone"
               : "default"

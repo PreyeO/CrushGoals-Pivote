@@ -36,9 +36,15 @@ export function Sidebar() {
 
   // Use real data from auth context
   const userName = profile?.full_name || "Champion";
+  const userLevel = stats?.level || 1;
+  const userXP = stats?.total_xp || 0;
   const streak = stats?.current_streak || 0;
-  const tasksCompleted = stats?.tasks_completed || 0;
   const isPremium = subscription?.plan === 'monthly' || subscription?.plan === 'annual';
+  
+  // Calculate XP needed for next level (each level needs 500 XP)
+  const xpPerLevel = 500;
+  const currentLevelXp = userXP % xpPerLevel;
+  const maxXP = xpPerLevel;
 
   return (
     <>
@@ -120,16 +126,19 @@ export function Sidebar() {
             </div>
           )}
 
-          {/* Streak & Tasks */}
+          {/* Level & XP */}
           {!collapsed && (
-            <div className="mt-3 flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-sm">
-                <Flame className="w-4 h-4 text-orange-500" />
-                <span className="font-medium">{streak}</span>
-                <span className="text-muted-foreground text-xs">day streak</span>
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Level {userLevel}</span>
+                <span className="text-muted-foreground">{currentLevelXp}/{maxXP} XP</span>
               </div>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground">{tasksCompleted} tasks</span>
+              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-primary rounded-full transition-all duration-500"
+                  style={{ width: `${(currentLevelXp / maxXP) * 100}%` }}
+                />
+              </div>
             </div>
           )}
         </div>

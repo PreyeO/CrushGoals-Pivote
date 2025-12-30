@@ -210,8 +210,10 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   const [goalName, setGoalName] = useState("");
   const [goalTarget, setGoalTarget] = useState("");
   const [customInput, setCustomInput] = useState("");
-  const [startDate, setStartDate] = useState('2026-01-01');
-  const [deadline, setDeadline] = useState('2026-12-31');
+  // Default to today and 30 days from now
+  const today = new Date();
+  const [startDate, setStartDate] = useState(today.toISOString().split('T')[0]);
+  const [deadline, setDeadline] = useState(format(addDays(today, 30), 'yyyy-MM-dd'));
   const [reason, setReason] = useState("");
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
@@ -223,9 +225,15 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setSelectedCategory(template.category);
     setGoalName(template.name);
     setFrequency(template.frequency);
-    // Default to full year Jan 1 - Dec 31, 2026
-    setStartDate('2026-01-01');
-    setDeadline('2026-12-31');
+    
+    // Use template's default duration instead of hardcoded 365
+    const today = new Date();
+    const startDateStr = today.toISOString().split('T')[0];
+    const endDate = addDays(today, template.defaultDuration);
+    const endDateStr = format(endDate, 'yyyy-MM-dd');
+    
+    setStartDate(startDateStr);
+    setDeadline(endDateStr);
     setGoalTarget('');
     setCustomInput('');
     setReason(`I want to ${template.description.toLowerCase()}`);
@@ -266,8 +274,10 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setGoalName("");
     setGoalTarget("");
     setCustomInput("");
-    setStartDate('2026-01-01');
-    setDeadline('2026-12-31');
+    // Reset to today + 30 days
+    const now = new Date();
+    setStartDate(now.toISOString().split('T')[0]);
+    setDeadline(format(addDays(now, 30), 'yyyy-MM-dd'));
     setReason("");
     setFrequency('daily');
   };

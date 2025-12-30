@@ -99,7 +99,7 @@ export function AchievementCard({
             <h3 className="font-semibold text-sm truncate">{name}</h3>
             <p className="text-[11px] text-muted-foreground line-clamp-1">{description}</p>
             
-            {/* Rarity badge */}
+            {/* Rarity + XP inline */}
             <div className="flex items-center gap-2 mt-1.5">
               <span className={cn(
                 "text-[10px] font-medium capitalize",
@@ -107,6 +107,7 @@ export function AchievementCard({
               )}>
                 {rarity}
               </span>
+              <span className="text-[10px] text-premium font-medium">+{xpReward} XP</span>
             </div>
           </div>
         </div>

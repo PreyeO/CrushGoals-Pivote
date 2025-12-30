@@ -4,6 +4,7 @@ import { TaskItem } from "@/components/TaskItem";
 import { ProgressRing } from "@/components/ProgressRing";
 import { TaskCalendar } from "@/components/TaskCalendar";
 import { WeeklyGoalView } from "@/components/WeeklyGoalView";
+import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BulkTaskCompletion } from "@/components/BulkTaskCompletion";
@@ -47,7 +48,7 @@ const getTimeLeftToday = (): { hours: number; minutes: number; formatted: string
 
 export default function Tasks() {
   const today = new Date().toISOString().split('T')[0];
-  const { tasks, isLoading, addTask, toggleTask, updateTask, deleteTask } = useTasks(today);
+  const { tasks, isLoading, addTask, toggleTask, updateTask, deleteTask, celebrationTrigger, clearCelebration } = useTasks(today);
   const { missedTasks, totalMissed, markTaskComplete, refreshMissedTasks, isLoading: missedLoading } = useMissedTasks();
   const { goals } = useGoals();
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -172,7 +173,7 @@ export default function Tasks() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">Today's Mission 🎯</h1>
               <p className="text-muted-foreground">
-                Complete all tasks for a Perfect Day bonus! (+100 XP)
+                Complete all tasks for a Perfect Day! 🔥
               </p>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
@@ -501,6 +502,13 @@ export default function Tasks() {
           onComplete={handleBulkComplete}
         />
       )}
+
+      {/* Celebrations */}
+      <ConfettiCelebration
+        trigger={celebrationTrigger === 'perfectDay' || celebrationTrigger === 'goalComplete'}
+        onComplete={clearCelebration}
+        type={celebrationTrigger === 'goalComplete' ? 'goalComplete' : 'perfectDay'}
+      />
     </div>
   );
 }
