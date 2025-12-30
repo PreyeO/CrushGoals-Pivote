@@ -9,24 +9,37 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Allowed email types to prevent abuse
+const ALLOWED_EMAIL_TYPES = [
+  "welcome",
+  "otp",
+  "password_reset",
+  "friend_invite",
+  "shared_goal_invite",
+  "streak_reminder",
+] as const;
+
+type EmailType = (typeof ALLOWED_EMAIL_TYPES)[number];
+
 interface EmailRequest {
   to: string;
   subject: string;
   html: string;
   text?: string;
   from?: string;
+  email_type: EmailType;
 }
 
 // Email validation regex
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// In-memory rate limiting store (per IP)
-// Format: { [ip]: { count: number, resetTime: number } }
+// In-memory rate limiting store (per user ID for authenticated, per IP for unauthenticated OTP)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 // Rate limit configuration
-const RATE_LIMIT_MAX_REQUESTS = 5; // Max emails per window
+const RATE_LIMIT_MAX_REQUESTS = 10; // Max emails per window for authenticated users
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX_OTP_REQUESTS = 3; // Max OTP emails per IP (unauthenticated)
 
 function getClientIP(req: Request): string {
   // Try various headers that might contain the real IP
@@ -51,26 +64,26 @@ function getClientIP(req: Request): string {
   return `fallback-${userAgent.slice(0, 20)}-${acceptLang.slice(0, 10)}`;
 }
 
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number } {
+function checkRateLimit(key: string, maxRequests: number = RATE_LIMIT_MAX_REQUESTS): { allowed: boolean; remaining: number; resetIn: number } {
   const now = Date.now();
-  const record = rateLimitStore.get(ip);
+  const record = rateLimitStore.get(key);
   
   // Clean up expired entries periodically
   if (rateLimitStore.size > 1000) {
-    for (const [key, value] of rateLimitStore.entries()) {
+    for (const [k, value] of rateLimitStore.entries()) {
       if (now > value.resetTime) {
-        rateLimitStore.delete(key);
+        rateLimitStore.delete(k);
       }
     }
   }
   
   if (!record || now > record.resetTime) {
     // First request or window expired - reset
-    rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetIn: RATE_LIMIT_WINDOW_MS };
+    rateLimitStore.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: maxRequests - 1, resetIn: RATE_LIMIT_WINDOW_MS };
   }
   
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+  if (record.count >= maxRequests) {
     // Rate limit exceeded
     return { 
       allowed: false, 
@@ -81,10 +94,10 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number; rese
   
   // Increment counter
   record.count++;
-  rateLimitStore.set(ip, record);
+  rateLimitStore.set(key, record);
   return { 
     allowed: true, 
-    remaining: RATE_LIMIT_MAX_REQUESTS - record.count, 
+    remaining: maxRequests - record.count, 
     resetIn: record.resetTime - now 
   };
 }
@@ -96,31 +109,59 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Rate limiting for unauthenticated requests
-    const clientIP = getClientIP(req);
-    const rateLimit = checkRateLimit(clientIP);
-    
-    if (!rateLimit.allowed) {
-      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+
+    // Parse request body first to check email_type
+    const { to, subject, html, text, from, email_type }: EmailRequest = await req.json();
+
+    // Validate email_type is provided and allowed
+    if (!email_type || !ALLOWED_EMAIL_TYPES.includes(email_type)) {
+      console.error("Invalid or missing email_type:", email_type);
       return new Response(
-        JSON.stringify({ 
-          error: "Too many requests. Please try again later.",
-          retryAfter: Math.ceil(rateLimit.resetIn / 1000)
-        }),
-        { 
-          status: 429, 
-          headers: { 
-            "Content-Type": "application/json",
-            "Retry-After": String(Math.ceil(rateLimit.resetIn / 1000)),
-            ...corsHeaders 
-          } 
-        }
+        JSON.stringify({ error: "Invalid email type. Must be one of: " + ALLOWED_EMAIL_TYPES.join(", ") }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-    // Optional authentication: this function can be called without a JWT (e.g. during signup OTP flow)
-    const authHeader = req.headers.get("Authorization");
 
-    if (authHeader) {
+    const authHeader = req.headers.get("Authorization");
+    const clientIP = getClientIP(req);
+    let userId: string | null = null;
+
+    // For OTP emails during signup, allow unauthenticated requests with stricter rate limiting
+    if (email_type === "otp") {
+      // Stricter rate limit for unauthenticated OTP requests
+      const rateLimit = checkRateLimit(clientIP, RATE_LIMIT_MAX_OTP_REQUESTS);
+      
+      if (!rateLimit.allowed) {
+        console.warn(`OTP rate limit exceeded for IP: ${clientIP}`);
+        return new Response(
+          JSON.stringify({ 
+            error: "Too many OTP requests. Please try again later.",
+            retryAfter: Math.ceil(rateLimit.resetIn / 1000)
+          }),
+          { 
+            status: 429, 
+            headers: { 
+              "Content-Type": "application/json",
+              "Retry-After": String(Math.ceil(rateLimit.resetIn / 1000)),
+              ...corsHeaders 
+            } 
+          }
+        );
+      }
+      console.log(`OTP email request from IP: ${clientIP}`);
+    } else {
+      // All other email types require authentication
+      if (!authHeader) {
+        console.warn("Authentication required for non-OTP email");
+        return new Response(
+          JSON.stringify({ error: "Authentication required" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -134,23 +175,45 @@ const handler = async (req: Request): Promise<Response> => {
           error: authError,
         } = await supabase.auth.getUser();
 
-        if (!authError && user) {
-          console.log(`Authenticated user: ${user.id}`);
-        } else {
-          console.warn("Auth header provided but user could not be resolved:", authError?.message);
+        if (authError || !user) {
+          console.warn("Auth failed:", authError?.message);
+          return new Response(
+            JSON.stringify({ error: "Invalid authentication" }),
+            { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        userId = user.id;
+        console.log(`Authenticated user: ${userId}`);
+
+        // Rate limit by user ID for authenticated requests
+        const rateLimit = checkRateLimit(`user:${userId}`, RATE_LIMIT_MAX_REQUESTS);
+        
+        if (!rateLimit.allowed) {
+          console.warn(`Rate limit exceeded for user: ${userId}`);
+          return new Response(
+            JSON.stringify({ 
+              error: "Too many email requests. Please try again later.",
+              retryAfter: Math.ceil(rateLimit.resetIn / 1000)
+            }),
+            { 
+              status: 429, 
+              headers: { 
+                "Content-Type": "application/json",
+                "Retry-After": String(Math.ceil(rateLimit.resetIn / 1000)),
+                ...corsHeaders 
+              } 
+            }
+          );
         }
       } catch (e) {
-        console.warn("Auth check failed (continuing as unauthenticated):", e);
+        console.error("Auth check failed:", e);
+        return new Response(
+          JSON.stringify({ error: "Authentication failed" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
       }
-    } else {
-      console.log("No Authorization header (continuing as unauthenticated)");
     }
-
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY is not configured");
-    }
-
-    const { to, subject, html, text, from }: EmailRequest = await req.json();
 
     // Input validation
     if (!to || !emailRegex.test(to)) {
