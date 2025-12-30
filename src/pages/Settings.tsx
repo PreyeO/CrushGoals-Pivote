@@ -341,13 +341,30 @@ export default function Settings() {
                   )}
 
                   {/* Daily Reminder Time Picker */}
-                  <div className="p-4 bg-white/5 rounded-xl">
-                    <h4 className="font-medium mb-3 text-sm sm:text-base">Daily Reminder Time</h4>
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-3">Choose when to receive your daily task reminder</p>
+                  <div className={cn(
+                    "p-4 rounded-xl border",
+                    pushPermission === 'granted' && notificationSettings.dailyReminder
+                      ? "bg-primary/10 border-primary/30"
+                      : "bg-white/5 border-white/10"
+                  )}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                        <Bell className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-sm sm:text-base">Daily Reminder Time</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {pushPermission === 'granted' 
+                            ? "You'll receive a push notification at this time" 
+                            : "Enable push notifications above to receive reminders"}
+                        </p>
+                      </div>
+                    </div>
                     <select 
-                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-background border border-border text-sm"
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-background border border-border text-sm font-medium"
                       value={notificationSettings.reminderTime || "06:00"}
                       onChange={(e) => updateNotificationSettings({ reminderTime: e.target.value })}
+                      disabled={pushPermission !== 'granted'}
                     >
                       {Array.from({ length: 24 }, (_, i) => {
                         const hour = i.toString().padStart(2, '0');
@@ -355,6 +372,12 @@ export default function Settings() {
                         return <option key={hour} value={`${hour}:00`}>{label}</option>;
                       })}
                     </select>
+                    {pushPermission === 'granted' && notificationSettings.dailyReminder && (
+                      <p className="text-xs text-success mt-2 flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Reminder scheduled for {notificationSettings.reminderTime || "6:00 AM"}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-3 sm:space-y-4">
