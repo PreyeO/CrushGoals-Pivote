@@ -4,7 +4,7 @@ import { GoalCard } from "@/components/GoalCard";
 import { TaskItem } from "@/components/TaskItem";
 import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { AddTaskModal, TaskData } from "@/components/AddTaskModal";
-import { WeeklySummary } from "@/components/WeeklySummary";
+
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { ProductTour } from "@/components/ProductTour";
 import { TrialExpiryModal } from "@/components/TrialExpiryModal";
@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddGoalModal } from "@/components/AddGoalModal";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Target, Zap, Trophy, Plus, ChevronRight, Flame, Calendar, ListTodo, Loader2 } from "lucide-react";
+import { Target, Trophy, Plus, ChevronRight, Flame, ListTodo, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoals } from "@/hooks/useGoals";
 import { useTasks } from "@/hooks/useTasks";
@@ -20,8 +20,6 @@ import { useStreakNotifications } from "@/hooks/useStreakNotifications";
 import { useInviteHandler } from "@/hooks/useInviteHandler";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { ProgressRing } from "@/components/ProgressRing";
 
@@ -39,8 +37,6 @@ export default function Dashboard() {
   const { tasks, isLoading: tasksLoading, toggleTask, addTask, celebrationTrigger, clearCelebration } = useTasks(today);
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
-  const [weeklySummaryOpen, setWeeklySummaryOpen] = useState(false);
-  const [weekData, setWeekData] = useState<{ date: string; day: string; completed: number; total: number }[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Show onboarding for new users with no goals (check localStorage to not show again)
@@ -89,61 +85,6 @@ export default function Dashboard() {
       refreshGoals();
     }
   }, [processedInvites, refreshGoals]);
-
-  useEffect(() => {
-    const fetchWeekData = async () => {
-      if (!profile) return;
-      
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const weekDates: { date: string; day: string; completed: number; total: number }[] = [];
-      
-      const now = new Date();
-      const dayOfWeek = now.getDay();
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(now);
-        date.setDate(now.getDate() + mondayOffset + i);
-        const dateStr = date.toISOString().split('T')[0];
-        const dayIndex = date.getDay();
-        weekDates.push({
-          date: dateStr,
-          day: days[dayIndex],
-          completed: 0,
-          total: 0,
-        });
-      }
-
-      try {
-        const startDate = weekDates[0].date;
-        const endDate = weekDates[6].date;
-
-        const { data: weekTasks } = await supabase
-          .from('tasks')
-          .select('due_date, completed')
-          .eq('user_id', profile.user_id)
-          .gte('due_date', startDate)
-          .lte('due_date', endDate);
-
-        if (weekTasks) {
-          weekTasks.forEach(task => {
-            const dayData = weekDates.find(d => d.date === task.due_date);
-            if (dayData) {
-              dayData.total++;
-              if (task.completed) dayData.completed++;
-            }
-          });
-        }
-      } catch (error) {
-        logError('Error fetching week data:', error);
-      }
-
-      setWeekData(weekDates);
-    };
-
-    fetchWeekData();
-  }, [profile, tasks]);
-
   const randomQuote = useMemo(() => {
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, []);
@@ -198,11 +139,6 @@ export default function Dashboard() {
     });
   };
 
-  const currentXP = stats?.total_xp || 0;
-  const currentLevel = stats?.level || 1;
-  const xpForNextLevel = currentLevel * 1000;
-  const xpProgress = currentXP % 1000;
-  const xpToNext = xpForNextLevel - xpProgress;
   const activeGoals = goals.filter(g => g.status !== 'completed');
 
   const isLoading = goalsLoading || tasksLoading;
@@ -344,14 +280,14 @@ export default function Dashboard() {
               </div>
             </Card>
 
-            {/* Level */}
+            {/* Tasks Completed */}
             <Card variant="glass" className="p-3 hover-scale">
               <div className="text-center">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-2">
-                  <Zap className="w-5 h-5 text-white" />
+                  <Trophy className="w-5 h-5 text-white" />
                 </div>
-                <p className="text-lg font-bold">{currentLevel}</p>
-                <p className="text-[10px] text-muted-foreground uppercase">Level</p>
+                <p className="text-lg font-bold">{stats?.tasks_completed || 0}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">Completed</p>
               </div>
             </Card>
           </div>
@@ -410,43 +346,7 @@ export default function Dashboard() {
           )}
         </section>
 
-        {/* This Week - Task Completion Summary */}
-        <section className="mb-6 animate-slide-up opacity-0" style={{ animationDelay: '200ms' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-base font-semibold flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                This Week
-              </h2>
-              <p className="text-xs text-muted-foreground">Daily task completion</p>
-            </div>
-          </div>
-          <Card variant="glass" className="p-3">
-            <div className="grid grid-cols-7 gap-1.5">
-              {weekData.map((day, i) => {
-                const isToday = day.date === today;
-                const percent = day.total > 0 ? (day.completed / day.total) * 100 : 0;
-                return (
-                  <div key={i} className="text-center">
-                    <p className={cn(
-                      "text-[10px] mb-1",
-                      isToday ? "text-primary font-semibold" : "text-muted-foreground"
-                    )}>{day.day}</p>
-                    <div className={cn(
-                      "h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-colors",
-                      day.total === 0 ? "bg-muted/50 text-muted-foreground" :
-                      percent === 100 ? "bg-success/20 text-success" :
-                      percent > 0 ? "bg-primary/20 text-primary" :
-                      "bg-muted text-muted-foreground"
-                    )}>
-                      {day.total > 0 ? `${day.completed}/${day.total}` : '-'}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        </section>
+        {/* Goals Overview - Show only 4 */}
 
         {/* Goals Overview - Show only 4 */}
         <section className="animate-slide-up opacity-0" style={{ animationDelay: '250ms' }}>
@@ -548,10 +448,6 @@ export default function Dashboard() {
         )}
 
         {/* Modals */}
-        <WeeklySummary
-          open={weeklySummaryOpen}
-          onOpenChange={setWeeklySummaryOpen}
-        />
 
         <AddGoalModal
           open={addGoalOpen}

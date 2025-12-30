@@ -283,8 +283,8 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg w-[95vw] max-h-[100dvh] sm:max-h-[85vh] overflow-hidden bg-card border-border p-0">
-        <div className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh]">
+      <DialogContent className="sm:max-w-lg w-full max-w-[100vw] h-[100dvh] sm:h-auto sm:max-h-[85vh] overflow-hidden bg-card border-border p-0 rounded-none sm:rounded-lg">
+        <div className="flex flex-col h-full sm:max-h-[85vh]">
           {/* Fixed Header */}
           <div className="p-3 sm:p-4 pb-2 sm:pb-3 border-b border-border shrink-0">
             <DialogHeader>
