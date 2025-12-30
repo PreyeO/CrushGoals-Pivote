@@ -428,12 +428,15 @@ export function useGoals() {
     if (!user) return null;
 
     try {
-      // Get all tasks for this goal
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // Only count tasks due up to today so progress doesn't stay ~0% for long challenges
       const { data: goalTasks, error: fetchError } = await supabase
         .from('tasks')
-        .select('id, completed')
+        .select('id, completed, due_date')
         .eq('goal_id', goalId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .lte('due_date', todayStr);
 
       if (fetchError) throw fetchError;
 
@@ -448,25 +451,22 @@ export function useGoals() {
         const totalCount = goalTasks.length;
         progress = Math.round((completedCount / totalCount) * 100);
 
-        // Determine status based on progress vs timeline
-        if (progress >= 100) {
-          status = 'completed';
-        } else if (goal.start_date && goal.deadline) {
-          const start = new Date(goal.start_date).getTime();
-          const end = new Date(goal.deadline).getTime();
-          const now = Date.now();
-          const totalDuration = end - start;
-          const elapsed = now - start;
-          const expectedProgress = totalDuration > 0 ? Math.min(100, Math.round((elapsed / totalDuration) * 100)) : 0;
+        if (progress >= 70) status = 'ahead';
+        else if (progress >= 30) status = 'on-track';
+        else status = 'behind';
+      }
 
-          if (progress > expectedProgress + 10) {
-            status = 'ahead';
-          } else if (progress + 5 < expectedProgress) {
-            status = 'behind';
-          } else {
-            status = 'on-track';
-          }
-        }
+      // Only mark as completed if ALL tasks (including future ones) are complete
+      const { data: allTasks } = await supabase
+        .from('tasks')
+        .select('id, completed')
+        .eq('goal_id', goalId)
+        .eq('user_id', user.id);
+
+      const allDone = allTasks && allTasks.length > 0 && allTasks.every((t) => t.completed);
+      if (allDone) {
+        progress = 100;
+        status = 'completed';
       }
 
       // Update goal with recalculated values

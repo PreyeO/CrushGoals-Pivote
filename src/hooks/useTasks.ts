@@ -207,28 +207,30 @@ export function useTasks(date?: string) {
     if (!user || !goalId) return;
 
     try {
-      // Get all tasks for this goal
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // IMPORTANT:
+      // Goals often have many future tasks (e.g. 30/90-day challenges).
+      // Progress should reflect only tasks that are due up to today, otherwise it stays ~0% forever.
       const { data: goalTasks, error: fetchError } = await supabase
         .from('tasks')
-        .select('id, completed')
+        .select('id, completed, due_date')
         .eq('goal_id', goalId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .lte('due_date', todayStr);
 
       if (fetchError) throw fetchError;
       if (!goalTasks || goalTasks.length === 0) return;
 
-      const completedCount = goalTasks.filter(t => t.completed).length;
+      const completedCount = goalTasks.filter((t) => t.completed).length;
       const totalCount = goalTasks.length;
       const progress = Math.round((completedCount / totalCount) * 100);
 
-      // Update goal progress
-      const updates: any = { progress };
-      
-      // Mark as completed if 100%
+      const updates: Record<string, any> = { progress };
+
+      // Status based on challenge completion so far
       if (progress === 100) {
-        updates.status = 'completed';
-        updates.completed_at = new Date().toISOString();
-        toast.success('🏆 Goal Completed! Amazing work!');
+        updates.status = 'on-track';
       } else if (progress >= 70) {
         updates.status = 'ahead';
       } else if (progress >= 30) {
@@ -237,7 +239,24 @@ export function useTasks(date?: string) {
         updates.status = 'behind';
       }
 
-      // Also update current_value to show progress
+      // Mark as completed ONLY when all tasks (including future ones) are completed
+      // (otherwise people would “complete” a 90-day challenge on day 1)
+      const { data: allGoalTasks, error: allTasksError } = await supabase
+        .from('tasks')
+        .select('id, completed')
+        .eq('goal_id', goalId)
+        .eq('user_id', user.id);
+
+      if (!allTasksError && allGoalTasks && allGoalTasks.length > 0) {
+        const allDone = allGoalTasks.every((t) => t.completed);
+        if (allDone) {
+          updates.status = 'completed';
+          updates.completed_at = new Date().toISOString();
+          toast.success('🏆 Goal Completed! Amazing work!');
+        }
+      }
+
+      // Update current_value if target_value exists
       const { data: goal } = await supabase
         .from('goals')
         .select('target_value')
@@ -258,7 +277,6 @@ export function useTasks(date?: string) {
         .from('goals')
         .update(updates)
         .eq('id', goalId);
-
     } catch (error) {
       logError('Error updating goal progress:', error);
     }
