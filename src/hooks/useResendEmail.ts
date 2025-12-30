@@ -1,12 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logError, logDebug } from "@/lib/logger";
 
+type EmailType = "welcome" | "otp" | "password_reset" | "friend_invite" | "shared_goal_invite" | "streak_reminder";
+
 interface SendEmailParams {
   to: string;
   subject: string;
   html: string;
   text?: string;
   from?: string;
+  email_type: EmailType;
 }
 
 function escapeHtml(input: string) {
@@ -91,6 +94,7 @@ export function useResendEmail() {
       to: email,
       subject: "Welcome to CrushGoals! 🏆 Let's crush some goals",
       html,
+      email_type: "welcome",
     });
   };
 
@@ -162,6 +166,7 @@ export function useResendEmail() {
         ? `${safeInviterName} invited you to crush "${safeGoalName}" together! ${safeGoalEmoji}`
         : `${safeInviterName} invited you to join CrushGoals! 🎯`,
       html,
+      email_type: "friend_invite",
     });
   };
 
@@ -219,6 +224,7 @@ export function useResendEmail() {
       to: inviteeEmail,
       subject: `${safeInviterName} invited you to join "${safeGoalName}" ${safeGoalEmoji}`,
       html,
+      email_type: "shared_goal_invite",
     });
   };
 
@@ -273,6 +279,63 @@ export function useResendEmail() {
       to: email,
       subject: `🔥 Your ${currentStreak}-day streak is at risk!`,
       html,
+      email_type: "streak_reminder",
+    });
+  };
+
+  const sendOtpEmail = async (
+    email: string,
+    name: string,
+    otpCode: string
+  ): Promise<boolean> => {
+    const safeName = escapeHtml(name);
+    const safeOtpCode = escapeHtml(otpCode);
+    const baseUrl = window.location.origin;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0b; color: #ffffff; margin: 0; padding: 40px 20px;">
+          <div style="max-width: 560px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1f 0%, #0d0d10 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+              <h1 style="margin: 0; font-size: 28px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Verify Your Email</h1>
+            </div>
+            
+            <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
+              Hey ${safeName}! 👋
+            </p>
+            
+            <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
+              Use the verification code below to confirm your email address:
+            </p>
+            
+            <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(99, 102, 241, 0.2); text-align: center;">
+              <p style="margin: 0 0 8px 0; color: #a1a1aa; font-size: 14px;">Your Verification Code</p>
+              <div style="font-size: 36px; font-weight: bold; color: #ffffff; letter-spacing: 8px; font-family: monospace;">${safeOtpCode}</div>
+            </div>
+            
+            <p style="font-size: 14px; line-height: 1.6; color: #71717a; margin-bottom: 24px; text-align: center;">
+              ⏱️ This code expires in <strong style="color: #f97316;">10 minutes</strong>
+            </p>
+            
+            <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
+              If you didn't create an account with CrushGoals, you can safely ignore this email.
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return sendEmail({
+      to: email,
+      subject: `${safeOtpCode} is your CrushGoals verification code 🔐`,
+      html,
+      email_type: "otp",
     });
   };
 
@@ -282,5 +345,6 @@ export function useResendEmail() {
     sendFriendInviteEmail,
     sendSharedGoalInviteEmail,
     sendStreakReminderEmail,
+    sendOtpEmail,
   };
 }
