@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 
@@ -16,45 +16,62 @@ export function useTrialNotifications() {
     notificationLevel: 'none',
   });
 
-  const trialDaysLeft = getTrialDaysLeft();
+  // Memoize these values to prevent infinite loops
+  const trialDaysLeft = useMemo(() => getTrialDaysLeft(), [getTrialDaysLeft]);
+  const isPremiumUser = useMemo(() => isPremium(), [isPremium]);
   const isOnTrial = subscription?.status === 'trial';
-  const trialEndDate = subscription?.trial_ends_at ? new Date(subscription.trial_ends_at) : null;
+  const trialEndTime = useMemo(() => 
+    subscription?.trial_ends_at ? new Date(subscription.trial_ends_at).getTime() : null,
+    [subscription?.trial_ends_at]
+  );
+
+  // Use ref to track if we've already run the initial effect
+  const hasInitialized = useRef(false);
 
   // Calculate hours left in trial
   const getHoursLeft = useCallback(() => {
-    if (!trialEndDate) return 0;
-    const now = new Date();
-    const diff = trialEndDate.getTime() - now.getTime();
+    if (!trialEndTime) return 0;
+    const now = Date.now();
+    const diff = trialEndTime - now;
     return Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
-  }, [trialEndDate]);
+  }, [trialEndTime]);
+
+  // Memoize hours left
+  const hoursLeft = useMemo(() => getHoursLeft(), [getHoursLeft]);
 
   // Determine notification level based on time remaining
-  const getNotificationLevel = useCallback((): 'none' | 'gentle' | 'urgent' | 'critical' => {
-    if (!isOnTrial || isPremium()) return 'none';
+  const notificationLevel = useMemo((): 'none' | 'gentle' | 'urgent' | 'critical' => {
+    if (!isOnTrial || isPremiumUser) return 'none';
     
-    const hoursLeft = getHoursLeft();
-    
-    if (hoursLeft <= 1) return 'critical'; // Last hour
-    if (hoursLeft <= 6) return 'urgent';   // Last 6 hours
-    if (trialDaysLeft <= 1) return 'urgent'; // Last day
-    if (trialDaysLeft <= 2) return 'gentle'; // Day 2
+    if (hoursLeft <= 1) return 'critical';
+    if (hoursLeft <= 6) return 'urgent';
+    if (trialDaysLeft <= 1) return 'urgent';
+    if (trialDaysLeft <= 2) return 'gentle';
     return 'none';
-  }, [isOnTrial, isPremium, getHoursLeft, trialDaysLeft]);
+  }, [isOnTrial, isPremiumUser, hoursLeft, trialDaysLeft]);
+
+  // Check if we should show the expiry modal
+  const shouldShowExpiryModal = useMemo(() => {
+    if (!isOnTrial || isPremiumUser) return false;
+    
+    const hasAcked = localStorage.getItem('trial_expiry_acknowledged');
+    if ((hoursLeft <= 2 || trialDaysLeft <= 0) && !hasAcked) {
+      return true;
+    }
+    return false;
+  }, [isOnTrial, isPremiumUser, hoursLeft, trialDaysLeft]);
 
   // Show appropriate in-app notification based on timeline
   const showTrialNotification = useCallback(() => {
-    if (!isOnTrial || isPremium()) return;
+    if (!isOnTrial || isPremiumUser) return;
 
-    const hoursLeft = getHoursLeft();
     const shownKey = `trial_notif_${trialDaysLeft}_${hoursLeft}`;
     
-    // Don't show same notification twice
     if (sessionStorage.getItem(shownKey)) return;
     sessionStorage.setItem(shownKey, 'true');
 
     const currentHour = new Date().getHours();
 
-    // Day 1 - Signup day
     if (trialDaysLeft === 3) {
       if (currentHour < 12) {
         toast.info("🎉 You have 3 days to try everything free!", {
@@ -70,7 +87,6 @@ export function useTrialNotifications() {
       return;
     }
 
-    // Day 2
     if (trialDaysLeft === 2) {
       if (currentHour < 12) {
         toast("⚡ Keep your streak alive!", {
@@ -86,7 +102,6 @@ export function useTrialNotifications() {
       return;
     }
 
-    // Day 3 - Final day (more urgent messaging)
     if (trialDaysLeft <= 1) {
       if (hoursLeft > 6) {
         toast.error("🚨 FINAL DAY!", {
@@ -110,21 +125,7 @@ export function useTrialNotifications() {
         });
       }
     }
-  }, [isOnTrial, isPremium, getHoursLeft, trialDaysLeft]);
-
-  // Check if we should show the expiry modal (trial ended or about to end)
-  const checkShowExpiryModal = useCallback(() => {
-    if (!isOnTrial || isPremium()) return false;
-    
-    const hoursLeft = getHoursLeft();
-    const hasAcked = localStorage.getItem('trial_expiry_acknowledged');
-    
-    // Show modal if trial expired or less than 2 hours left and not acknowledged
-    if ((hoursLeft <= 2 || trialDaysLeft <= 0) && !hasAcked) {
-      return true;
-    }
-    return false;
-  }, [isOnTrial, isPremium, getHoursLeft, trialDaysLeft]);
+  }, [isOnTrial, isPremiumUser, hoursLeft, trialDaysLeft]);
 
   // Acknowledge the expiry modal
   const acknowledgeExpiry = useCallback(() => {
@@ -132,54 +133,51 @@ export function useTrialNotifications() {
     setState(prev => ({ ...prev, showExpiryModal: false, hasAcknowledged: true }));
   }, []);
 
-  // Initial check and periodic updates
+  // Initial check and periodic updates - only run when subscription changes
   useEffect(() => {
     if (!subscription) return;
 
-    const level = getNotificationLevel();
-    const shouldShowModal = checkShowExpiryModal();
-    
-    setState(prev => ({
-      ...prev,
-      notificationLevel: level,
-      showExpiryModal: shouldShowModal,
-    }));
+    // Update state with calculated values
+    setState(prev => {
+      // Only update if values actually changed
+      if (prev.notificationLevel === notificationLevel && prev.showExpiryModal === shouldShowExpiryModal) {
+        return prev;
+      }
+      return {
+        ...prev,
+        notificationLevel,
+        showExpiryModal: shouldShowExpiryModal,
+      };
+    });
 
-    // Show notification on load
-    showTrialNotification();
+    // Show notification only once on initial load
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      showTrialNotification();
+    }
 
     // Check periodically for updates (every 30 minutes)
     const interval = setInterval(() => {
-      const newLevel = getNotificationLevel();
-      const newShowModal = checkShowExpiryModal();
-      
-      setState(prev => ({
-        ...prev,
-        notificationLevel: newLevel,
-        showExpiryModal: newShowModal,
-      }));
-      
       showTrialNotification();
     }, 30 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [subscription, getNotificationLevel, checkShowExpiryModal, showTrialNotification]);
+  }, [subscription, notificationLevel, shouldShowExpiryModal, showTrialNotification]);
 
   return {
     trialDaysLeft,
-    hoursLeft: getHoursLeft(),
+    hoursLeft,
     isOnTrial,
     notificationLevel: state.notificationLevel,
     showExpiryModal: state.showExpiryModal,
     acknowledgeExpiry,
-    getTrialMessage: () => {
+    getTrialMessage: useCallback(() => {
       if (!isOnTrial) return null;
       if (trialDaysLeft > 2) return `${trialDaysLeft} days left in trial`;
       if (trialDaysLeft === 2) return "2 days left in trial";
       if (trialDaysLeft === 1) return "Last day of trial!";
-      const hours = getHoursLeft();
-      if (hours > 0) return `${hours} hours left in trial!`;
+      if (hoursLeft > 0) return `${hoursLeft} hours left in trial!`;
       return "Trial expired";
-    },
+    }, [isOnTrial, trialDaysLeft, hoursLeft]),
   };
 }
