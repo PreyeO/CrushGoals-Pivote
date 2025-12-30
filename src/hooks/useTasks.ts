@@ -75,6 +75,14 @@ export function useTasks(date?: string) {
         let shouldUnlock = false;
 
         switch (badge.type) {
+          case 'goal_created':
+            // Check if user has at least the required number of goals
+            const { data: goalsData } = await supabase
+              .from('goals')
+              .select('id')
+              .eq('user_id', userId);
+            shouldUnlock = (goalsData?.length || 0) >= badge.requirement;
+            break;
           case 'streak':
             shouldUnlock = (stats.current_streak || 0) >= badge.requirement;
             break;
@@ -89,8 +97,6 @@ export function useTasks(date?: string) {
             break;
           case 'early_morning':
             if (options?.isEarlyMorning) {
-              // For Morning Champion, need to track cumulative early morning tasks
-              // For Early Bird, just one task is enough
               shouldUnlock = badge.requirement === 1;
             }
             break;
@@ -98,7 +104,6 @@ export function useTasks(date?: string) {
             shouldUnlock = options?.isNightOwl && badge.requirement === 1;
             break;
           case 'weekend':
-            // Weekend warrior - would need tracking, simplify to first weekend task
             shouldUnlock = options?.isWeekend && badge.requirement <= 5;
             break;
           case 'daily_tasks':
@@ -121,14 +126,8 @@ export function useTasks(date?: string) {
           playSoundEffect('milestone');
           
           toast.success(`🏆 Badge Unlocked: ${badge.name}!`, {
-            description: `+${badge.xpReward} XP`,
+            description: badge.description,
           });
-
-          // Add XP reward
-          await supabase
-            .from('user_stats')
-            .update({ total_xp: (stats.tasks_completed || 0) * 10 + badge.xpReward })
-            .eq('user_id', userId);
         }
       }
     } catch (error) {
