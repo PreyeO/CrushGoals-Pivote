@@ -282,7 +282,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   const breakdownPreview = goalTarget ? getBreakdownPreview(goalTarget, daysToAchieve, frequency) : '';
 
   return (
-    <Dialog open={open} onOpenChange={handleClose} modal={false}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg w-[95vw] max-h-[100dvh] sm:max-h-[85vh] overflow-hidden bg-card border-border p-0">
         <div className="flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh]">
           {/* Fixed Header */}
