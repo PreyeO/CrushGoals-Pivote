@@ -193,7 +193,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background flex">
         <Sidebar />
-        <main className={cn("flex-1 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 transition-all duration-300", mainPaddingClass)}>
+        <main className={cn("flex-1 p-4 sm:p-6 lg:p-8 lg:pr-8 pt-16 lg:pt-8 transition-all duration-300", mainPaddingClass)}>
           <div className="space-y-6 animate-fade-in">
             {/* Header skeleton */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -237,7 +237,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background flex">
       <Sidebar />
 
-      <main className={cn("flex-1 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 transition-all duration-300", mainPaddingClass)}>
+      <main className={cn("flex-1 p-4 sm:p-6 lg:p-8 lg:pr-8 pt-16 lg:pt-8 transition-all duration-300", mainPaddingClass)}>
         {/* Trial Banner */}
         <TrialBanner onUpgradeClick={() => setUpgradeModalOpen(true)} />
 
