@@ -3,6 +3,9 @@ project_id = "jnoqlbqilwohfyfudnss"
 [functions.paystack-payment]
 verify_jwt = false
 
+[functions.polar-payment]
+verify_jwt = false
+
 [functions.send-email]
 verify_jwt = true
 
@@ -10,4 +13,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.send-welcome-email]
+verify_jwt = false
+
+[functions.send-trial-reminder]
 verify_jwt = false
