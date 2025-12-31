@@ -81,12 +81,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch profile
-      const { data: profileData } = await supabase
+      // Fetch profile first - this is the critical check for deleted users
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
+      
+      // If no profile exists and no error, the user was likely deleted
+      if (!profileData && !profileError) {
+        console.log('User profile not found - account may have been deleted');
+        const { toast } = await import('sonner');
+        toast.error('Your account no longer exists. Please contact support if this is an error.');
+        await supabase.auth.signOut();
+        setProfile(null);
+        setStats(null);
+        setSubscription(null);
+        setIsAdmin(false);
+        setIsAdminLoaded(true);
+        return; // Exit early - don't continue fetching data
+      }
       
       if (profileData) {
         setProfile(profileData as Profile);
