@@ -316,6 +316,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_history: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          payment_provider: string
+          payment_reference: string
+          plan: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_provider: string
+          payment_reference: string
+          plan: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_provider?: string
+          payment_reference?: string
+          plan?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -559,6 +595,7 @@ export type Database = {
           plan: string | null
           status: string | null
           trial_ends_at: string | null
+          trial_reminder_sent: boolean | null
           updated_at: string
           user_id: string
         }
@@ -574,6 +611,7 @@ export type Database = {
           plan?: string | null
           status?: string | null
           trial_ends_at?: string | null
+          trial_reminder_sent?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -589,6 +627,7 @@ export type Database = {
           plan?: string | null
           status?: string | null
           trial_ends_at?: string | null
+          trial_reminder_sent?: boolean | null
           updated_at?: string
           user_id?: string
         }

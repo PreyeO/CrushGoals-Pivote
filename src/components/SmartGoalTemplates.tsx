@@ -470,7 +470,7 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pb-4">
       {/* Custom Goal Button - Top */}
       <Button
         variant="outline"
@@ -504,7 +504,7 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
       </div>
 
       {/* Challenge Templates Grid - 3 columns - NO inner scroll, parent modal scrolls */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 pb-2">
         {filteredTemplates.map((template) => {
           const Icon = template.icon;
           return (

@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { 
   User, Bell, Shield, CreditCard, 
   HelpCircle, Info, Camera, Lock, Crown, Check,
-  Download, Loader2, LogOut, AtSign, Trophy
+  Download, Loader2, LogOut, AtSign, Trophy, Receipt,
+  Globe, Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
@@ -16,6 +17,8 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/hooks/useCurrency";
 import { usePaystack } from "@/hooks/usePaystack";
+import { usePolar } from "@/hooks/usePolar";
+import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 import { useNotifications } from "@/hooks/useNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useMainLayout } from "@/hooks/useMainLayout";
@@ -37,6 +40,8 @@ export default function Settings() {
   const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft, refreshSubscription } = useSubscription();
   const { getPricing } = useCurrency();
   const { initializePayment, verifyPayment, isLoading: paystackLoading } = usePaystack();
+  const { initializePayment: initializePolarPayment, isLoading: polarLoading } = usePolar();
+  const { payments: paymentHistory, isLoading: paymentsLoading } = usePaymentHistory();
   const { settings: notificationSettings, updateSettings: updateNotificationSettings, requestPermission, permissionStatus } = useNotifications();
   const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission, settings: pushSettings, updateSettings: updatePushSettings } = usePushNotifications();
   const pricing = getPricing();
@@ -145,8 +150,8 @@ export default function Settings() {
     if (pricing.isNigeria) {
       await initializePayment(plan);
     } else {
-      // For international payments, will integrate Stripe later
-      toast.info("International payments coming soon!");
+      // International payments via Polar.sh
+      await initializePolarPayment(plan);
     }
   };
 
@@ -447,15 +452,16 @@ export default function Settings() {
                       <div className="flex items-center gap-3 sm:gap-4">
                         <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-premium" />
                         <div>
-                          <h3 className="font-bold text-base sm:text-lg">
-                            {subscription?.plan === 'free' ? 'Free Plan' : 
-                             subscription?.status === 'trial' ? 'Free Trial' : 
-                             'Premium Plan'}
+                        <h3 className="font-bold text-base sm:text-lg">
+                            {subscription?.status === 'trial' ? 'Trial Plan' : 
+                             isPremium() ? 
+                               (subscription?.plan === 'annual' ? 'GoalCrusher Basic (Annual)' : 'CrushGoals Basic (Monthly)') : 
+                             'Free Plan'}
                           </h3>
                           <p className="text-xs sm:text-sm text-muted-foreground">
                             {subscription?.status === 'trial' && trialDaysLeft > 0
-                              ? `${trialDaysLeft} days left in trial`
-                              : subscription?.current_period_end
+                              ? `${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} left in trial`
+                              : isPremium() && subscription?.current_period_end
                               ? `Renews ${new Date(subscription.current_period_end).toLocaleDateString()}`
                               : 'Upgrade to unlock all features'
                             }
@@ -483,33 +489,127 @@ export default function Settings() {
                   {/* Pricing */}
                   {/* Always show pricing for non-premium users (trial or expired) */}
                   {!isPremium() && (
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="p-4 sm:p-6 rounded-2xl border border-white/10 bg-white/5">
-                        <h4 className="font-semibold mb-1">CrushGoals Basic</h4>
-                        <p className="text-xs text-muted-foreground mb-2">Monthly</p>
-                        <p className="text-2xl sm:text-3xl font-bold mb-4">₦1,500<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                    <>
+                      {/* Region indicator */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Globe className="w-3 h-3" />
+                        <span>Showing prices for {pricing.isNigeria ? 'Nigeria (NGN)' : 'International (USD)'}</span>
+                      </div>
+                      
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="p-4 sm:p-6 rounded-2xl border border-white/10 bg-white/5">
+                          <h4 className="font-semibold mb-1">CrushGoals Basic</h4>
+                          <p className="text-xs text-muted-foreground mb-2">Monthly</p>
+                          <p className="text-2xl sm:text-3xl font-bold mb-4">
+                            {pricing.isNigeria ? '₦1,500' : '$3'}
+                            <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                            onClick={() => handleUpgrade('monthly')}
+                            disabled={paystackLoading || polarLoading}
+                          >
+                            {(paystackLoading || polarLoading) ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Monthly'}
+                          </Button>
+                        </div>
+                        <div className="p-4 sm:p-6 rounded-2xl border-2 border-premium/50 bg-premium/10 relative">
+                          <span className="absolute -top-3 left-4 px-2 py-1 bg-premium text-xs font-bold rounded-full">
+                            {pricing.isNigeria ? 'SAVE ₦1,500' : 'SAVE $3'}
+                          </span>
+                          <h4 className="font-semibold mb-1">GoalCrusher Basic</h4>
+                          <p className="text-xs text-muted-foreground mb-2">Annual</p>
+                          <p className="text-2xl sm:text-3xl font-bold mb-1">
+                            {pricing.isNigeria ? '₦16,500' : '$33'}
+                            <span className="text-sm font-normal text-muted-foreground">/yr</span>
+                          </p>
+                          <p className="text-xs text-success mb-4">
+                            {pricing.isNigeria ? '₦1,375/month — 1 month free!' : '$2.75/month — 1 month free!'}
+                          </p>
+                          <Button 
+                            variant="hero" 
+                            className="w-full"
+                            onClick={() => handleUpgrade('annual')}
+                            disabled={paystackLoading || polarLoading}
+                          >
+                            {(paystackLoading || polarLoading) ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Annual'}
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Payment History */}
+                  <div className="border-t border-white/10 pt-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Receipt className="w-5 h-5 text-muted-foreground" />
+                      <h3 className="font-medium text-sm sm:text-base">Payment History</h3>
+                    </div>
+                    
+                    {paymentsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : paymentHistory.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground text-sm">
+                        <p>No payment history yet</p>
+                        <p className="text-xs mt-1">Your transactions will appear here after subscribing</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {paymentHistory.map((payment) => (
+                          <div 
+                            key={payment.id}
+                            className="flex items-center justify-between p-3 bg-white/5 rounded-xl"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center">
+                                <Check className="w-4 h-4 text-success" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {payment.plan === 'annual' ? 'GoalCrusher Basic (Annual)' : 'CrushGoals Basic (Monthly)'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(payment.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold">
+                                {payment.currency === 'NGN' ? '₦' : '$'}{payment.amount.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-success capitalize">{payment.status}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Renewal info for premium users */}
+                  {isPremium() && subscription?.current_period_end && (
+                    <div className="border-t border-white/10 pt-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Calendar className="w-5 h-5 text-muted-foreground" />
+                        <h3 className="font-medium text-sm sm:text-base">Subscription Details</h3>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-xl space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Next renewal</span>
+                          <span>{new Date(subscription.current_period_end).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Plan</span>
+                          <span className="capitalize">{subscription.plan}</span>
+                        </div>
                         <Button 
                           variant="outline" 
-                          className="w-full"
-                          onClick={() => handleUpgrade('monthly')}
-                          disabled={paystackLoading}
+                          size="sm"
+                          className="w-full mt-4 text-destructive border-destructive/30 hover:bg-destructive/10"
+                          onClick={() => toast.info("To cancel, please contact support@crushgoals.app")}
                         >
-                          {paystackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Monthly'}
-                        </Button>
-                      </div>
-                      <div className="p-4 sm:p-6 rounded-2xl border-2 border-premium/50 bg-premium/10 relative">
-                        <span className="absolute -top-3 left-4 px-2 py-1 bg-premium text-xs font-bold rounded-full">SAVE ₦1,500</span>
-                        <h4 className="font-semibold mb-1">GoalCrusher Basic</h4>
-                        <p className="text-xs text-muted-foreground mb-2">Annual</p>
-                        <p className="text-2xl sm:text-3xl font-bold mb-1">₦16,500<span className="text-sm font-normal text-muted-foreground">/yr</span></p>
-                        <p className="text-xs text-success mb-4">₦1,375/month — 1 month free!</p>
-                        <Button 
-                          variant="hero" 
-                          className="w-full"
-                          onClick={() => handleUpgrade('annual')}
-                          disabled={paystackLoading}
-                        >
-                          {paystackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Annual'}
+                          Cancel Subscription
                         </Button>
                       </div>
                     </div>
