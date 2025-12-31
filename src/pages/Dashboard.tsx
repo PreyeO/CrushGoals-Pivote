@@ -193,19 +193,15 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
-        {/* Header */}
+        {/* Header with Greeting and Motivation */}
         <header className="mb-6 animate-fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold">
                 {getGreeting()}, {displayName}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {totalTasks > 0 ? (
-                  <>You have <span className="text-primary font-semibold">{totalTasks - completedTasks} task{totalTasks - completedTasks !== 1 ? 's' : ''}</span> to crush today. Let's go!</>
-                ) : (
-                  "No tasks scheduled for today"
-                )}
+              <p className="text-sm text-muted-foreground italic mt-1">
+                "{randomQuote.quote}" <span className="text-muted-foreground">— {randomQuote.author}</span>
               </p>
             </div>
             <Button 
@@ -220,83 +216,68 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Main Stats - Today's Tasks + Active Goals in Flex */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '50ms' }}>
-          {/* Today's Tasks Card */}
-          <Card variant="glass" className="p-4 hover-scale">
-            <div className="flex items-center gap-4">
-              <ProgressRing
-                progress={progressPercent}
-                size={64}
-                strokeWidth={5}
-                variant={progressPercent >= 70 ? "success" : progressPercent >= 40 ? "default" : "warning"}
-              >
-                <span className="text-sm font-bold">{progressPercent}%</span>
-              </ProgressRing>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <ListTodo className="w-4 h-4 text-primary" />
-                  <h3 className="font-semibold text-sm">Today's Tasks</h3>
-                </div>
-                <p className="text-2xl font-bold">
+        {/* 4 Stat Cards Grid */}
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '50ms' }}>
+          {/* Today's Tasks */}
+          <Card variant="glass" className="p-3 hover-scale">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center shrink-0">
+                <ListTodo className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg font-bold">
                   <span className="text-primary">{completedTasks}</span>
-                  <span className="text-muted-foreground text-lg"> / {totalTasks}</span>
+                  <span className="text-muted-foreground text-sm">/{totalTasks}</span>
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {totalTasks - completedTasks > 0 
-                    ? `${totalTasks - completedTasks} remaining` 
-                    : totalTasks > 0 ? "All done! 🎉" : "No tasks scheduled"}
-                </p>
+                <p className="text-[10px] text-muted-foreground uppercase">Today's Tasks</p>
               </div>
             </div>
           </Card>
 
-          {/* Quick Stats Row */}
-          <div className="grid grid-cols-3 gap-3">
-            {/* Streak */}
-            <Card variant="glass" className="p-3 hover-scale">
-              <div className="text-center">
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2",
-                  (stats?.current_streak || 0) > 0 
-                    ? "bg-gradient-to-br from-orange-500 to-red-500" 
-                    : "bg-muted"
-                )}>
-                  <Flame className="w-5 h-5 text-white" />
-                </div>
+          {/* Day Streak */}
+          <Card variant="glass" className="p-3 hover-scale">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                (stats?.current_streak || 0) > 0 
+                  ? "bg-gradient-to-br from-orange-500 to-red-500" 
+                  : "bg-muted"
+              )}>
+                <Flame className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
                 <p className="text-lg font-bold">{stats?.current_streak || 0}</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Day Streak</p>
               </div>
-            </Card>
+            </div>
+          </Card>
 
-            {/* Goals */}
-            <Card variant="glass" className="p-3 hover-scale">
-              <div className="text-center">
-                <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center mx-auto mb-2">
-                  <Target className="w-5 h-5 text-white" />
-                </div>
+          {/* Active Goals */}
+          <Card variant="glass" className="p-3 hover-scale">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shrink-0">
+                <Target className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
                 <p className="text-lg font-bold">{activeGoals.length}</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Active Goals</p>
               </div>
-            </Card>
+            </div>
+          </Card>
 
-            {/* Tasks Completed */}
-            <Card variant="glass" className="p-3 hover-scale">
-              <div className="text-center">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-2">
-                  <Trophy className="w-5 h-5 text-white" />
-                </div>
+          {/* Completed Tasks */}
+          <Card variant="glass" className="p-3 hover-scale">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0">
+                <Trophy className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
                 <p className="text-lg font-bold">{stats?.tasks_completed || 0}</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Completed</p>
               </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         </section>
-
-        {/* Quote Card - Compact */}
-        <Card variant="glass" className="p-3 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '100ms' }}>
-          <p className="text-sm text-foreground-secondary italic">"{randomQuote.quote}" <span className="text-muted-foreground">— {randomQuote.author}</span></p>
-        </Card>
 
         {/* Today's Tasks */}
         <section className="mb-6 animate-slide-up opacity-0" style={{ animationDelay: '150ms' }}>

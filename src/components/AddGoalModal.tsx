@@ -351,8 +351,8 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
               <div className="space-y-4">
                 {/* Selected Template/Category Header */}
                 {selectedTemplate ? (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/30">
-                    <div className="p-2 rounded-lg bg-primary/20 text-primary shrink-0">
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+                    <div className="p-2.5 rounded-xl bg-primary/20 text-primary shrink-0">
                       <selectedTemplate.icon className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -364,7 +364,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/30">
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
                     <span className="text-2xl">{config.emoji}</span>
                     <div>
                       <p className="font-semibold text-sm">{config.label}</p>
@@ -373,25 +373,50 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                   </div>
                 )}
 
-                {/* Goal Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="goalName" className="text-sm flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5 text-primary" />
-                    What's your specific goal?
+                {/* Goal Name - More relatable label */}
+                <div className="space-y-2">
+                  <Label htmlFor="goalName" className="text-sm font-medium flex items-center gap-2">
+                    <Target className="w-4 h-4 text-primary" />
+                    What do you want to achieve?
                   </Label>
                   <Input
                     id="goalName"
                     placeholder={selectedTemplate ? selectedTemplate.name : `e.g., ${config.examples.split(',')[0].trim()}`}
                     value={goalName}
                     onChange={(e) => setGoalName(e.target.value)}
-                    className="bg-secondary border-border h-10"
+                    className="bg-secondary/50 border-border h-11 rounded-xl text-sm"
                   />
                 </div>
 
+                {/* Frequency Selection - MOVED BEFORE task description */}
+                {!selectedTemplate && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">How often will you work on this?</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {taskFrequencies.map((freq) => (
+                        <button
+                          key={freq.id}
+                          type="button"
+                          onClick={() => setFrequency(freq.id)}
+                          className={cn(
+                            "p-3 rounded-xl border text-center transition-all",
+                            frequency === freq.id
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                              : "border-border bg-secondary/50 hover:bg-secondary"
+                          )}
+                        >
+                          <p className="text-sm font-medium">{freq.label}</p>
+                          <p className="text-[10px] text-muted-foreground">{freq.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Target (for measured template goals only) */}
                 {selectedTemplate?.smartType === 'measured' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="goalTarget" className="text-sm">
+                  <div className="space-y-2">
+                    <Label htmlFor="goalTarget" className="text-sm font-medium">
                       {selectedTemplate.targetLabel || 'Your target'}
                     </Label>
                     <div className="relative">
@@ -405,7 +430,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                         value={goalTarget}
                         onChange={(e) => setGoalTarget(e.target.value)}
                         className={cn(
-                          "bg-secondary border-border h-10",
+                          "bg-secondary/50 border-border h-11 rounded-xl",
                           !selectedTemplate.targetSuffix && "pl-8"
                         )}
                       />
@@ -421,21 +446,21 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                   </div>
                 )}
 
-                {/* Simple task description for custom goals */}
+                {/* Daily action description for custom goals - AFTER frequency */}
                 {!selectedTemplate && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="taskDescription" className="text-sm">
-                      What will you do each {frequency === 'daily' ? 'day' : frequency === 'weekly' ? 'week' : 'month'}?
+                  <div className="space-y-2">
+                    <Label htmlFor="taskDescription" className="text-sm font-medium">
+                      What's your {frequency === 'daily' ? 'daily' : frequency === 'weekly' ? 'weekly' : 'monthly'} action?
                     </Label>
                     <Input
                       id="taskDescription"
-                      placeholder="e.g., Brush teeth twice, Go to gym, Read for 30 mins"
+                      placeholder={`e.g., Read for 30 mins, Go to gym, Save ₦5000`}
                       value={goalTarget}
                       onChange={(e) => setGoalTarget(e.target.value)}
-                      className="bg-secondary border-border h-10"
+                      className="bg-secondary/50 border-border h-11 rounded-xl text-sm"
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      This is what your {frequency} reminder will say
+                    <p className="text-[10px] text-muted-foreground">
+                      This will be your {frequency} reminder
                     </p>
                   </div>
                 )}
@@ -456,71 +481,71 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                   </div>
                 )}
 
-                {/* Date Selection */}
-                <div className="p-3 rounded-xl bg-muted/50 border border-border space-y-3">
-                  <div className="flex items-center gap-1.5">
+                {/* Date Selection - Premium Design */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-secondary/80 to-secondary/40 border border-border space-y-3">
+                  <div className="flex items-center gap-2">
                     <CalendarDays className="w-4 h-4 text-primary" />
                     <span className="font-medium text-sm">Timeline</span>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Start Date</Label>
                       <Input
                         type="date"
                         value={startDate}
                         min={new Date().toISOString().split('T')[0]}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="bg-secondary border-border h-9 text-sm"
+                        className="bg-background/50 border-border h-10 text-sm rounded-xl"
                       />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">End Date</Label>
                       <Input
                         type="date"
                         value={deadline}
                         min={startDate || new Date().toISOString().split('T')[0]}
                         onChange={(e) => setDeadline(e.target.value)}
-                        className="bg-secondary border-border h-9 text-sm"
+                        className="bg-background/50 border-border h-10 text-sm rounded-xl"
                       />
                     </div>
                   </div>
 
                   {daysToAchieve > 0 && (
-                    <div className="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-success/10 border border-success/30">
-                      <Calendar className="w-3.5 h-3.5 text-success" />
-                      <span className="text-xs font-medium text-success">
-                        {daysToAchieve} days to achieve!
-                      </span>
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                      <span className="text-2xl font-bold text-primary">{daysToAchieve}</span>
+                      <span className="text-sm text-muted-foreground">days to crush it</span>
                     </div>
                   )}
                 </div>
 
-                {/* Frequency Selection */}
-                <div className="space-y-2">
-                  <Label className="text-sm flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-primary" />
-                    How often do you want tasks?
-                  </Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {taskFrequencies.map((freq) => (
-                      <button
-                        key={freq.id}
-                        type="button"
-                        onClick={() => setFrequency(freq.id)}
-                        className={cn(
-                          "p-2 rounded-lg border transition-all text-center",
-                          frequency === freq.id
-                            ? "bg-primary/20 border-primary/50 text-primary"
-                            : "bg-muted/30 border-border hover:border-primary/30"
-                        )}
-                      >
-                        <p className="font-medium text-xs">{freq.label}</p>
-                        <p className="text-[10px] text-muted-foreground">{freq.desc}</p>
-                      </button>
-                    ))}
+                {/* Frequency Selection - Only for templates (custom goals have this earlier) */}
+                {selectedTemplate && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      Task frequency
+                    </Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {taskFrequencies.map((freq) => (
+                        <button
+                          key={freq.id}
+                          type="button"
+                          onClick={() => setFrequency(freq.id)}
+                          className={cn(
+                            "p-3 rounded-xl border text-center transition-all",
+                            frequency === freq.id
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                              : "border-border bg-secondary/50 hover:bg-secondary"
+                          )}
+                        >
+                          <p className="text-sm font-medium">{freq.label}</p>
+                          <p className="text-[10px] text-muted-foreground">{freq.desc}</p>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Tips */}
                 {selectedTemplate?.tips && selectedTemplate.tips.length > 0 && (
@@ -540,36 +565,39 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                   </div>
                 )}
 
-                {/* Why (optional) */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="reason" className="text-sm flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                    Why does this matter? <span className="text-muted-foreground">(optional)</span>
+                {/* Why - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="reason" className="text-sm font-medium flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-premium" />
+                    Why does this matter?
+                    <span className="text-xs text-muted-foreground">(optional)</span>
                   </Label>
                   <Textarea
                     id="reason"
-                    placeholder="This motivates you on tough days..."
+                    placeholder="This will keep you motivated on hard days..."
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="bg-secondary border-border min-h-[60px] text-sm resize-none"
+                    className="bg-secondary/50 border-border min-h-[60px] resize-none rounded-xl text-sm"
+                    rows={2}
                   />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Fixed Footer */}
+          {/* Fixed Footer - Premium Button */}
           {step === 2 && (
             <div className="p-4 pt-3 border-t border-border shrink-0">
               <Button
-                variant="default"
+                variant="hero"
                 size="lg"
-                className="w-full"
+                className="w-full h-12 font-semibold text-base rounded-xl shadow-lg"
                 onClick={handleSubmit}
                 disabled={!canProceed}
               >
-                <Target className="w-4 h-4 mr-2" />
-                Create Goal
+                <Sparkles className="w-4 h-4 mr-2" />
+                Start Challenge
+                <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
           )}
