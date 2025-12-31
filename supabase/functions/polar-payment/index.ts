@@ -33,15 +33,27 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const body = await req.json();
-    const { action } = body;
-
-    console.log("Polar payment action:", action);
-
-    // Handle webhook from Polar
-    if (action === "webhook") {
-      return await handleWebhook(req, body, supabase);
+    // Check if this is a webhook (Polar webhooks have specific headers)
+    const polarSignature = req.headers.get("webhook-signature") || req.headers.get("polar-signature");
+    
+    let body: any = {};
+    const contentType = req.headers.get("content-type") || "";
+    
+    if (contentType.includes("application/json")) {
+      const text = await req.text();
+      if (text) {
+        body = JSON.parse(text);
+      }
     }
+
+    // Handle webhook from Polar (detected by signature header or event type)
+    if (polarSignature || body.type?.startsWith("checkout.") || body.type?.startsWith("order.")) {
+      console.log("Handling Polar webhook");
+      return await handleWebhook(req, body, supabase, polarSignature);
+    }
+
+    const { action } = body;
+    console.log("Polar payment action:", action);
 
     // Handle checkout initialization
     if (action === "initialize") {
@@ -216,12 +228,11 @@ serve(async (req) => {
   }
 });
 
-async function handleWebhook(req: Request, body: any, supabase: any) {
+async function handleWebhook(req: Request, body: any, supabase: any, signature: string | null) {
   const webhookSecret = Deno.env.get("POLAR_WEBHOOK_SECRET");
   
   // Verify webhook signature if secret is configured
-  if (webhookSecret) {
-    const signature = req.headers.get("webhook-signature") || req.headers.get("polar-signature");
+  if (webhookSecret && signature) {
     // Note: Add proper signature verification for production
     console.log("Webhook signature present:", !!signature);
   }
