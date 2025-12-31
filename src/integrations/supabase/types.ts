@@ -751,10 +751,21 @@ export type Database = {
         Args: { check_email: string }
         Returns: number
       }
+      check_invitee_email_exists: {
+        Args: { p_email: string }
+        Returns: boolean
+      }
       check_login_rate_limit: { Args: { check_email: string }; Returns: number }
       generate_email_otp: {
         Args: { p_email: string; p_user_id: string }
         Returns: string
+      }
+      get_invitee_basic_info: {
+        Args: { p_email: string }
+        Returns: {
+          avatar_url: string
+          username: string
+        }[]
       }
       get_leaderboard_data: {
         Args: { limit_count?: number }
