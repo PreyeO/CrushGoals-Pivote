@@ -58,6 +58,26 @@ export function useMissedTasks() {
     }
   };
 
+  const rescheduleTask = async (taskId: string, newDate: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          due_date: newDate,
+        })
+        .eq('id', taskId);
+
+      if (error) throw error;
+      
+      // Remove from missed tasks list (it's now scheduled for another day)
+      setMissedTasks(prev => prev.filter(t => t.id !== taskId));
+      return true;
+    } catch (error) {
+      logError('Error rescheduling task:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchMissedTasks();
   }, [user?.id]);
@@ -78,6 +98,7 @@ export function useMissedTasks() {
     totalMissed,
     isLoading,
     markTaskComplete,
+    rescheduleTask,
     refreshMissedTasks: fetchMissedTasks,
   };
 }
