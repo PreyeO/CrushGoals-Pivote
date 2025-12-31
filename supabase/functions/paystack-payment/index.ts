@@ -1,10 +1,32 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Allowed origins for CORS - restrict to known domains
+const ALLOWED_ORIGINS = [
+  'https://crushgoals.app',
+  'https://www.crushgoals.app',
+  'https://crushgoals.lovable.app',
+  'https://jnoqlbqilwohfyfudnss.supabase.co',
+];
+
+// For local development, also allow localhost origins
+const DEV_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allAllowedOrigins = [...ALLOWED_ORIGINS, ...DEV_ORIGINS];
+  const isAllowed = origin && allAllowedOrigins.includes(origin);
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 const PAYSTACK_SECRET_KEY = Deno.env.get('PAYSTACK_SECRET_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -19,6 +41,9 @@ interface InitializePaymentRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -30,7 +55,7 @@ serve(async (req) => {
 
     // Webhook handler (no auth required, uses Paystack signature)
     if (action === 'webhook') {
-      return handleWebhook(req);
+      return handleWebhook(req, corsHeaders);
     }
 
     // All other actions require authentication
@@ -57,11 +82,11 @@ serve(async (req) => {
     }
 
     if (action === 'initialize') {
-      return handleInitialize(req, user.id, user.email!);
+      return handleInitialize(req, user.id, user.email!, corsHeaders);
     }
 
     if (action === 'verify') {
-      return handleVerify(req, user.id);
+      return handleVerify(req, user.id, corsHeaders);
     }
 
     return new Response(
@@ -71,6 +96,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Paystack payment error:', error);
+    const corsHeaders = getCorsHeaders(req.headers.get('origin'));
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -84,7 +110,7 @@ const ALLOWED_CALLBACK_PATHS = ['/settings', '/dashboard', '/subscription'];
 // Production domain - hardcoded to prevent manipulation
 const PRODUCTION_DOMAIN = 'https://crushgoals.app';
 
-async function handleInitialize(req: Request, userId: string, userEmail: string) {
+async function handleInitialize(req: Request, userId: string, userEmail: string, corsHeaders: Record<string, string>) {
   const body: InitializePaymentRequest = await req.json();
   const { amount, plan, callbackUrl } = body;
 
@@ -163,7 +189,7 @@ async function handleInitialize(req: Request, userId: string, userEmail: string)
   );
 }
 
-async function handleVerify(req: Request, userId: string) {
+async function handleVerify(req: Request, userId: string, corsHeaders: Record<string, string>) {
   const { reference } = await req.json();
 
   if (!reference) {
@@ -242,7 +268,7 @@ async function handleVerify(req: Request, userId: string) {
   );
 }
 
-async function handleWebhook(req: Request) {
+async function handleWebhook(req: Request, corsHeaders: Record<string, string>) {
   const signature = req.headers.get('x-paystack-signature');
   const body = await req.text();
 
