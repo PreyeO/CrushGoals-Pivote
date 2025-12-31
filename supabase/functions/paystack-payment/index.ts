@@ -290,6 +290,24 @@ async function handleVerify(req: Request, userId: string, corsHeaders: Record<st
     );
   }
 
+  // Log payment to payment_history
+  const { error: historyError } = await supabase
+    .from('payment_history')
+    .insert({
+      user_id: userId,
+      amount: data.data.amount / 100,
+      currency: 'NGN',
+      plan: dbPlanName,
+      status: 'completed',
+      payment_provider: 'paystack',
+      payment_reference: data.data.reference,
+    });
+
+  if (historyError) {
+    console.error('Error logging payment history:', historyError);
+    // Don't fail the request, just log the error
+  }
+
   console.log(`Subscription updated for user ${userId} to plan: ${dbPlanName}`);
 
   return new Response(
@@ -369,6 +387,19 @@ async function handleWebhook(req: Request, corsHeaders: Record<string, string>) 
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
+
+      // Log payment to payment_history
+      await supabase
+        .from('payment_history')
+        .insert({
+          user_id: userId,
+          amount: event.data.amount / 100,
+          currency: 'NGN',
+          plan: dbPlanName,
+          status: 'completed',
+          payment_provider: 'paystack',
+          payment_reference: event.data.reference,
+        });
 
       console.log(`Webhook: Subscription updated for user ${userId}`);
     }

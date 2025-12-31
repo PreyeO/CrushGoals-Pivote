@@ -303,7 +303,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg w-full max-w-[100vw] h-[100dvh] sm:h-auto sm:max-h-[85vh] overflow-hidden bg-card border-border p-0 rounded-none sm:rounded-lg">
+      <DialogContent className="sm:max-w-lg w-full max-w-[100vw] h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden bg-card border-border p-0 rounded-none sm:rounded-lg flex flex-col">
         <div className="flex flex-col h-full sm:max-h-[85vh]">
           {/* Fixed Header */}
           <div className="p-3 sm:p-4 pb-2 sm:pb-3 border-b border-border shrink-0">
@@ -346,8 +346,8 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
             </DialogHeader>
           </div>
 
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+          {/* Scrollable Content - min-h-0 enables flex shrink for proper scrolling */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
             {/* Step 1: Template Selection */}
             {step === 1 && (
               <SmartGoalTemplates
