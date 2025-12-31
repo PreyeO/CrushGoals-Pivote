@@ -71,7 +71,11 @@ export default function Leaderboard() {
     : entries;
 
   const top3 = displayEntries.slice(0, 3);
-  const top10List = displayEntries.slice(0, 10); // Show all top 10 in list
+  // Show top 10 + current user if not in top 10 (for global view)
+  const currentUserId = user?.id;
+  const isUserInTop10 = displayEntries.slice(0, 10).some(e => e.user_id === currentUserId);
+  const userEntry = !isUserInTop10 ? displayEntries.find(e => e.user_id === currentUserId) : null;
+  const top10List = displayEntries.slice(0, 10);
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,37 +87,30 @@ export default function Leaderboard() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-                {viewFilter === "global" ? "Global Leaderboard 🏆" : "Friends & Groups 👥"}
+                Global Leaderboard 🏆
               </h1>
               <p className="text-muted-foreground">
-                {viewFilter === "global" 
-                  ? "Top 10 goal crushers worldwide" 
-                  : "Compete with friends and track shared goals"}
+                Top 10 goal crushers worldwide
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button 
-                variant={viewFilter === "global" ? "default" : "outline"} 
+                variant="default" 
                 className="gap-2" 
                 size="sm"
-                onClick={() => setViewFilter("global")}
               >
                 <Globe className="w-4 h-4" />
                 <span className="hidden sm:inline">Global</span>
               </Button>
               <Button 
-                variant={viewFilter === "friends" ? "default" : "outline"} 
-                className="gap-2 relative" 
+                variant="outline" 
+                className="gap-2 relative opacity-50 cursor-not-allowed" 
                 size="sm"
-                onClick={() => setViewFilter("friends")}
+                disabled
               >
                 <Users className="w-4 h-4" />
                 <span className="hidden sm:inline">Friends</span>
-                {(pendingRequests.length > 0 || pendingInvites.length > 0) && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-danger text-[10px] rounded-full flex items-center justify-center">
-                    {pendingRequests.length + pendingInvites.length}
-                  </span>
-                )}
+                <span className="text-[10px] text-warning ml-1">Soon</span>
               </Button>
               <div className="w-px bg-border mx-1" />
               <Button 
@@ -133,165 +130,7 @@ export default function Leaderboard() {
             </div>
           </div>
 
-          {/* Pending Friend Requests */}
-          {viewFilter === "friends" && pendingRequests.length > 0 && (
-            <div className="glass-card p-4 rounded-2xl mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Bell className="w-4 h-4 text-warning" />
-                <h3 className="font-semibold text-sm">Pending Friend Requests ({pendingRequests.length})</h3>
-              </div>
-              <div className="space-y-2">
-                {pendingRequests.map((request) => (
-                  <FriendRequestCard
-                    key={request.id}
-                    id={request.id}
-                    name={request.user_profile?.full_name || 'Unknown'}
-                    username={request.user_profile?.username}
-                    onAccept={acceptFriendRequest}
-                    onReject={rejectFriendRequest}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Pending Shared Goal Invites */}
-          {viewFilter === "friends" && pendingInvites.length > 0 && (
-            <div className="glass-card p-4 rounded-2xl mb-6 border-2 border-primary/30">
-              <div className="flex items-center gap-2 mb-3">
-                <Target className="w-4 h-4 text-primary" />
-                <h3 className="font-semibold text-sm">Shared Goal Invitations ({pendingInvites.length})</h3>
-              </div>
-              <div className="space-y-3">
-                {pendingInvites.map((invite) => (
-                  <div key={invite.id} className="p-3 rounded-xl bg-white/5 border border-white/10">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-2xl">{invite.shared_goal?.goal?.emoji || '🎯'}</span>
-                      <div className="flex-1">
-                        <p className="font-medium">{invite.shared_goal?.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Goal: {invite.shared_goal?.goal?.name}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        className="flex-1"
-                        onClick={() => acceptInvite(
-                          invite.id, 
-                          invite.shared_goal_id, 
-                          invite.shared_goal?.goal
-                        )}
-                      >
-                        Join Goal
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => declineInvite(invite.id)}
-                      >
-                        Decline
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Shared Goals Section with Inline Progress */}
-          {viewFilter === "friends" && sharedGoals.length > 0 && (
-            <div className="glass-card p-4 rounded-2xl mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="w-4 h-4 text-success" />
-                <h3 className="font-semibold text-sm">Your Shared Goals ({sharedGoals.length})</h3>
-              </div>
-              <div className="space-y-4">
-                {sharedGoals.map((sg) => {
-                  const members = sharedGoalProgress[sg.id] || [];
-                  return (
-                    <div key={sg.id} className="p-4 rounded-xl bg-white/5 border border-white/10">
-                      <button
-                        onClick={() => setSelectedSharedGoal({ 
-                          id: sg.id, 
-                          name: sg.name, 
-                          isOwner: sg.owner_id === user?.id 
-                        })}
-                        className="w-full text-left mb-3 hover:opacity-80 transition-opacity"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{sg.goal?.emoji || '🎯'}</span>
-                          <div className="flex-1">
-                            <p className="font-medium">{sg.name}</p>
-                            <p className="text-xs text-muted-foreground">{sg.goal?.name} • {members.length} members</p>
-                          </div>
-                          <span className="text-xs text-primary">View details →</span>
-                        </div>
-                      </button>
-                      
-                      {/* Inline member progress */}
-                      {members.length > 0 && (
-                        <div className="space-y-2 pt-3 border-t border-white/10">
-                          {members.slice(0, 3).map((member, idx) => (
-                            <div key={member.user_id} className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                  idx === 0 ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-amber-900' : 'bg-gradient-primary'
-                                }`}>
-                                  {member.username?.charAt(0).toUpperCase() || '?'}
-                                </div>
-                                <span className="font-medium">{member.username || 'Anonymous'}</span>
-                                {member.tasks_completed_today > 0 && (
-                                  <span className="flex items-center gap-1 text-xs text-success">
-                                    <CheckCircle className="w-3 h-3" /> Done today
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-3 text-xs">
-                                <span className="flex items-center gap-1 text-muted-foreground">
-                                  <Flame className="w-3 h-3 text-orange-400" />
-                                  {member.current_streak}
-                                </span>
-                                <span className="font-bold text-primary">{member.goal_progress}%</span>
-                              </div>
-                            </div>
-                          ))}
-                          {members.length > 3 && (
-                            <p className="text-xs text-muted-foreground text-center pt-1">
-                              +{members.length - 3} more members
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Add Friend Button for Friends Tab */}
-          {viewFilter === "friends" && (
-            <div className="mb-6">
-              <Button onClick={() => setAddFriendOpen(true)} className="gap-2">
-                <UserPlus className="w-4 h-4" />
-                Invite Friend to Grow Together
-              </Button>
-            </div>
-          )}
-
-          {viewFilter === "friends" && friendsWithStats.length === 0 && sharedGoals.length === 0 ? (
-            <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
-              <div className="text-5xl sm:text-6xl mb-4">👥</div>
-              <h3 className="text-xl font-semibold mb-2">No Friends Yet</h3>
-              <p className="text-muted-foreground mb-4">Invite friends to grow together and compete on shared goals!</p>
-              <Button onClick={() => setAddFriendOpen(true)}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Invite Your First Friend
-              </Button>
-            </div>
-          ) : displayEntries.length === 0 && viewFilter === "global" ? (
+          {displayEntries.length === 0 ? (
             <div className="glass-card p-8 sm:p-12 rounded-2xl text-center">
               <div className="text-5xl sm:text-6xl mb-4">🏆</div>
               <h3 className="text-xl font-semibold mb-2">
@@ -413,13 +252,44 @@ export default function Leaderboard() {
                           <td className="p-3 sm:p-4 text-right text-primary font-medium text-sm sm:text-base">{entry.total_xp.toLocaleString()}</td>
                         </tr>
                       ))}
+                      {/* Show current user if not in top 10 */}
+                      {userEntry && (
+                        <>
+                          <tr className="border-b border-white/10">
+                            <td colSpan={5} className="p-2 text-center text-muted-foreground text-xs">...</td>
+                          </tr>
+                          <tr className="border-b border-white/5 bg-primary/10">
+                            <td className="p-3 sm:p-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-base sm:text-lg">#{userEntry.rank}</span>
+                              </div>
+                            </td>
+                            <td className="p-3 sm:p-4">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base bg-gradient-primary">
+                                  {userEntry.avatar}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-sm sm:text-base block">{userEntry.name} (You)</span>
+                                  <span className="text-xs text-muted-foreground">Level {userEntry.level}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3 sm:p-4 text-right font-semibold text-sm sm:text-base">{userEntry.tasks_completed}</td>
+                            <td className="p-3 sm:p-4 text-right">
+                              <span className="text-orange-400 text-sm sm:text-base">🔥 {userEntry.current_streak}</span>
+                            </td>
+                            <td className="p-3 sm:p-4 text-right text-primary font-medium text-sm sm:text-base">{userEntry.total_xp.toLocaleString()}</td>
+                          </tr>
+                        </>
+                      )}
                     </tbody>
                   </table>
                 </div>
               )}
 
               {/* Your Rank Card - Show if user is not in top 10 */}
-              {userRank && userRank.rank > 10 && viewFilter === "global" && (
+              {userRank && userRank.rank > 10 && (
                 <div className="glass-card p-4 sm:p-6 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-transparent">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3 sm:gap-4">

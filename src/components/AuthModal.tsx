@@ -154,12 +154,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             })
             .eq('user_id', data.user.id);
 
-          // Send welcome email
-          try {
-            await sendWelcomeEmail(email.trim(), name.trim());
-          } catch (e) {
-            // Don't block signup for welcome email failure
-          }
+          // Welcome email removed - no longer sending welcome emails
 
           // Store pending invite token if exists (for after verification)
           const urlParams = new URLSearchParams(window.location.search);
@@ -231,13 +226,8 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[440px] w-[95vw] max-h-[90vh] overflow-y-auto bg-card border-white/10 backdrop-blur-xl p-0 animate-scale-in">
         <div className="p-4 sm:p-6 md:p-8">
-          {/* Logo & Welcome */}
+        {/* Welcome */}
           <DialogHeader className="text-center mb-6">
-            <div className="flex justify-center mb-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow-md">
-                <Target className="w-7 h-7 text-primary-foreground" />
-              </div>
-            </div>
             <DialogTitle className="text-2xl font-bold">Welcome to CrushGoals 🚀</DialogTitle>
             <p className="text-muted-foreground mt-2">
               {tab === "signup" ? "Start crushing your goals today" : "Welcome back, champion!"}

@@ -100,41 +100,60 @@ export default function Landing() {
     // Navigation is handled by the useEffect based on admin status
   };
 
+  // Pro tier pricing (coming soon)
+  const proPricing = {
+    NGN: { monthly: '₦3,500', annual: '₦30,000' },
+    USD: { monthly: '$6.99', annual: '$59.99' },
+    GBP: { monthly: '£5.49', annual: '$47.99' },
+    EUR: { monthly: '€6.49', annual: '€54.99' },
+    CAD: { monthly: 'C$9.49', annual: 'C$79.99' },
+    AUD: { monthly: 'A$10.49', annual: 'A$89.99' },
+  };
+
+  const currentProPricing = proPricing[pricing.code as keyof typeof proPricing] || proPricing.NGN;
+
   const pricingPlans = [
     {
-      name: "Monthly",
-      subtitle: "Flexibility",
+      name: "Basic",
+      subtitle: "Get Started",
       price: pricing.monthly.formatted,
       period: "/month",
-      description: "Perfect for trying out goal crushing",
+      annualPrice: pricing.annual.formatted,
+      annualPeriod: "/year",
+      annualSavings: pricing.annual.savingsText,
+      description: "Everything you need to crush your goals",
       features: [
-        "Unlimited goals",
-        "Full gamification & achievements",
-        "All analytics & insights",
-        "Email reminders",
-        "Global leaderboard",
-        "Add friends & compete",
-        "Join group challenges",
-      ],
-      popular: false,
-      annualPrice: null,
-      annualSavings: null,
-    },
-    {
-      name: "Annual",
-      subtitle: "Best Value",
-      price: pricing.annual.formatted,
-      period: "/year",
-      description: "For committed goal crushers",
-      features: [
-        "Everything in Monthly",
-        "1 month FREE",
-        "Priority support",
-        "Early access to new features",
+        "Unlimited goals & tasks",
+        "Daily streaks & gamification",
+        "Basic achievement badges",
+        "Progress analytics",
+        "Weekly habit calendar",
       ],
       popular: true,
-      annualPrice: null,
-      annualSavings: pricing.annual.savingsText,
+      comingSoon: false,
+    },
+    {
+      name: "Pro",
+      subtitle: "Coming Soon",
+      price: currentProPricing.monthly,
+      period: "/month",
+      annualPrice: currentProPricing.annual,
+      annualPeriod: "/year",
+      annualSavings: pricing.code === 'NGN' ? 'Save 29%' : 'Save 28%',
+      description: "For ambitious goal crushers",
+      features: [
+        "Everything in Basic",
+        "Advanced Analytics Dashboard",
+        "Full Global Leaderboard",
+        "Add Friends & Compete",
+        "Join Group Challenges",
+        "Daily Email Reminders",
+        "Extended Achievement System (47+ badges)",
+        "Real-Time Activity Feeds",
+        "Priority Support",
+      ],
+      popular: false,
+      comingSoon: true,
     },
   ];
 
@@ -341,7 +360,7 @@ export default function Landing() {
               Simple, <span className="text-primary-gradient">Affordable</span> Pricing
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground mb-4">
-              Start with a 3-day free trial. No credit card required.
+              Start with a 2-day free trial. No credit card required.
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <span>Prices shown in {currentCurrency.name}</span>
@@ -354,11 +373,16 @@ export default function Landing() {
               <Card
                 key={plan.name}
                 variant="glass"
-                className={`p-6 sm:p-8 relative ${plan.popular ? "border-primary/50 shadow-glow-md" : ""}`}
+                className={`p-6 sm:p-8 relative ${plan.popular ? "border-primary/50 shadow-glow-md" : ""} ${plan.comingSoon ? "opacity-80" : ""}`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-primary rounded-full text-xs sm:text-sm font-semibold text-primary-foreground">
                     ⭐ Most Popular
+                  </div>
+                )}
+                {plan.comingSoon && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-warning/90 rounded-full text-xs sm:text-sm font-semibold text-warning-foreground">
+                    🚀 Coming Soon
                   </div>
                 )}
                 <div className="text-center mb-6">
@@ -372,7 +396,7 @@ export default function Landing() {
                   {plan.annualPrice && (
                     <div className="mt-3 p-2 rounded-lg bg-success/10 border border-success/20">
                       <p className="text-xs text-success font-medium">
-                        💰 Annual: {plan.annualPrice}/year — Save {plan.annualSavings}!
+                        💰 {plan.annualPrice}{plan.annualPeriod} — {plan.annualSavings}
                       </p>
                     </div>
                   )}
@@ -389,16 +413,17 @@ export default function Landing() {
                   variant={plan.popular ? "hero" : "glass"}
                   size="lg"
                   className="w-full"
-                  onClick={() => setAuthOpen(true)}
+                  onClick={() => !plan.comingSoon && setAuthOpen(true)}
+                  disabled={plan.comingSoon}
                 >
-                  Start 3-Day Free Trial
+                  {plan.comingSoon ? "Coming Soon" : "Start 2-Day Free Trial"}
                 </Button>
               </Card>
             ))}
           </div>
 
           <p className="text-center text-xs sm:text-sm text-muted-foreground mt-6 sm:mt-8">
-            🔒 Secure payment • Cancel anytime • 3-day free trial
+            🔒 Secure payment • Cancel anytime • 2-day free trial
           </p>
         </div>
       </section>
