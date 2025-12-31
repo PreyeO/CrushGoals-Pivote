@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -54,6 +54,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdminLoaded, setIsAdminLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const welcomeEmailSentRef = useRef<Set<string>>(new Set());
+
+  // Send welcome email to new users
+  const sendWelcomeEmail = async (userEmail: string, userName: string, userId: string) => {
+    // Prevent duplicate emails in the same session
+    if (welcomeEmailSentRef.current.has(userId)) {
+      return;
+    }
+    welcomeEmailSentRef.current.add(userId);
+
+    try {
+      const { error } = await supabase.functions.invoke('send-welcome-email', {
+        body: { email: userEmail, name: userName }
+      });
+      
+      if (error) {
+        logError('Failed to send welcome email:', error);
+      } else {
+        console.log('Welcome email sent to:', userEmail);
+      }
+    } catch (err) {
+      logError('Error invoking welcome email function:', err);
+    }
+  };
 
   const fetchUserData = async (userId: string) => {
     try {
@@ -134,6 +158,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(() => {
             fetchUserData(session.user.id);
           }, 0);
+          
+          // Send welcome email on SIGNED_IN event for first-time users
+          // We track this with a ref to prevent duplicate emails
+          if (event === 'SIGNED_IN') {
+            // Check if user was just created (within last 5 minutes)
+            const createdAt = new Date(session.user.created_at || '');
+            const now = new Date();
+            const isNewUser = (now.getTime() - createdAt.getTime()) < 5 * 60 * 1000; // 5 minutes
+            
+            if (isNewUser) {
+              const userName = session.user.user_metadata?.full_name || 'there';
+              const userEmail = session.user.email;
+              if (userEmail) {
+                setTimeout(() => {
+                  sendWelcomeEmail(userEmail, userName, session.user.id);
+                }, 0);
+              }
+            }
+          }
           
           // Don't redirect if this is a password recovery flow
           if (isPasswordRecovery) {
