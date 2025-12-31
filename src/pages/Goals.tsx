@@ -419,9 +419,18 @@ export default function Goals() {
                       progress={goal.progress || 0}
                       currentValue={goal.current_value || '0'}
                       targetValue={goal.target_value || 'Complete'}
-                      timeRemaining={goal.deadline 
-                        ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
-                        : 'No deadline'
+                      timeRemaining={goal.start_date && goal.deadline 
+                        ? (() => {
+                            const start = new Date(goal.start_date!);
+                            const end = new Date(goal.deadline!);
+                            const now = new Date();
+                            const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                            const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                            return `${totalDays}d challenge · ${daysLeft}d left`;
+                          })()
+                        : goal.deadline 
+                          ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                          : 'No deadline'
                       }
                       status={getDisplayStatus(goal)}
                       tasksToday={goalTaskCounts[goal.id] ? {
@@ -473,9 +482,18 @@ export default function Goals() {
                     progress={goal.progress || 0}
                     currentValue={goal.current_value || '0'}
                     targetValue={goal.target_value || 'Complete'}
-                    timeRemaining={goal.deadline 
-                      ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
-                      : 'No deadline'
+                    timeRemaining={goal.start_date && goal.deadline 
+                      ? (() => {
+                          const start = new Date(goal.start_date!);
+                          const end = new Date(goal.deadline!);
+                          const now = new Date();
+                          const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                          const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                          return `${totalDays}d challenge · ${daysLeft}d left`;
+                        })()
+                      : goal.deadline 
+                        ? `Until ${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                        : 'No deadline'
                     }
                     status={getDisplayStatus(goal)}
                     tasksToday={goalTaskCounts[goal.id] ? {

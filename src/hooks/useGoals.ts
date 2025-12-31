@@ -430,15 +430,14 @@ export function useGoals() {
     try {
       const todayStr = new Date().toISOString().split('T')[0];
 
-      // Only count tasks due up to today so progress doesn't stay ~0% for long challenges
-      const { data: goalTasks, error: fetchError } = await supabase
+      // Get ALL tasks for the goal to calculate true progress
+      const { data: allGoalTasks, error: allTasksError } = await supabase
         .from('tasks')
         .select('id, completed, due_date')
         .eq('goal_id', goalId)
-        .eq('user_id', user.id)
-        .lte('due_date', todayStr);
+        .eq('user_id', user.id);
 
-      if (fetchError) throw fetchError;
+      if (allTasksError) throw allTasksError;
 
       const goal = goals.find(g => g.id === goalId);
       if (!goal) return null;
@@ -446,24 +445,27 @@ export function useGoals() {
       let progress = 0;
       let status: 'on-track' | 'ahead' | 'behind' | 'completed' = 'on-track';
 
-      if (goalTasks && goalTasks.length > 0) {
-        const completedCount = goalTasks.filter(t => t.completed).length;
-        const totalCount = goalTasks.length;
+      if (allGoalTasks && allGoalTasks.length > 0) {
+        // Calculate progress based on ALL completed tasks vs TOTAL tasks
+        const completedCount = allGoalTasks.filter(t => t.completed).length;
+        const totalCount = allGoalTasks.length;
         progress = Math.round((completedCount / totalCount) * 100);
 
-        if (progress >= 70) status = 'ahead';
-        else if (progress >= 30) status = 'on-track';
-        else status = 'behind';
+        // For status, we check tasks due up to today
+        const tasksDueToday = allGoalTasks.filter(t => t.due_date && t.due_date <= todayStr);
+        const completedDueToday = tasksDueToday.filter(t => t.completed).length;
+        const totalDueToday = tasksDueToday.length;
+        
+        if (totalDueToday > 0) {
+          const dueTodayProgress = (completedDueToday / totalDueToday) * 100;
+          if (dueTodayProgress >= 70) status = 'ahead';
+          else if (dueTodayProgress >= 30) status = 'on-track';
+          else status = 'behind';
+        }
       }
 
-      // Only mark as completed if ALL tasks (including future ones) are complete
-      const { data: allTasks } = await supabase
-        .from('tasks')
-        .select('id, completed')
-        .eq('goal_id', goalId)
-        .eq('user_id', user.id);
-
-      const allDone = allTasks && allTasks.length > 0 && allTasks.every((t) => t.completed);
+      // Mark as completed if ALL tasks are complete
+      const allDone = allGoalTasks && allGoalTasks.length > 0 && allGoalTasks.every((t) => t.completed);
       if (allDone) {
         progress = 100;
         status = 'completed';
@@ -477,13 +479,13 @@ export function useGoals() {
       }
 
       // Also update current_value if target_value exists
-      if (goal.target_value && goalTasks && goalTasks.length > 0) {
+      if (goal.target_value && allGoalTasks && allGoalTasks.length > 0) {
         const match = goal.target_value.match(/^\$?(\d+(?:\.\d+)?)\s*(.*)$/);
         if (match) {
           const totalValue = parseFloat(match[1]);
           const unit = match[2].trim();
-          const completedCount = goalTasks.filter(t => t.completed).length;
-          const totalCount = goalTasks.length;
+          const completedCount = allGoalTasks.filter(t => t.completed).length;
+          const totalCount = allGoalTasks.length;
           const currentValue = ((completedCount / totalCount) * totalValue).toFixed(1);
           updates.current_value = `${currentValue} ${unit}`.trim();
         }
