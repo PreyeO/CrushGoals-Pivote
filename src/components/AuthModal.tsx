@@ -154,18 +154,21 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
             })
             .eq('user_id', data.user.id);
 
-          // Welcome email removed - no longer sending welcome emails
+          // Send welcome email (non-blocking)
+          sendWelcomeEmail(email.trim(), name.trim()).catch(console.error);
 
-          // Store pending invite token if exists (for after verification)
+          // Store pending invite token if exists
           const urlParams = new URLSearchParams(window.location.search);
           const inviteToken = urlParams.get('invite');
           if (inviteToken) {
             localStorage.setItem('pendingInviteToken', inviteToken);
           }
           
-          // Navigate to success page
-          navigate('/signup-success', { replace: true });
+          // Show welcome message and redirect to dashboard
+          toast.success(`Welcome to CrushGoals, ${name.trim()}! 🎉`);
+          onSuccess({ name: name.trim(), email: email.trim() });
           onOpenChange(false);
+          navigate('/dashboard', { replace: true });
           
           // Reset form
           setName("");
