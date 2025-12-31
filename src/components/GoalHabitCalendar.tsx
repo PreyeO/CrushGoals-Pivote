@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { CheckCircle2, Target, Calendar as CalendarIcon } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, differenceInDays } from "date-fns";
+import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isToday, isSameDay } from "date-fns";
 import { logError } from "@/lib/logger";
+import { Button } from "@/components/ui/button";
 
 interface GoalTaskDay {
   date: Date;
@@ -25,7 +25,7 @@ interface GoalHabitCalendarProps {
 
 export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endDate }: GoalHabitCalendarProps) {
   const { user } = useAuth();
-  const [month, setMonth] = useState<Date>(new Date());
+  const [weekStart, setWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 })); // Monday start
   const [taskDays, setTaskDays] = useState<Map<string, GoalTaskDay>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -35,13 +35,13 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
     currentStreak: 0,
   });
 
+  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
   useEffect(() => {
     const fetchGoalTasks = async () => {
       if (!user || !goalId) return;
       setIsLoading(true);
-
-      const start = startOfMonth(month);
-      const end = endOfMonth(month);
 
       try {
         const { data: tasks, error } = await supabase
@@ -49,15 +49,15 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
           .select('due_date, completed')
           .eq('user_id', user.id)
           .eq('goal_id', goalId)
-          .gte('due_date', format(start, 'yyyy-MM-dd'))
-          .lte('due_date', format(end, 'yyyy-MM-dd'));
+          .gte('due_date', format(weekStart, 'yyyy-MM-dd'))
+          .lte('due_date', format(weekEnd, 'yyyy-MM-dd'));
 
         if (error) throw error;
 
         const dayMap = new Map<string, GoalTaskDay>();
         
-        // Initialize all days in the month
-        eachDayOfInterval({ start, end }).forEach(day => {
+        // Initialize all days in the week
+        weekDays.forEach(day => {
           const key = format(day, 'yyyy-MM-dd');
           dayMap.set(key, {
             date: day,
@@ -94,7 +94,7 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
 
         setTaskDays(dayMap);
 
-        // Calculate streak (simplified - within current month)
+        // Calculate streak (within current week)
         let streak = 0;
         const today = new Date();
         const sortedDays = Array.from(dayMap.entries())
@@ -123,39 +123,17 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
     };
 
     fetchGoalTasks();
-  }, [user, goalId, month]);
+  }, [user, goalId, weekStart]);
 
-  const getDayContent = (day: Date) => {
-    const key = format(day, 'yyyy-MM-dd');
-    const taskDay = taskDays.get(key);
-
-    if (!taskDay || taskDay.totalTasks === 0) {
-      return null;
-    }
-
-    const percentage = (taskDay.completedTasks / taskDay.totalTasks) * 100;
-
-    return (
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div 
-          className={cn(
-            "w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium transition-all",
-            taskDay.isPerfect 
-              ? "bg-success/20 text-success ring-1 ring-success/50" 
-              : taskDay.completedTasks > 0 
-                ? "bg-primary/20 text-primary ring-1 ring-primary/30"
-                : "bg-muted/50 text-muted-foreground"
-          )}
-        >
-          {day.getDate()}
-        </div>
-      </div>
-    );
-  };
+  const goToPreviousWeek = () => setWeekStart(subWeeks(weekStart, 1));
+  const goToNextWeek = () => setWeekStart(addWeeks(weekStart, 1));
+  const goToCurrentWeek = () => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
   const completionRate = stats.totalDays > 0 
     ? Math.round((stats.perfectDays / stats.totalDays) * 100) 
     : 0;
+
+  const isCurrentWeek = isSameDay(weekStart, startOfWeek(new Date(), { weekStartsOn: 1 }));
 
   return (
     <div className="space-y-3 max-w-full overflow-hidden">
@@ -165,6 +143,79 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-sm truncate">{goalName}</h3>
         </div>
+      </div>
+
+      {/* Week Navigation */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPreviousWeek}>
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <div className="text-center">
+          <p className="text-xs font-medium">
+            {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
+          </p>
+          {!isCurrentWeek && (
+            <button 
+              onClick={goToCurrentWeek}
+              className="text-[10px] text-primary hover:underline"
+            >
+              Go to current week
+            </button>
+          )}
+        </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToNextWeek}>
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Weekly Calendar Grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {weekDays.map((day) => {
+          const key = format(day, 'yyyy-MM-dd');
+          const taskDay = taskDays.get(key);
+          const dayIsToday = isToday(day);
+          const hasTasks = taskDay && taskDay.totalTasks > 0;
+          const isPerfect = taskDay?.isPerfect;
+          const hasPartial = taskDay && taskDay.completedTasks > 0 && !isPerfect;
+          const isMissed = hasTasks && taskDay.completedTasks === 0;
+
+          return (
+            <div 
+              key={key}
+              className={cn(
+                "flex flex-col items-center p-2 rounded-lg border transition-all",
+                dayIsToday && "ring-2 ring-primary/50",
+                isPerfect && "bg-success/20 border-success/50",
+                hasPartial && "bg-primary/20 border-primary/30",
+                isMissed && "bg-muted/50 border-muted",
+                !hasTasks && "bg-card/30 border-border/30"
+              )}
+            >
+              <p className="text-[10px] text-muted-foreground uppercase">
+                {format(day, 'EEE')}
+              </p>
+              <p className={cn(
+                "text-sm font-bold",
+                dayIsToday && "text-primary"
+              )}>
+                {format(day, 'd')}
+              </p>
+              {hasTasks ? (
+                <div className="mt-1">
+                  {isPerfect ? (
+                    <CheckCircle2 className="w-4 h-4 text-success" />
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">
+                      {taskDay.completedTasks}/{taskDay.totalTasks}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-1 w-4 h-4" /> 
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Stats Row - Compact 4 column grid */}
@@ -187,45 +238,6 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
         </div>
       </div>
 
-      {/* Calendar - Compact and responsive */}
-      <Calendar
-        mode="single"
-        month={month}
-        onMonthChange={setMonth}
-        className="rounded-lg border border-border/50 p-2 w-full"
-        classNames={{
-          months: "flex flex-col",
-          month: "space-y-1",
-          caption: "flex justify-center pt-1 relative items-center",
-          caption_label: "text-xs font-medium",
-          nav: "space-x-1 flex items-center",
-          nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100",
-          nav_button_previous: "absolute left-1",
-          nav_button_next: "absolute right-1",
-          table: "w-full border-collapse",
-          head_row: "flex justify-between",
-          head_cell: "text-muted-foreground w-8 font-normal text-[10px]",
-          row: "flex w-full justify-between mt-1",
-          cell: "text-center text-xs p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-          day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100",
-          day_today: "ring-1 ring-primary/50",
-        }}
-        components={{
-          DayButton: ({ day, ...buttonProps }) => (
-            <button {...buttonProps}>
-              {getDayContent(day.date) || (
-                <span className="text-[10px]">{day.date.getDate()}</span>
-              )}
-            </button>
-          ),
-        }}
-        disabled={(date) => {
-          if (startDate && date < new Date(startDate)) return true;
-          if (endDate && date > new Date(endDate)) return true;
-          return false;
-        }}
-      />
-
       {/* Legend - Compact inline */}
       <div className="flex items-center justify-center gap-3 text-[9px] text-muted-foreground">
         <div className="flex items-center gap-1">
@@ -239,10 +251,6 @@ export function GoalHabitCalendar({ goalId, goalName, goalEmoji, startDate, endD
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded bg-muted/50" />
           <span>Missed</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-warning/20 ring-1 ring-warning/30" />
-          <span>Paused</span>
         </div>
       </div>
     </div>
