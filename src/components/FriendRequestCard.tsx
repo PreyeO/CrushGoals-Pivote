@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 interface FriendRequestCardProps {
   id: string;
   name: string;
-  email: string;
+  username?: string;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
 }
 
-export function FriendRequestCard({ id, name, email, onAccept, onReject }: FriendRequestCardProps) {
+export function FriendRequestCard({ id, name, username, onAccept, onReject }: FriendRequestCardProps) {
   return (
     <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
       <div className="flex items-center gap-3">
@@ -18,7 +18,7 @@ export function FriendRequestCard({ id, name, email, onAccept, onReject }: Frien
         </div>
         <div>
           <p className="font-medium text-sm">{name}</p>
-          <p className="text-xs text-muted-foreground">{email}</p>
+          {username && <p className="text-xs text-muted-foreground">@{username}</p>}
         </div>
       </div>
       <div className="flex gap-2">

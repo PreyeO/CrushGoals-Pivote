@@ -13,12 +13,12 @@ export interface Friend {
   friend_profile?: {
     user_id: string;
     full_name: string;
-    email: string;
+    username?: string;
   };
   user_profile?: {
     user_id: string;
     full_name: string;
-    email: string;
+    username?: string;
   };
 }
 
@@ -79,12 +79,10 @@ export function useFriends() {
       // Get pending request user IDs
       const pendingUserIds = pending?.map(f => f.user_id) || [];
 
-      // Fetch profiles for friends
+      // Fetch profiles for friends using secure RPC (no email exposure)
       if (friendIds.length > 0) {
         const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, email')
-          .in('user_id', friendIds);
+          .rpc('get_social_profiles', { p_user_ids: friendIds });
 
         const { data: stats } = await supabase
           .from('user_stats')
@@ -92,7 +90,7 @@ export function useFriends() {
           .in('user_id', friendIds);
 
         const friendsData: FriendWithStats[] = friendIds.map(friendId => {
-          const profile = profiles?.find(p => p.user_id === friendId);
+          const profile = profiles?.find((p: { user_id: string }) => p.user_id === friendId);
           const stat = stats?.find(s => s.user_id === friendId);
           return {
             user_id: friendId,
@@ -110,17 +108,15 @@ export function useFriends() {
         setFriendsWithStats([]);
       }
 
-      // Fetch profiles for pending requests
+      // Fetch profiles for pending requests using secure RPC (no email exposure)
       if (pendingUserIds.length > 0) {
         const { data: pendingProfiles } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, email')
-          .in('user_id', pendingUserIds);
+          .rpc('get_social_profiles', { p_user_ids: pendingUserIds });
 
         const enrichedPending = pending?.map(p => ({
           ...p,
           status: p.status as 'pending' | 'accepted' | 'rejected',
-          user_profile: pendingProfiles?.find(pr => pr.user_id === p.user_id),
+          user_profile: pendingProfiles?.find((pr: { user_id: string }) => pr.user_id === p.user_id),
         })) || [];
 
         setPendingRequests(enrichedPending);

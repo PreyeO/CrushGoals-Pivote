@@ -800,6 +800,16 @@ export type Database = {
           username: string
         }[]
       }
+      get_social_profiles: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          show_on_leaderboard: boolean
+          user_id: string
+          username: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
