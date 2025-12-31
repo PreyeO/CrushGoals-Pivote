@@ -19,6 +19,9 @@ import { useTasks } from "@/hooks/useTasks";
 import { useStreakNotifications } from "@/hooks/useStreakNotifications";
 import { useInviteHandler } from "@/hooks/useInviteHandler";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { TrialBanner } from "@/components/TrialBanner";
+import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getDisplayStatus } from "@/lib/goalUtils";
@@ -117,7 +120,10 @@ export default function Dashboard() {
   
   useStreakNotifications();
   const { processedInvites } = useInviteHandler();
-  const { showExpiryModal, acknowledgeExpiry, getTrialMessage } = useTrialNotifications();
+  const { showExpiryModal, acknowledgeExpiry } = useTrialNotifications();
+  const { canPerformActions, isTrialExpired } = useTrialStatus();
+  const [showTrialExpiredOverlay, setShowTrialExpiredOverlay] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   
   useEffect(() => {
     if (processedInvites) {
@@ -232,6 +238,9 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className={cn("flex-1 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 transition-all duration-300", mainPaddingClass)}>
+        {/* Trial Banner */}
+        <TrialBanner onUpgradeClick={() => setUpgradeModalOpen(true)} />
+
         {/* Header with Greeting and Motivation */}
         <header className="mb-6 animate-fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -247,7 +256,13 @@ export default function Dashboard() {
               variant="hero" 
               size="sm"
               className="w-full sm:w-auto" 
-              onClick={() => setAddGoalOpen(true)}
+              onClick={() => {
+                if (!canPerformActions) {
+                  setShowTrialExpiredOverlay(true);
+                } else {
+                  setAddGoalOpen(true);
+                }
+              }}
             >
               <Plus className="w-4 h-4 mr-1" />
               New Goal
