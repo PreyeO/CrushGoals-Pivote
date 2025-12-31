@@ -8,7 +8,7 @@ import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BulkTaskCompletion } from "@/components/BulkTaskCompletion";
-import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays, AlertTriangle, ChevronDown, ChevronUp, CheckSquare, CalendarRange } from "lucide-react";
+import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays, AlertTriangle, ChevronDown, ChevronUp, CheckSquare, CalendarRange, CalendarClock } from "lucide-react";
 import { useTasks, Task } from "@/hooks/useTasks";
 import { useMissedTasks } from "@/hooks/useMissedTasks";
 import { useGoals, Goal } from "@/hooks/useGoals";
@@ -49,7 +49,8 @@ const getTimeLeftToday = (): { hours: number; minutes: number; formatted: string
 export default function Tasks() {
   const [today, setToday] = useState(() => new Date().toISOString().split('T')[0]);
   const { tasks, isLoading, addTask, toggleTask, updateTask, deleteTask, refreshTasks, celebrationTrigger, clearCelebration } = useTasks(today);
-  const { missedTasks, totalMissed, markTaskComplete, refreshMissedTasks, isLoading: missedLoading } = useMissedTasks();
+  const { missedTasks, totalMissed, markTaskComplete, rescheduleTask, refreshMissedTasks, isLoading: missedLoading } = useMissedTasks();
+  const [rescheduleTaskId, setRescheduleTaskId] = useState<string | null>(null);
   const { goals } = useGoals();
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -68,6 +69,31 @@ export default function Tasks() {
   // Fetch all tasks for weekly view (no date filter)
   const { tasks: allTasks, toggleTask: toggleAllTask } = useTasks();
   
+  // Morning greeting - show once per day
+  useEffect(() => {
+    const lastGreetingDate = localStorage.getItem('lastMorningGreeting');
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    if (lastGreetingDate !== currentDate && !isLoading) {
+      const hour = new Date().getHours();
+      let greeting = 'Good evening';
+      if (hour < 12) greeting = 'Good morning';
+      else if (hour < 17) greeting = 'Good afternoon';
+      
+      const taskCount = tasks.length;
+      const message = taskCount > 0 
+        ? `${greeting}! You have ${taskCount} task${taskCount > 1 ? 's' : ''} today. Let's crush it! 💪`
+        : `${greeting}! No tasks scheduled for today. Time to plan your day! 📋`;
+      
+      toast(message, {
+        duration: 5000,
+        icon: hour < 12 ? '☀️' : hour < 17 ? '🌤️' : '🌙',
+      });
+      
+      localStorage.setItem('lastMorningGreeting', currentDate);
+    }
+  }, [isLoading, tasks.length]);
+
   // Update time left every minute and check for date change (midnight refresh)
   useEffect(() => {
     const checkTimeAndDate = () => {
@@ -77,6 +103,7 @@ export default function Tasks() {
       const currentDate = new Date().toISOString().split('T')[0];
       if (currentDate !== today) {
         setToday(currentDate);
+        localStorage.removeItem('lastMorningGreeting'); // Reset greeting for new day
         toast.success("New day! Your tasks have been refreshed ☀️");
       }
     };
@@ -97,6 +124,16 @@ export default function Tasks() {
     const success = await markTaskComplete(taskId);
     if (success) {
       toast.success('Task marked as complete! (Late but done!)');
+      refreshMissedTasks();
+    }
+  };
+
+  const handleRescheduleTask = async (taskId: string, newDate: string) => {
+    const success = await rescheduleTask(taskId, newDate);
+    if (success) {
+      const formattedDate = new Date(newDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      toast.success(`Task rescheduled to ${formattedDate}`);
+      setRescheduleTaskId(null);
       refreshMissedTasks();
     }
   };
@@ -400,22 +437,76 @@ export default function Tasks() {
                         month: 'short',
                         day: 'numeric'
                       });
+                      const isRescheduling = rescheduleTaskId === task.id;
+                      
                       return (
-                        <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                          <button
-                            onClick={() => handleMissedTaskComplete(task.id)}
-                            className="w-6 h-6 rounded-full border-2 border-destructive/50 hover:bg-destructive/20 hover:border-destructive transition-all flex items-center justify-center flex-shrink-0"
-                          >
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{task.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {task.goal?.emoji} {task.goal?.name || 'No Goal'} • Due {formattedDate}
-                            </p>
+                        <div key={task.id} className="flex flex-col gap-2">
+                          <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                            <button
+                              onClick={() => handleMissedTaskComplete(task.id)}
+                              className="w-6 h-6 rounded-full border-2 border-destructive/50 hover:bg-destructive/20 hover:border-destructive transition-all flex items-center justify-center flex-shrink-0"
+                              title="Mark as complete"
+                            >
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{task.title}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {task.goal?.emoji} {task.goal?.name || 'No Goal'} • Due {formattedDate}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setRescheduleTaskId(isRescheduling ? null : task.id)}
+                                className="text-xs text-primary bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded flex items-center gap-1 transition-colors"
+                                title="Reschedule task"
+                              >
+                                <CalendarClock className="w-3 h-3" />
+                                Reschedule
+                              </button>
+                              <span className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
+                                Missed
+                              </span>
+                            </div>
                           </div>
-                          <span className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
-                            Missed
-                          </span>
+                          
+                          {/* Reschedule Options */}
+                          {isRescheduling && (
+                            <div className="ml-9 p-3 rounded-lg bg-primary/5 border border-primary/20 flex flex-wrap gap-2">
+                              <span className="text-xs text-muted-foreground w-full mb-1">Reschedule to:</span>
+                              <button
+                                onClick={() => handleRescheduleTask(task.id, today)}
+                                className="text-xs bg-primary/20 hover:bg-primary/30 text-primary px-3 py-1.5 rounded-md transition-colors"
+                              >
+                                Today
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const tomorrow = new Date();
+                                  tomorrow.setDate(tomorrow.getDate() + 1);
+                                  handleRescheduleTask(task.id, tomorrow.toISOString().split('T')[0]);
+                                }}
+                                className="text-xs bg-primary/20 hover:bg-primary/30 text-primary px-3 py-1.5 rounded-md transition-colors"
+                              >
+                                Tomorrow
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const nextWeek = new Date();
+                                  nextWeek.setDate(nextWeek.getDate() + 7);
+                                  handleRescheduleTask(task.id, nextWeek.toISOString().split('T')[0]);
+                                }}
+                                className="text-xs bg-primary/20 hover:bg-primary/30 text-primary px-3 py-1.5 rounded-md transition-colors"
+                              >
+                                Next Week
+                              </button>
+                              <button
+                                onClick={() => setRescheduleTaskId(null)}
+                                className="text-xs bg-muted/50 hover:bg-muted text-muted-foreground px-3 py-1.5 rounded-md transition-colors ml-auto"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
