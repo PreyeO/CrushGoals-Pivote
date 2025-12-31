@@ -3,8 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Target, Calendar, Shield, TrendingUp, History } from "lucide-react";
+import { Target, Calendar, Shield, TrendingUp, History, Lock } from "lucide-react";
 import type { Goal } from "@/hooks/useGoals";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 
 interface EditGoalModalProps {
   open: boolean;
@@ -19,6 +21,8 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
   const [currentValue, setCurrentValue] = useState("");
   const [deadline, setDeadline] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showTrialOverlay, setShowTrialOverlay] = useState(false);
+  const { canPerformActions } = useTrialStatus();
 
   const originalDeadline = goal?.deadline || "";
   const originalTarget = goal?.target_value || "";
@@ -34,6 +38,11 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
 
   const handleSave = async () => {
     if (!goal || !name) return;
+    
+    if (!canPerformActions) {
+      setShowTrialOverlay(true);
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -172,6 +181,13 @@ export function EditGoalModal({ open, onOpenChange, goal, onSave }: EditGoalModa
             </Button>
           </div>
         </div>
+
+        {/* Trial Expired Overlay */}
+        <TrialExpiredOverlay 
+          open={showTrialOverlay} 
+          onOpenChange={setShowTrialOverlay}
+          actionType="edit"
+        />
       </DialogContent>
     </Dialog>
   );

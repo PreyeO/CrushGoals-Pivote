@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, Star } from "lucide-react";
+import { Calendar, Clock, Star, Lock } from "lucide-react";
 import type { Task } from "@/hooks/useTasks";
 import type { Goal } from "@/hooks/useGoals";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 
 interface EditTaskModalProps {
   open: boolean;
@@ -23,6 +25,8 @@ export function EditTaskModal({ open, onOpenChange, task, goals, onSave }: EditT
   const [timeEstimate, setTimeEstimate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showTrialOverlay, setShowTrialOverlay] = useState(false);
+  const { canPerformActions } = useTrialStatus();
 
   useEffect(() => {
     if (task) {
@@ -36,6 +40,11 @@ export function EditTaskModal({ open, onOpenChange, task, goals, onSave }: EditT
 
   const handleSave = async () => {
     if (!task || !title) return;
+    
+    if (!canPerformActions) {
+      setShowTrialOverlay(true);
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -149,6 +158,13 @@ export function EditTaskModal({ open, onOpenChange, task, goals, onSave }: EditT
             </Button>
           </div>
         </div>
+
+        {/* Trial Expired Overlay */}
+        <TrialExpiredOverlay 
+          open={showTrialOverlay} 
+          onOpenChange={setShowTrialOverlay}
+          actionType="edit"
+        />
       </DialogContent>
     </Dialog>
   );
