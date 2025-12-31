@@ -756,6 +756,10 @@ export type Database = {
         Returns: boolean
       }
       check_login_rate_limit: { Args: { check_email: string }; Returns: number }
+      constant_time_compare: {
+        Args: { a: string; b: string }
+        Returns: boolean
+      }
       generate_email_otp: {
         Args: { p_email: string; p_user_id: string }
         Returns: string
