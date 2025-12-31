@@ -22,6 +22,7 @@ import { useSharedGoals } from "@/hooks/useSharedGoals";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMainLayout } from "@/hooks/useMainLayout";
 import { cn } from "@/lib/utils";
+import { getDisplayStatus, calculateExpectedProgress } from "@/lib/goalUtils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,8 @@ interface GoalTaskCounts {
     todayCompleted: number;
     todayTotal: number;
     remaining: number;
+    totalCompleted: number;
+    totalCount: number;
   };
 }
 
@@ -82,11 +85,14 @@ export default function Goals() {
           const goalTasks = tasks?.filter(t => t.goal_id === goalId) || [];
           const todayTasks = goalTasks.filter(t => t.due_date === today);
           const incompleteTasks = goalTasks.filter(t => !t.completed);
+          const completedTasks = goalTasks.filter(t => t.completed);
 
           counts[goalId] = {
             todayCompleted: todayTasks.filter(t => t.completed).length,
             todayTotal: todayTasks.length,
             remaining: incompleteTasks.length,
+            totalCompleted: completedTasks.length,
+            totalCount: goalTasks.length,
           };
         }
 
@@ -210,38 +216,7 @@ export default function Goals() {
     ? new Date(upcomingDeadlines[0].deadline).toLocaleDateString('en-US', { month: 'short' })
     : 'None';
 
-  const calculateExpectedProgress = (goal: Goal) => {
-    if (!goal.start_date || !goal.deadline) return goal.progress || 0;
-    const start = new Date(goal.start_date).getTime();
-    const end = new Date(goal.deadline).getTime();
-    const now = Date.now();
-
-    if (now <= start) return 0;
-
-    const totalDuration = end - start;
-    const elapsed = now - start;
-    if (totalDuration <= 0) return 0;
-
-    return Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)));
-  };
-
-  const getDisplayStatus = (goal: Goal): 'on-track' | 'ahead' | 'behind' | 'completed' => {
-    if (goal.status === 'completed' || (goal.progress ?? 0) >= 100) return 'completed';
-
-    // If goal hasn't started yet, it cannot be behind.
-    if (goal.start_date) {
-      const start = new Date(goal.start_date).getTime();
-      if (Date.now() < start) return 'on-track';
-    }
-
-    const progress = goal.progress ?? 0;
-    const expected = calculateExpectedProgress(goal);
-
-    // Small buffer to avoid instant "behind" right after creating a goal.
-    if (progress + 5 < expected) return 'behind';
-    if (progress > expected + 10) return 'ahead';
-    return 'on-track';
-  };
+  // Note: calculateExpectedProgress and getDisplayStatus are now imported from @/lib/goalUtils
 
   if (isLoading) {
     return (
@@ -441,6 +416,8 @@ export default function Goals() {
                         total: goalTaskCounts[goal.id].todayTotal,
                       } : undefined}
                       totalRemainingTasks={goalTaskCounts[goal.id]?.remaining}
+                      totalTasksCompleted={goalTaskCounts[goal.id]?.totalCompleted}
+                      totalTasksCount={goalTaskCounts[goal.id]?.totalCount}
                       startDate={goal.start_date || undefined}
                       endDate={goal.deadline || undefined}
                       isPaused={goal.is_paused}
@@ -504,6 +481,8 @@ export default function Goals() {
                       total: goalTaskCounts[goal.id].todayTotal,
                     } : undefined}
                     totalRemainingTasks={goalTaskCounts[goal.id]?.remaining}
+                    totalTasksCompleted={goalTaskCounts[goal.id]?.totalCompleted}
+                    totalTasksCount={goalTaskCounts[goal.id]?.totalCount}
                     startDate={goal.start_date || undefined}
                     endDate={goal.deadline || undefined}
                     isPaused={goal.is_paused}
