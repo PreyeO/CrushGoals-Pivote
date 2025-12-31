@@ -14,6 +14,11 @@ export function ProtectedRoute({
   const { user, isAdmin, isLoading, isAdminLoaded } = useAuth();
   const location = useLocation();
 
+  // Allow access to reset-password page even when authenticated
+  if (location.pathname === '/reset-password') {
+    return <>{children}</>;
+  }
+
   // Show loading while auth state is being determined
   if (isLoading) {
     return (

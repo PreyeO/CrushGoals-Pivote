@@ -130,6 +130,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // Skip processing if we're on the reset password page with a recovery token
+        const currentPath = window.location.pathname;
+        const urlParams = new URLSearchParams(window.location.hash.substring(1));
+        const isPasswordRecovery = event === 'PASSWORD_RECOVERY' || 
+          urlParams.get('type') === 'recovery' ||
+          currentPath === '/reset-password';
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -141,6 +148,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(() => {
             fetchUserData(session.user.id);
           }, 0);
+          
+          // Don't redirect if this is a password recovery flow
+          if (isPasswordRecovery) {
+            navigate('/reset-password');
+          }
         } else {
           setProfile(null);
           setStats(null);
@@ -154,6 +166,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      // Check if we're on reset password page
+      const currentPath = window.location.pathname;
+      const isResetPasswordPage = currentPath === '/reset-password';
+      
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -168,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => authSubscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const signOut = async () => {
     await supabase.auth.signOut();

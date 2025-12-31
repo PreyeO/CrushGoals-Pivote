@@ -5,6 +5,8 @@ import { TrendingUp, Flame, Target, CheckSquare, Trophy, Loader2, Calendar, Chev
 import { useUserStats } from "@/hooks/useUserStats";
 import { useGoals } from "@/hooks/useGoals";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMainLayout } from "@/hooks/useMainLayout";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { logError } from "@/lib/logger";
@@ -21,6 +23,7 @@ interface DayData {
 }
 
 export default function Analytics() {
+  const { mainPaddingClass } = useMainLayout();
   const { stats, isLoading: statsLoading } = useUserStats();
   const { goals, isLoading: goalsLoading } = useGoals();
   const { user } = useAuth();
@@ -218,7 +221,7 @@ export default function Analytics() {
     return (
       <div className="min-h-screen bg-background">
         <Sidebar />
-        <main className="lg:pl-64 min-h-screen flex items-center justify-center">
+        <main className={cn("min-h-screen flex items-center justify-center transition-all duration-300", mainPaddingClass)}>
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </main>
       </div>
@@ -229,7 +232,7 @@ export default function Analytics() {
     <div className="min-h-screen bg-background">
       <Sidebar />
       
-      <main className="lg:pl-64 min-h-screen">
+      <main className={cn("min-h-screen transition-all duration-300", mainPaddingClass)}>
         <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

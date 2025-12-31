@@ -3,10 +3,13 @@ import { Trophy, Loader2 } from "lucide-react";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useGoals } from "@/hooks/useGoals";
+import { useMainLayout } from "@/hooks/useMainLayout";
+import { cn } from "@/lib/utils";
 import { AchievementCard } from "@/components/AchievementCard";
 import { Card } from "@/components/ui/card";
 
 export default function Achievements() {
+  const { mainPaddingClass } = useMainLayout();
   const { isLoading: achievementsLoading, getBadgesWithStatus } = useAchievements();
   const { stats, isLoading: statsLoading } = useUserStats();
   const { goals, isLoading: goalsLoading } = useGoals();
@@ -21,7 +24,7 @@ export default function Achievements() {
     return (
       <div className="min-h-screen bg-background">
         <Sidebar />
-        <main className="lg:pl-64 min-h-screen flex items-center justify-center">
+        <main className={cn("min-h-screen flex items-center justify-center transition-all duration-300", mainPaddingClass)}>
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </main>
       </div>
@@ -35,7 +38,7 @@ export default function Achievements() {
     <div className="min-h-screen bg-background">
       <Sidebar />
       
-      <main className="lg:pl-64 min-h-screen">
+      <main className={cn("min-h-screen transition-all duration-300", mainPaddingClass)}>
         <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
           {/* Header */}
           <div className="mb-6 animate-fade-in">
