@@ -466,7 +466,7 @@ export default function Settings() {
                           </h3>
                           <p className="text-xs sm:text-sm text-muted-foreground">
                             {subscription?.status === 'trial' && trialDaysLeft > 0
-                              ? `${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} left in trial`
+                              ? `${Math.min(trialDaysLeft, 2)} day${Math.min(trialDaysLeft, 2) === 1 ? '' : 's'} left in trial`
                               : isPremium() && subscription?.current_period_end
                               ? `Renews ${new Date(subscription.current_period_end).toLocaleDateString()}`
                               : 'Upgrade to unlock all features'

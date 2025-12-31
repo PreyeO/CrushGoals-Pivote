@@ -83,24 +83,25 @@ export default function Dashboard() {
 
   // Show onboarding for new users with no goals (check localStorage to not show again)
   useEffect(() => {
-    // Wait for user and goals to load
-    if (!user || goalsLoading) return;
+    // Wait for user to be authenticated and goals to finish loading
+    if (!user) return;
+    if (goalsLoading) return;
     
     try {
       const hasSeenTour = localStorage.getItem('crushgoals_onboarding_completed');
-      // Show tour if: goals are loaded, user has no goals, and hasn't seen the tour
+      // Show tour if: user is authenticated, goals finished loading, user has no goals, and hasn't seen the tour
       if (goals.length === 0 && !hasSeenTour) {
         // Small delay to ensure dashboard is fully rendered
         const timer = setTimeout(() => {
           setShowOnboarding(true);
-        }, 500);
+        }, 800);
         return () => clearTimeout(timer);
       }
     } catch (e) {
       // localStorage might not be available in some contexts
       console.warn('localStorage not available:', e);
     }
-  }, [user, goalsLoading, goals.length]);
+  }, [user?.id, goalsLoading, goals.length]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('crushgoals_onboarding_completed', 'true');

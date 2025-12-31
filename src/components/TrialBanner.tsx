@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { X, Clock, Sparkles, Zap } from 'lucide-react';
+import { Clock, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
@@ -10,17 +9,8 @@ interface TrialBannerProps {
 }
 
 export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
-  const { isTrialActive, isTrialExpired, hoursLeft, daysLeft } = useTrialStatus();
+  const { isTrialActive, isTrialExpired, hoursLeft } = useTrialStatus();
   const { isPremium, isLoading, subscription } = useSubscription();
-  const [isDismissed, setIsDismissed] = useState(false);
-
-  // Reset dismissal on new session
-  useEffect(() => {
-    const lastDismissed = sessionStorage.getItem('trial_banner_dismissed');
-    if (!lastDismissed) {
-      setIsDismissed(false);
-    }
-  }, []);
 
   // Don't show while loading to prevent flickering
   if (isLoading) return null;
@@ -28,17 +18,9 @@ export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
   // Don't show if PAID premium user (monthly/annual active subscription)
   if (isPremium()) return null;
 
-  // Don't show if dismissed this session (but still show if less than 6 hours or expired)
-  if (isDismissed && hoursLeft > 6 && !isTrialExpired) return null;
-
   // Show for: trial users (active or expired) - everyone signs up on trial
   const shouldShow = isTrialActive || isTrialExpired || subscription?.status === 'trial';
   if (!shouldShow) return null;
-
-  const handleDismiss = () => {
-    sessionStorage.setItem('trial_banner_dismissed', 'true');
-    setIsDismissed(true);
-  };
 
   // Determine urgency level
   const getUrgencyLevel = (): 'relaxed' | 'warning' | 'critical' | 'expired' => {
@@ -109,9 +91,16 @@ export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
       };
     }
     
-    if (hoursLeft > 24) {
+    if (hoursLeft > 24 && hoursLeft <= 48) {
       return {
-        title: `🎉 ${Math.ceil(hoursLeft / 24)} days left in your free trial`,
+        title: `🎉 2 days left in your free trial`,
+        subtitle: "Explore all premium features!",
+      };
+    }
+    
+    if (hoursLeft > 48) {
+      return {
+        title: `🎉 ${Math.min(2, Math.ceil(hoursLeft / 24))} days left in your free trial`,
         subtitle: "Explore all premium features!",
       };
     }
@@ -163,15 +152,6 @@ export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
             {isTrialExpired ? 'Subscribe Now' : 'Upgrade'}
           </Button>
 
-          {!isTrialExpired && hoursLeft > 6 && (
-            <button
-              onClick={handleDismiss}
-              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-              aria-label="Dismiss"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-          )}
         </div>
       </div>
 
