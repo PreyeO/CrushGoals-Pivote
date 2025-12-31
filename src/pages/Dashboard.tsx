@@ -239,7 +239,7 @@ export default function Dashboard() {
 
       <main className={cn("flex-1 p-4 sm:p-6 lg:p-8 lg:pr-8 pt-16 lg:pt-8 transition-all duration-300", mainPaddingClass)}>
         {/* Trial Banner */}
-        <TrialBanner onUpgradeClick={() => setUpgradeModalOpen(true)} />
+        <TrialBanner onUpgradeClick={() => navigate('/settings?section=subscription')} />
 
         {/* Header with Greeting and Motivation */}
         <header className="mb-6 animate-fade-in">
@@ -368,24 +368,29 @@ export default function Dashboard() {
             </Card>
           ) : (
             <div className="space-y-2">
-              {tasks.slice(0, 5).map((task, index) => (
-                <div
-                  key={task.id}
-                  className="animate-slide-up opacity-0"
-                  style={{ animationDelay: `${200 + index * 50}ms` }}
-                >
-                  <TaskItem
-                    id={task.id}
-                    title={task.title}
-                    goalName={task.goal?.name || 'General'}
-                    goalEmoji={task.goal?.emoji || ''}
-                    timeEstimate={task.time_estimate || undefined}
-                    priority={task.priority}
-                    completed={task.completed}
-                    onComplete={() => handleTaskComplete(task.id)}
-                  />
-                </div>
-              ))}
+              {tasks.slice(0, 5).map((task, index) => {
+                const goalData = goals.find(g => g.id === task.goal?.id);
+                return (
+                  <div
+                    key={task.id}
+                    className="animate-slide-up opacity-0"
+                    style={{ animationDelay: `${200 + index * 50}ms` }}
+                  >
+                    <TaskItem
+                      id={task.id}
+                      title={task.title}
+                      goalName={task.goal?.name || 'General'}
+                      goalEmoji={task.goal?.emoji || ''}
+                      goalAction={goalData?.target_value || undefined}
+                      timeEstimate={task.time_estimate || undefined}
+                      priority={task.priority}
+                      completed={task.completed}
+                      status={task.completed ? 'completed' : 'pending'}
+                      onComplete={() => handleTaskComplete(task.id)}
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
