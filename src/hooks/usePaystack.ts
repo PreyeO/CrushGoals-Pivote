@@ -53,8 +53,8 @@ export function usePaystack() {
         throw new Error('Invalid plan amount');
       }
 
-      // Map plan to full plan name for edge function
-      const planName = plan === 'monthly' ? 'premium_monthly' : 'premium_annual';
+      // Map plan to full plan name for edge function (basic tier)
+      const planName = plan === 'monthly' ? 'basic_monthly' : 'basic_annual';
 
       console.log(`Initializing Paystack payment for plan: ${planName}, amount: ${amount} kobo`);
 

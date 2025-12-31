@@ -245,14 +245,14 @@ export default function Admin() {
           </div>
 
           <Tabs defaultValue="users" className="w-full">
-            <TabsList className="mb-6">
-              <TabsTrigger value="users" className="gap-2">
+            <TabsList className="mb-6 flex-wrap h-auto gap-1 overflow-x-auto">
+              <TabsTrigger value="users" className="gap-2 text-xs sm:text-sm">
                 <Users className="w-4 h-4" />
-                Users
+                <span className="hidden xs:inline">Users</span>
               </TabsTrigger>
-              <TabsTrigger value="audit" className="gap-2">
+              <TabsTrigger value="audit" className="gap-2 text-xs sm:text-sm">
                 <History className="w-4 h-4" />
-                Audit Logs
+                <span className="hidden xs:inline">Audit Logs</span>
               </TabsTrigger>
             </TabsList>
 

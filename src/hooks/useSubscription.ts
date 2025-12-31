@@ -43,14 +43,26 @@ export function useSubscription() {
     }
   }, [user]);
 
+  // isPremium = PAID user only (not trial)
   const isPremium = useCallback(() => {
     if (!subscription) return false;
-    if (subscription.status === 'trial') {
-      const trialEnd = subscription.trial_ends_at ? new Date(subscription.trial_ends_at) : null;
-      return trialEnd ? trialEnd > new Date() : false;
-    }
-    return subscription.status === 'active' && subscription.plan !== 'free';
+    // Only active subscriptions with monthly/annual plan are premium
+    return subscription.status === 'active' && 
+           (subscription.plan === 'monthly' || subscription.plan === 'annual');
   }, [subscription]);
+
+  // isOnTrial = user is currently on trial
+  const isOnTrial = useCallback(() => {
+    if (!subscription) return false;
+    if (subscription.status !== 'trial') return false;
+    const trialEnd = subscription.trial_ends_at ? new Date(subscription.trial_ends_at) : null;
+    return trialEnd ? trialEnd > new Date() : false;
+  }, [subscription]);
+
+  // hasAccess = either paid OR active trial
+  const hasAccess = useCallback(() => {
+    return isPremium() || isOnTrial();
+  }, [isPremium, isOnTrial]);
 
   const getTrialDaysLeft = useCallback(() => {
     if (!subscription || subscription.status !== 'trial' || !subscription.trial_ends_at) return 0;
@@ -68,6 +80,8 @@ export function useSubscription() {
     subscription,
     isLoading,
     isPremium,
+    isOnTrial,
+    hasAccess,
     getTrialDaysLeft,
     refreshSubscription: fetchSubscription,
   };

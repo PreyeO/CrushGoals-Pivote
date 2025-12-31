@@ -9,7 +9,7 @@ const ALLOWED_ORIGINS = [
   'https://jnoqlbqilwohfyfudnss.supabase.co',
 ];
 
-// For local development, also allow localhost origins
+// For local development and Lovable preview domains
 const DEV_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -17,9 +17,21 @@ const DEV_ORIGINS = [
   'http://127.0.0.1:3000',
 ];
 
+// Check if origin is a Lovable preview domain
+function isLovablePreviewOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    return url.hostname.endsWith('.lovableproject.com') || 
+           url.hostname.endsWith('.lovable.app') ||
+           url.hostname.endsWith('.webcontainer.io');
+  } catch {
+    return false;
+  }
+}
+
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const allAllowedOrigins = [...ALLOWED_ORIGINS, ...DEV_ORIGINS];
-  const isAllowed = origin && allAllowedOrigins.includes(origin);
+  const isAllowed = origin && (allAllowedOrigins.includes(origin) || isLovablePreviewOrigin(origin));
   
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
@@ -110,6 +122,24 @@ const ALLOWED_CALLBACK_PATHS = ['/settings', '/dashboard', '/subscription'];
 // Production domain - hardcoded to prevent manipulation
 const PRODUCTION_DOMAIN = 'https://crushgoals.app';
 
+// Get callback domain - allow preview domains for testing
+function getCallbackDomain(origin: string | null): string {
+  if (!origin) return PRODUCTION_DOMAIN;
+  
+  // Allow Lovable preview domains for testing
+  if (isLovablePreviewOrigin(origin)) {
+    return origin;
+  }
+  
+  // Check if in allowed origins
+  const allAllowedOrigins = [...ALLOWED_ORIGINS, ...DEV_ORIGINS];
+  if (allAllowedOrigins.includes(origin)) {
+    return origin;
+  }
+  
+  return PRODUCTION_DOMAIN;
+}
+
 async function handleInitialize(req: Request, userId: string, userEmail: string, corsHeaders: Record<string, string>) {
   const body: InitializePaymentRequest = await req.json();
   const { amount, plan, callbackUrl } = body;
@@ -121,7 +151,11 @@ async function handleInitialize(req: Request, userId: string, userEmail: string,
     );
   }
 
-  console.log(`Initializing Paystack payment for user ${userId}, plan: ${plan}, amount: ${amount} kobo`);
+  // Get the origin for dynamic callback URL
+  const requestOrigin = req.headers.get('origin');
+  const callbackDomain = getCallbackDomain(requestOrigin);
+
+  console.log(`Initializing Paystack payment for user ${userId}, plan: ${plan}, amount: ${amount} kobo, callback domain: ${callbackDomain}`);
 
   const reference = `cg_${userId.slice(0, 8)}_${Date.now()}`;
 
@@ -154,7 +188,7 @@ async function handleInitialize(req: Request, userId: string, userEmail: string,
       email: userEmail,
       amount, // Amount in kobo
       reference,
-      callback_url: `${PRODUCTION_DOMAIN}${sanitizedPath}`,
+      callback_url: `${callbackDomain}${sanitizedPath}`,
       metadata: {
         user_id: userId,
         plan,
@@ -229,12 +263,13 @@ async function handleVerify(req: Request, userId: string, corsHeaders: Record<st
     periodEnd.setMonth(periodEnd.getMonth() + 1);
   }
 
-  const planName = plan.includes('basic') ? 'basic' : 'premium';
+  // Map to DB-allowed plan values: 'monthly' or 'annual'
+  const dbPlanName = isAnnual ? 'annual' : 'monthly';
 
   const { error: updateError } = await supabase
     .from('subscriptions')
     .update({
-      plan: planName,
+      plan: dbPlanName,
       status: 'active',
       payment_provider: 'paystack',
       payment_id: data.data.reference,
@@ -255,12 +290,12 @@ async function handleVerify(req: Request, userId: string, corsHeaders: Record<st
     );
   }
 
-  console.log(`Subscription updated for user ${userId} to plan: ${planName}`);
+  console.log(`Subscription updated for user ${userId} to plan: ${dbPlanName}`);
 
   return new Response(
     JSON.stringify({ 
       success: true, 
-      plan: planName,
+      plan: dbPlanName,
       amount: data.data.amount / 100,
       currency: 'NGN'
     }),
@@ -316,12 +351,13 @@ async function handleWebhook(req: Request, corsHeaders: Record<string, string>) 
         periodEnd.setMonth(periodEnd.getMonth() + 1);
       }
 
-      const planName = plan.includes('basic') ? 'basic' : 'premium';
+      // Map to DB-allowed plan values: 'monthly' or 'annual'
+      const dbPlanName = isAnnual ? 'annual' : 'monthly';
 
       await supabase
         .from('subscriptions')
         .update({
-          plan: planName,
+          plan: dbPlanName,
           status: 'active',
           payment_provider: 'paystack',
           payment_id: event.data.reference,

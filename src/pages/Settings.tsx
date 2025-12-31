@@ -481,32 +481,35 @@ export default function Settings() {
                   </div>
 
                   {/* Pricing */}
+                  {/* Always show pricing for non-premium users (trial or expired) */}
                   {!isPremium() && (
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="p-4 sm:p-6 rounded-2xl border border-white/10 bg-white/5">
-                        <h4 className="font-semibold mb-2">Monthly</h4>
-                        <p className="text-2xl sm:text-3xl font-bold mb-4">{pricing.monthly.formatted}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                        <h4 className="font-semibold mb-1">CrushGoals Basic</h4>
+                        <p className="text-xs text-muted-foreground mb-2">Monthly</p>
+                        <p className="text-2xl sm:text-3xl font-bold mb-4">₦1,500<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
                         <Button 
                           variant="outline" 
                           className="w-full"
                           onClick={() => handleUpgrade('monthly')}
                           disabled={paystackLoading}
                         >
-                          {paystackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Choose Monthly'}
+                          {paystackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Monthly'}
                         </Button>
                       </div>
                       <div className="p-4 sm:p-6 rounded-2xl border-2 border-premium/50 bg-premium/10 relative">
-                        <span className="absolute -top-3 left-4 px-2 py-1 bg-premium text-xs font-bold rounded-full">1 MONTH FREE</span>
-                        <h4 className="font-semibold mb-2">Annual</h4>
-                        <p className="text-2xl sm:text-3xl font-bold mb-1">{pricing.annual.formatted}<span className="text-sm font-normal text-muted-foreground">/yr</span></p>
-                        <p className="text-xs text-success mb-4">Save {pricing.annual.savings}</p>
+                        <span className="absolute -top-3 left-4 px-2 py-1 bg-premium text-xs font-bold rounded-full">SAVE ₦1,500</span>
+                        <h4 className="font-semibold mb-1">GoalCrusher Basic</h4>
+                        <p className="text-xs text-muted-foreground mb-2">Annual</p>
+                        <p className="text-2xl sm:text-3xl font-bold mb-1">₦16,500<span className="text-sm font-normal text-muted-foreground">/yr</span></p>
+                        <p className="text-xs text-success mb-4">₦1,375/month — 1 month free!</p>
                         <Button 
                           variant="hero" 
                           className="w-full"
                           onClick={() => handleUpgrade('annual')}
                           disabled={paystackLoading}
                         >
-                          {paystackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Choose Annual'}
+                          {paystackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Annual'}
                         </Button>
                       </div>
                     </div>
