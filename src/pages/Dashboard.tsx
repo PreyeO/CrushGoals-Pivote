@@ -83,8 +83,8 @@ export default function Dashboard() {
 
   // Show onboarding for new users with no goals (check localStorage to not show again)
   useEffect(() => {
-    // Wait for goals to load
-    if (goalsLoading) return;
+    // Wait for user and goals to load
+    if (!user || goalsLoading) return;
     
     try {
       const hasSeenTour = localStorage.getItem('crushgoals_onboarding_completed');
@@ -93,14 +93,14 @@ export default function Dashboard() {
         // Small delay to ensure dashboard is fully rendered
         const timer = setTimeout(() => {
           setShowOnboarding(true);
-        }, 800);
+        }, 500);
         return () => clearTimeout(timer);
       }
     } catch (e) {
       // localStorage might not be available in some contexts
       console.warn('localStorage not available:', e);
     }
-  }, [goalsLoading, goals.length]);
+  }, [user, goalsLoading, goals.length]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('crushgoals_onboarding_completed', 'true');

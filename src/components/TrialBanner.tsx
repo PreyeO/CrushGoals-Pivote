@@ -109,9 +109,9 @@ export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
       };
     }
     
-    if (daysLeft > 1) {
+    if (hoursLeft > 24) {
       return {
-        title: `🎉 ${daysLeft} days left in your free trial`,
+        title: `🎉 ${Math.ceil(hoursLeft / 24)} days left in your free trial`,
         subtitle: "Explore all premium features!",
       };
     }
