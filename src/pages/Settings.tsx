@@ -33,12 +33,13 @@ export default function Settings() {
   const { mainPaddingClass } = useMainLayout();
   const { user, signOut } = useAuth();
   const { profile, isLoading: profileLoading, updateProfile } = useProfile();
-  const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft } = useSubscription();
+  const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft, refreshSubscription } = useSubscription();
   const { getPricing } = useCurrency();
-  const { initializePayment, isLoading: paystackLoading } = usePaystack();
+  const { initializePayment, verifyPayment, isLoading: paystackLoading } = usePaystack();
   const { settings: notificationSettings, updateSettings: updateNotificationSettings, requestPermission, permissionStatus } = useNotifications();
   const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission, settings: pushSettings, updateSettings: updatePushSettings } = usePushNotifications();
   const pricing = getPricing();
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
   
   const [activeSection, setActiveSection] = useState("account");
   const [displayName, setDisplayName] = useState("");
@@ -60,7 +61,25 @@ export default function Settings() {
     }
   }, [profile]);
 
-
+  // Handle Paystack payment callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get('reference') || params.get('trxref');
+    const paymentStatus = params.get('payment');
+    
+    if (reference && paymentStatus === 'success') {
+      setVerifyingPayment(true);
+      verifyPayment(reference).then((result) => {
+        if (result?.success) {
+          refreshSubscription();
+        }
+        // Clear URL params
+        window.history.replaceState({}, '', '/settings');
+      }).finally(() => {
+        setVerifyingPayment(false);
+      });
+    }
+  }, [verifyPayment, refreshSubscription]);
   const isLoading = profileLoading || subscriptionLoading;
 
   const checkUsernameAvailability = async (value: string) => {
@@ -129,12 +148,15 @@ export default function Settings() {
     await signOut();
   };
 
-  if (isLoading) {
+  if (isLoading || verifyingPayment) {
     return (
       <div className="min-h-screen bg-background">
         <Sidebar />
-        <main className={cn("min-h-screen flex items-center justify-center transition-all duration-300", mainPaddingClass)}>
+        <main className={cn("min-h-screen flex flex-col items-center justify-center transition-all duration-300", mainPaddingClass)}>
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          {verifyingPayment && (
+            <p className="text-sm text-muted-foreground mt-4">Verifying your payment...</p>
+          )}
         </main>
       </div>
     );
