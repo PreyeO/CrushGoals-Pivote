@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, Flag, Plus } from "lucide-react";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 
 interface AddTaskModalProps {
   open: boolean;
@@ -36,9 +38,17 @@ export function AddTaskModal({
   const [priority, setPriority] = useState("medium");
   const [timeEstimate, setTimeEstimate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTrialExpired, setShowTrialExpired] = useState(false);
+  const { canPerformActions, isTrialExpired } = useTrialStatus();
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
+    
+    // Check trial status before allowing action
+    if (!canPerformActions) {
+      setShowTrialExpired(true);
+      return;
+    }
     
     setIsSubmitting(true);
     try {
@@ -182,6 +192,11 @@ export function AddTaskModal({
           </Button>
         </div>
       </DialogContent>
+
+      <TrialExpiredOverlay 
+        open={showTrialExpired} 
+        onOpenChange={setShowTrialExpired} 
+      />
     </Dialog>
   );
 }

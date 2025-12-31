@@ -13,6 +13,8 @@ import {
 import { cn } from "@/lib/utils";
 import { SmartGoalTemplates, PopularGoalTemplate, goalCategories } from "./SmartGoalTemplates";
 import { addDays, format } from "date-fns";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 
 interface AddGoalModalProps {
   open: boolean;
@@ -216,6 +218,8 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   const [deadline, setDeadline] = useState(format(addDays(today, 30), 'yyyy-MM-dd'));
   const [reason, setReason] = useState("");
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [showTrialExpired, setShowTrialExpired] = useState(false);
+  const { canPerformActions } = useTrialStatus();
 
   const config = selectedCategory ? categoryConfig[selectedCategory] || categoryConfig.custom : null;
 
@@ -251,6 +255,12 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   };
 
   const handleSubmit = () => {
+    // Check trial status before allowing action
+    if (!canPerformActions) {
+      setShowTrialExpired(true);
+      return;
+    }
+
     if (selectedCategory && goalName && startDate) {
       onSuccess?.({
         category: selectedCategory,
@@ -603,6 +613,11 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
           )}
         </div>
       </DialogContent>
+
+      <TrialExpiredOverlay 
+        open={showTrialExpired} 
+        onOpenChange={setShowTrialExpired} 
+      />
     </Dialog>
   );
 }
