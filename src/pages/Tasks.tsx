@@ -15,6 +15,8 @@ import { useGoals, Goal } from "@/hooks/useGoals";
 import { EditTaskModal } from "@/components/EditTaskModal";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { useMainLayout } from "@/hooks/useMainLayout";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +50,7 @@ const getTimeLeftToday = (): { hours: number; minutes: number; formatted: string
 
 export default function Tasks() {
   const [today, setToday] = useState(() => new Date().toISOString().split('T')[0]);
+  const { mainPaddingClass } = useMainLayout();
   const { tasks, isLoading, addTask, toggleTask, updateTask, deleteTask, refreshTasks, celebrationTrigger, clearCelebration } = useTasks(today);
   const { missedTasks, totalMissed, markTaskComplete, rescheduleTask, refreshMissedTasks, isLoading: missedLoading } = useMissedTasks();
   const [rescheduleTaskId, setRescheduleTaskId] = useState<string | null>(null);
@@ -201,7 +204,7 @@ export default function Tasks() {
     return (
       <div className="min-h-screen bg-background">
         <Sidebar />
-        <main className="lg:pl-64 min-h-screen flex items-center justify-center">
+        <main className={cn("min-h-screen flex items-center justify-center transition-all duration-300", mainPaddingClass)}>
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </main>
       </div>
@@ -212,7 +215,7 @@ export default function Tasks() {
     <div className="min-h-screen bg-background">
       <Sidebar />
       
-      <main className="lg:pl-64 min-h-screen">
+      <main className={cn("min-h-screen transition-all duration-300", mainPaddingClass)}>
         <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8">

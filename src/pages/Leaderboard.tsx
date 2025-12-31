@@ -9,12 +9,15 @@ import { InviteFriendModal } from "@/components/InviteFriendModal";
 import { FriendRequestCard } from "@/components/FriendRequestCard";
 import { SharedGoalDetailModal } from "@/components/SharedGoalDetailModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMainLayout } from "@/hooks/useMainLayout";
+import { cn } from "@/lib/utils";
 
 type ViewFilter = "global" | "friends";
 type TimeFilter = "week" | "alltime";
 
 export default function Leaderboard() {
   const { user } = useAuth();
+  const { mainPaddingClass } = useMainLayout();
   const [viewFilter, setViewFilter] = useState<ViewFilter>("global");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("alltime");
   const [addFriendOpen, setAddFriendOpen] = useState(false);
@@ -45,7 +48,7 @@ export default function Leaderboard() {
     return (
       <div className="min-h-screen bg-background">
         <Sidebar />
-        <main className="lg:pl-64 min-h-screen flex items-center justify-center">
+        <main className={cn("min-h-screen flex items-center justify-center transition-all duration-300", mainPaddingClass)}>
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </main>
       </div>

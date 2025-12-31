@@ -22,6 +22,7 @@ import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ProgressRing } from "@/components/ProgressRing";
+import { useMainLayout } from "@/hooks/useMainLayout";
 
 const motivationalQuotes = [
   { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -32,6 +33,7 @@ const motivationalQuotes = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, stats } = useAuth();
+  const { mainPaddingClass } = useMainLayout();
   const { goals, isLoading: goalsLoading, addGoal, refreshGoals, firstGoalCelebration, clearFirstGoalCelebration } = useGoals();
   const today = new Date().toISOString().split('T')[0];
   const { tasks, isLoading: tasksLoading, toggleTask, addTask, celebrationTrigger, clearCelebration } = useTasks(today);
@@ -148,7 +150,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background flex">
         <Sidebar />
-        <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
+        <main className={cn("flex-1 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 transition-all duration-300", mainPaddingClass)}>
           <div className="space-y-6 animate-fade-in">
             {/* Header skeleton */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -192,7 +194,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background flex">
       <Sidebar />
 
-      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
+      <main className={cn("flex-1 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 transition-all duration-300", mainPaddingClass)}>
         {/* Header with Greeting and Motivation */}
         <header className="mb-6 animate-fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Check, Clock, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Check, Clock, MoreVertical, Pencil, Trash2, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +36,7 @@ export function TaskItem({
 }: TaskItemProps) {
   const [isCompleted, setIsCompleted] = useState(completed);
   const [showXP, setShowXP] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const { playSound } = useSoundEffects();
 
   // Sync with prop changes
@@ -54,40 +55,74 @@ export function TaskItem({
     setTimeout(() => setShowXP(false), 1000);
   };
 
-  const priorityColors = {
-    high: "bg-destructive/20 text-destructive border-destructive/30",
-    medium: "bg-warning/20 text-warning border-warning/30",
-    low: "bg-success/20 text-success border-success/30",
+  const priorityConfig = {
+    high: { 
+      bg: "bg-destructive/10", 
+      border: "border-destructive/30",
+      text: "text-destructive",
+      dot: "bg-destructive"
+    },
+    medium: { 
+      bg: "bg-warning/10", 
+      border: "border-warning/30",
+      text: "text-warning",
+      dot: "bg-warning"
+    },
+    low: { 
+      bg: "bg-success/10", 
+      border: "border-success/30",
+      text: "text-success",
+      dot: "bg-success"
+    },
   };
+
+  const priorityStyle = priority ? priorityConfig[priority] : null;
 
   return (
     <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "relative flex items-center gap-3 p-3 sm:p-4 rounded-2xl transition-all duration-300",
-        "bg-gradient-to-r from-white/5 to-white/[0.02] border border-white/10",
-        "hover:from-white/10 hover:to-white/5 hover:border-white/20",
-        isCompleted && "opacity-50"
+        "relative flex items-center gap-3 p-3 sm:p-4 rounded-2xl transition-all duration-300 group",
+        "bg-gradient-to-r from-card/80 to-card/40",
+        "border border-border/50",
+        "hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5",
+        isCompleted && "opacity-50 hover:opacity-60"
       )}
     >
+      {/* Priority indicator line */}
+      {priorityStyle && !isCompleted && (
+        <div className={cn(
+          "absolute left-0 top-3 bottom-3 w-1 rounded-full transition-all duration-300",
+          priorityStyle.dot,
+          isHovered && "w-1.5"
+        )} />
+      )}
+
       {/* Checkbox */}
       <button
         onClick={handleComplete}
         disabled={isCompleted}
         className={cn(
-          "relative flex-shrink-0 w-6 h-6 rounded-full border-2 transition-all duration-300",
+          "relative flex-shrink-0 w-7 h-7 rounded-full border-2 transition-all duration-300",
+          "flex items-center justify-center",
           isCompleted
-            ? "bg-gradient-success border-transparent"
-            : "border-white/30 hover:border-primary hover:bg-primary/10"
+            ? "bg-gradient-to-br from-success to-success/80 border-transparent shadow-lg shadow-success/20"
+            : "border-muted-foreground/40 hover:border-primary hover:bg-primary/10 hover:scale-110"
         )}
       >
         {isCompleted && (
-          <Check className="w-4 h-4 text-success-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-scale-in" />
+          <Check className="w-4 h-4 text-success-foreground animate-scale-in" />
         )}
       </button>
 
-      {/* Goal Emoji */}
-      <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-        <span className="text-base">{goalEmoji || '🎯'}</span>
+      {/* Goal Emoji with glow effect */}
+      <div className={cn(
+        "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300",
+        "bg-gradient-to-br from-white/10 to-white/5 border border-white/10",
+        isHovered && !isCompleted && "scale-105 shadow-lg"
+      )}>
+        <span className="text-lg">{goalEmoji || '🎯'}</span>
       </div>
 
       {/* Content */}
@@ -99,40 +134,57 @@ export function TaskItem({
           {title}
         </span>
         
-        <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 mt-1">
           {timeEstimate && (
-            <span className="inline-flex items-center gap-1">
+            <span className={cn(
+              "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md",
+              "bg-muted/50 text-muted-foreground"
+            )}>
               <Clock className="w-3 h-3" />
               {timeEstimate}
             </span>
           )}
-          {priority && (
+          {priority && priorityStyle && (
             <span className={cn(
-              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border",
-              priorityColors[priority]
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium",
+              priorityStyle.bg,
+              priorityStyle.text
             )}>
+              <span className={cn("w-1.5 h-1.5 rounded-full", priorityStyle.dot)} />
               {priority.charAt(0).toUpperCase() + priority.slice(1)}
             </span>
           )}
         </div>
       </div>
 
+      {/* XP Badge - shows on hover for incomplete tasks */}
+      {!isCompleted && isHovered && (
+        <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-premium/10 border border-premium/20 animate-fade-in">
+          <Sparkles className="w-3 h-3 text-premium" />
+          <span className="text-xs font-semibold text-premium">+10 XP</span>
+        </div>
+      )}
+
       {/* Actions Menu */}
       {(onEdit || onDelete) && !isCompleted && (
         <DropdownMenu>
-          <DropdownMenuTrigger className="p-2 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0">
+          <DropdownMenuTrigger className={cn(
+            "p-2 rounded-lg transition-all duration-200 flex-shrink-0",
+            "hover:bg-white/10",
+            isHovered ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}>
             <MoreVertical className="w-4 h-4 text-muted-foreground" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-card border-white/10">
+          <DropdownMenuContent align="end" className="bg-card border-border">
             {onEdit && (
-              <DropdownMenuItem onClick={onEdit}>
-                <Pencil className="w-4 h-4 mr-2" />
+              <DropdownMenuItem onClick={onEdit} className="gap-2">
+                <Pencil className="w-4 h-4" />
                 Edit Task
               </DropdownMenuItem>
             )}
             {onDelete && (
-              <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
-                <Trash2 className="w-4 h-4 mr-2" />
+              <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive gap-2">
+                <Trash2 className="w-4 h-4" />
                 Delete Task
               </DropdownMenuItem>
             )}
@@ -140,10 +192,13 @@ export function TaskItem({
         </DropdownMenu>
       )}
 
-      {/* XP Animation */}
+      {/* XP Animation on complete */}
       {showXP && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 animate-count-up">
-          <span className="text-sm font-bold text-success">+10 XP</span>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 animate-count-up pointer-events-none">
+          <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-success/20 border border-success/30">
+            <Sparkles className="w-4 h-4 text-success" />
+            <span className="text-sm font-bold text-success">+10 XP</span>
+          </div>
         </div>
       )}
     </div>

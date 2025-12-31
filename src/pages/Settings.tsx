@@ -17,6 +17,7 @@ import { useCurrency } from "@/hooks/useCurrency";
 import { usePaystack } from "@/hooks/usePaystack";
 import { useNotifications } from "@/hooks/useNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useMainLayout } from "@/hooks/useMainLayout";
 import { supabase } from "@/integrations/supabase/client";
 
 const settingsSections = [
@@ -29,6 +30,7 @@ const settingsSections = [
 ];
 
 export default function Settings() {
+  const { mainPaddingClass } = useMainLayout();
   const { user, signOut } = useAuth();
   const { profile, isLoading: profileLoading, updateProfile } = useProfile();
   const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft } = useSubscription();
@@ -131,7 +133,7 @@ export default function Settings() {
     return (
       <div className="min-h-screen bg-background">
         <Sidebar />
-        <main className="lg:pl-64 min-h-screen flex items-center justify-center">
+        <main className={cn("min-h-screen flex items-center justify-center transition-all duration-300", mainPaddingClass)}>
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </main>
       </div>
@@ -144,7 +146,7 @@ export default function Settings() {
     <div className="min-h-screen bg-background">
       <Sidebar />
       
-      <main className="lg:pl-64 min-h-screen">
+      <main className={cn("min-h-screen transition-all duration-300", mainPaddingClass)}>
         <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
           <h1 className="text-2xl sm:text-3xl font-bold mb-6 lg:mb-8">Settings ⚙️</h1>
 

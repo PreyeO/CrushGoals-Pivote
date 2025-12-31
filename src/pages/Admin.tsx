@@ -12,6 +12,8 @@ import {
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuditLog } from "@/hooks/useAuditLog";
+import { useMainLayout } from "@/hooks/useMainLayout";
+import { cn } from "@/lib/utils";
 import { logError } from "@/lib/logger";
 interface UserData {
   id: string;
@@ -43,6 +45,7 @@ interface AuditLog {
 }
 
 export default function Admin() {
+  const { mainPaddingClass } = useMainLayout();
   const [users, setUsers] = useState<UserData[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -185,7 +188,7 @@ export default function Admin() {
     <div className="min-h-screen bg-background">
       <Sidebar />
       
-      <main className="lg:pl-64 min-h-screen">
+      <main className={cn("min-h-screen transition-all duration-300", mainPaddingClass)}>
         <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
           {/* Header */}
           <div className="mb-6 lg:mb-8">

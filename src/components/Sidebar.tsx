@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -18,6 +17,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSidebarContext } from "@/contexts/SidebarContext";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourId: "nav-dashboard" },
@@ -29,8 +29,7 @@ const navItems = [
 ];
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebarContext();
   const location = useLocation();
   const { profile, stats, subscription, isAdmin } = useAuth();
 
@@ -45,6 +44,9 @@ export function Sidebar() {
   const xpPerLevel = 500;
   const currentLevelXp = userXP % xpPerLevel;
   const maxXP = xpPerLevel;
+  
+  // Only show Level/XP if user has earned XP
+  const hasEarnedXP = userXP > 0;
 
   return (
     <>
@@ -126,8 +128,8 @@ export function Sidebar() {
             </div>
           )}
 
-          {/* Level & XP */}
-          {!collapsed && (
+          {/* Level & XP - Only show if user has earned XP */}
+          {!collapsed && hasEarnedXP && (
             <div className="mt-3">
               <div className="flex items-center justify-between text-sm mb-1">
                 <span className="text-muted-foreground">Level {userLevel}</span>
