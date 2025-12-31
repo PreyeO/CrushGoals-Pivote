@@ -46,6 +46,7 @@ export default function Settings() {
   const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission, settings: pushSettings, updateSettings: updatePushSettings } = usePushNotifications();
   const pricing = getPricing();
   const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'annual' | null>(null);
   
   const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState("account");
@@ -147,11 +148,16 @@ export default function Settings() {
   };
 
   const handleUpgrade = async (plan: 'monthly' | 'annual') => {
-    if (pricing.isNigeria) {
-      await initializePayment(plan);
-    } else {
-      // International payments via Polar.sh
-      await initializePolarPayment(plan);
+    setLoadingPlan(plan);
+    try {
+      if (pricing.isNigeria) {
+        await initializePayment(plan);
+      } else {
+        // International payments via Polar.sh
+        await initializePolarPayment(plan);
+      }
+    } finally {
+      setLoadingPlan(null);
     }
   };
 
@@ -508,9 +514,9 @@ export default function Settings() {
                             variant="outline" 
                             className="w-full"
                             onClick={() => handleUpgrade('monthly')}
-                            disabled={paystackLoading || polarLoading}
+                            disabled={loadingPlan !== null}
                           >
-                            {(paystackLoading || polarLoading) ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Monthly'}
+                            {loadingPlan === 'monthly' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Monthly'}
                           </Button>
                         </div>
                         <div className="p-4 sm:p-6 rounded-2xl border-2 border-premium/50 bg-premium/10 relative">
@@ -530,9 +536,9 @@ export default function Settings() {
                             variant="hero" 
                             className="w-full"
                             onClick={() => handleUpgrade('annual')}
-                            disabled={paystackLoading || polarLoading}
+                            disabled={loadingPlan !== null}
                           >
-                            {(paystackLoading || polarLoading) ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Annual'}
+                            {loadingPlan === 'annual' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Subscribe Annual'}
                           </Button>
                         </div>
                       </div>

@@ -73,7 +73,7 @@ export function useTrialNotifications() {
     const currentHour = new Date().getHours();
 
     // 2-day (48-hour) trial notifications
-    if (trialDaysLeft === 2 && hoursLeft > 36) {
+    if (hoursLeft > 36 && hoursLeft <= 48) {
       toast.info("🎉 Welcome! 48 hours of free access!", {
         description: "Explore all features and crush your goals!",
         duration: 6000,
@@ -81,7 +81,7 @@ export function useTrialNotifications() {
       return;
     }
 
-    if (trialDaysLeft === 2 && hoursLeft <= 36 && hoursLeft > 24) {
+    if (hoursLeft <= 36 && hoursLeft > 24) {
       toast("⚡ 36 hours left in your trial!", {
         description: "Set your first goal to get started!",
         duration: 5000,
@@ -166,11 +166,9 @@ export function useTrialNotifications() {
     acknowledgeExpiry,
     getTrialMessage: useCallback(() => {
       if (!isOnTrial) return null;
-      if (trialDaysLeft > 2) return `${trialDaysLeft} days left in trial`;
-      if (trialDaysLeft === 2) return "2 days left in trial";
-      if (trialDaysLeft === 1) return "Last day of trial!";
+      if (hoursLeft > 24) return `${Math.ceil(hoursLeft / 24)} days left in trial`;
       if (hoursLeft > 0) return `${hoursLeft} hours left in trial!`;
       return "Trial expired";
-    }, [isOnTrial, trialDaysLeft, hoursLeft]),
+    }, [isOnTrial, hoursLeft]),
   };
 }
