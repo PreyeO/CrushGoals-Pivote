@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { TaskItem } from "@/components/TaskItem";
 import { ProgressRing } from "@/components/ProgressRing";
-import { TaskCalendar } from "@/components/TaskCalendar";
 import { WeeklyGoalView } from "@/components/WeeklyGoalView";
 import { ConfettiCelebration } from "@/components/ConfettiCelebration";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BulkTaskCompletion } from "@/components/BulkTaskCompletion";
-import { Plus, Filter, Clock, Zap, Loader2, Timer, CalendarDays, AlertTriangle, ChevronDown, ChevronUp, CheckSquare, CalendarRange, CalendarClock } from "lucide-react";
+import { Plus, Clock, Zap, Loader2, Timer, AlertTriangle, ChevronDown, ChevronUp, CheckSquare, CalendarRange, CalendarClock } from "lucide-react";
 import { useTasks, Task } from "@/hooks/useTasks";
 import { useMissedTasks } from "@/hooks/useMissedTasks";
 import { useGoals, Goal } from "@/hooks/useGoals";
@@ -64,13 +63,12 @@ export default function Tasks() {
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(getTimeLeftToday());
-  const [showCalendar, setShowCalendar] = useState(false);
   const [showWeeklyView, setShowWeeklyView] = useState(false);
   const [showMissed, setShowMissed] = useState(false);
   const [bulkCompleteGoal, setBulkCompleteGoal] = useState<Goal | null>(null);
   
   // Fetch all tasks for weekly view (no date filter)
-  const { tasks: allTasks, toggleTask: toggleAllTask } = useTasks();
+  const { tasks: allTasks } = useTasks();
   
   // Morning greeting - show once per day
   useEffect(() => {
@@ -229,22 +227,10 @@ export default function Tasks() {
               <Button 
                 variant={showWeeklyView ? "default" : "outline"} 
                 className="gap-2"
-                onClick={() => { setShowWeeklyView(!showWeeklyView); setShowCalendar(false); }}
+                onClick={() => setShowWeeklyView(!showWeeklyView)}
               >
                 <CalendarRange className="w-4 h-4" />
                 <span className="hidden sm:inline">Weekly</span>
-              </Button>
-              <Button 
-                variant={showCalendar ? "default" : "outline"} 
-                className="gap-2"
-                onClick={() => { setShowCalendar(!showCalendar); setShowWeeklyView(false); }}
-              >
-                <CalendarDays className="w-4 h-4" />
-                <span className="hidden sm:inline">Calendar</span>
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <Filter className="w-4 h-4" />
-                <span className="hidden sm:inline">Filter</span>
               </Button>
               <Button variant="hero" className="gap-2" onClick={() => setAddTaskOpen(true)}>
                 <Plus className="w-5 h-5" />
@@ -299,22 +285,13 @@ export default function Tasks() {
             </div>
           </div>
 
-          {/* Calendar View */}
-          {showCalendar && (
-            <div className="mb-6 glass-card rounded-2xl p-4 sm:p-6">
-              <h3 className="font-semibold mb-4">Task Calendar</h3>
-              <TaskCalendar selectedDate={new Date()} />
-            </div>
-          )}
-
           {/* Weekly Goal View */}
           {showWeeklyView && (
             <div className="mb-6 glass-card rounded-2xl p-4 sm:p-6">
-              <h3 className="font-semibold mb-4">Weekly Goal Progress</h3>
+              <h3 className="font-semibold mb-4">Weekly Task Overview</h3>
               <WeeklyGoalView 
                 tasks={allTasks} 
                 goals={goals}
-                onToggleTask={(id, completed) => toggleAllTask(id, !completed)}
               />
             </div>
           )}
@@ -360,21 +337,26 @@ export default function Tasks() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    {goalTasks.map(task => (
-                      <TaskItem
-                        key={task.id}
-                        id={task.id}
-                        title={task.title}
-                        goalName={task.goal?.name || 'No Goal'}
-                        goalEmoji={task.goal?.emoji || '📌'}
-                        timeEstimate={task.time_estimate || undefined}
-                        priority={task.priority as "high" | "medium" | "low"}
-                        completed={task.completed || false}
-                        onComplete={() => handleToggle(task.id, task.completed || false)}
-                        onEdit={() => setEditTask(task)}
-                        onDelete={() => setDeleteTaskId(task.id)}
-                      />
-                    ))}
+                    {goalTasks.map(task => {
+                      const fullGoalData = goals.find(g => g.id === task.goal_id);
+                      return (
+                        <TaskItem
+                          key={task.id}
+                          id={task.id}
+                          title={task.title}
+                          goalName={task.goal?.name || 'No Goal'}
+                          goalEmoji={task.goal?.emoji || '📌'}
+                          goalAction={fullGoalData?.target_value || undefined}
+                          timeEstimate={task.time_estimate || undefined}
+                          priority={task.priority as "high" | "medium" | "low"}
+                          completed={task.completed || false}
+                          status={task.completed ? 'completed' : 'pending'}
+                          onComplete={() => handleToggle(task.id, task.completed || false)}
+                          onEdit={() => setEditTask(task)}
+                          onDelete={() => setDeleteTaskId(task.id)}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -389,18 +371,23 @@ export default function Tasks() {
               </h3>
               <div className="glass-card p-4 sm:p-6 rounded-2xl opacity-60">
                 <div className="space-y-2">
-                  {completedTasks.map(task => (
-                    <TaskItem
-                      key={task.id}
-                      id={task.id}
-                      title={task.title}
-                      goalName={task.goal?.name || 'No Goal'}
-                      goalEmoji={task.goal?.emoji || '📌'}
-                      priority={task.priority as "high" | "medium" | "low"}
-                      completed={true}
-                      onComplete={() => handleToggle(task.id, true)}
-                    />
-                  ))}
+                  {completedTasks.map(task => {
+                    const fullGoalData = goals.find(g => g.id === task.goal_id);
+                    return (
+                      <TaskItem
+                        key={task.id}
+                        id={task.id}
+                        title={task.title}
+                        goalName={task.goal?.name || 'No Goal'}
+                        goalEmoji={task.goal?.emoji || '📌'}
+                        goalAction={fullGoalData?.target_value || undefined}
+                        priority={task.priority as "high" | "medium" | "low"}
+                        completed={true}
+                        status="completed"
+                        onComplete={() => handleToggle(task.id, true)}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>

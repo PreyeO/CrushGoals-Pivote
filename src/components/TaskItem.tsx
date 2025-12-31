@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Check, Clock, MoreVertical, Pencil, Trash2, Sparkles, Lock } from "lucide-react";
+import { Check, Clock, MoreVertical, Pencil, Trash2, Sparkles, Lock, Pause, AlertCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,15 +10,18 @@ import {
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
+import { Badge } from "@/components/ui/badge";
 
 interface TaskItemProps {
   id: string;
   title: string;
   goalName: string;
   goalEmoji: string;
+  goalAction?: string; // e.g., "Read for 30 mins"
   timeEstimate?: string;
   priority: "high" | "medium" | "low" | null;
   completed?: boolean;
+  status?: 'pending' | 'completed' | 'missed' | 'paused';
   onComplete?: (id: string) => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -29,9 +32,11 @@ export function TaskItem({
   title,
   goalName,
   goalEmoji,
+  goalAction,
   timeEstimate,
   priority,
   completed = false,
+  status = 'pending',
   onComplete,
   onEdit,
   onDelete,
@@ -85,7 +90,27 @@ export function TaskItem({
     },
   };
 
+  const statusConfig = {
+    completed: { 
+      label: 'Done', 
+      className: 'bg-success/10 text-success border-success/20',
+      icon: Check
+    },
+    missed: { 
+      label: 'Missed', 
+      className: 'bg-destructive/10 text-destructive border-destructive/20',
+      icon: AlertCircle
+    },
+    paused: { 
+      label: 'Paused', 
+      className: 'bg-warning/10 text-warning border-warning/20',
+      icon: Pause
+    },
+    pending: null,
+  };
+
   const priorityStyle = priority ? priorityConfig[priority] : null;
+  const statusBadge = status !== 'pending' ? statusConfig[status] : null;
 
   return (
     <div
@@ -143,7 +168,13 @@ export function TaskItem({
           {title}
         </span>
         
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          {/* Goal Action Badge */}
+          {goalAction && (
+            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+              {goalAction}
+            </Badge>
+          )}
           {timeEstimate && (
             <span className={cn(
               "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md",
@@ -162,6 +193,13 @@ export function TaskItem({
               <span className={cn("w-1.5 h-1.5 rounded-full", priorityStyle.dot)} />
               {priority.charAt(0).toUpperCase() + priority.slice(1)}
             </span>
+          )}
+          {/* Status Badge */}
+          {statusBadge && (
+            <Badge variant="outline" className={cn("text-xs gap-1", statusBadge.className)}>
+              <statusBadge.icon className="w-3 h-3" />
+              {statusBadge.label}
+            </Badge>
           )}
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,16 @@ export default function Settings() {
   const pricing = getPricing();
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   
+  const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState("account");
+  
+  // Handle URL params for section navigation
+  useEffect(() => {
+    const section = searchParams.get('section');
+    if (section && settingsSections.some(s => s.id === section)) {
+      setActiveSection(section);
+    }
+  }, [searchParams]);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");

@@ -3,33 +3,24 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Target, CheckCircle2, Circle, Calendar } from "lucide-react";
-import { startOfWeek, endOfWeek, format, addWeeks, subWeeks, isWithinInterval, isSameWeek } from "date-fns";
+import { ChevronLeft, ChevronRight, Calendar, Check, AlertCircle, Pause } from "lucide-react";
+import { startOfWeek, endOfWeek, format, addWeeks, subWeeks, isWithinInterval, isSameWeek, addDays } from "date-fns";
 import type { Task } from "@/hooks/useTasks";
 import type { Goal } from "@/hooks/useGoals";
 
 interface WeeklyGoalViewProps {
   tasks: Task[];
   goals: Goal[];
-  onToggleTask?: (taskId: string, completed: boolean) => void;
 }
 
-interface WeeklyGoalSummary {
-  goal: Goal;
-  tasks: Task[];
-  completed: number;
-  total: number;
-  weeklyTarget: number;
-  targetMet: boolean;
-}
-
-export function WeeklyGoalView({ tasks, goals, onToggleTask }: WeeklyGoalViewProps) {
+export function WeeklyGoalView({ tasks, goals }: WeeklyGoalViewProps) {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const isCurrentWeek = isSameWeek(currentWeekStart, new Date(), { weekStartsOn: 1 });
+  const today = new Date().toISOString().split('T')[0];
 
   // Filter tasks for this week
   const weekTasks = useMemo(() => {
@@ -40,53 +31,25 @@ export function WeeklyGoalView({ tasks, goals, onToggleTask }: WeeklyGoalViewPro
     });
   }, [tasks, currentWeekStart, weekEnd]);
 
-  // Group by goal and calculate weekly summaries
-  const weeklySummaries: WeeklyGoalSummary[] = useMemo(() => {
-    const goalMap = new Map<string, WeeklyGoalSummary>();
-
-    weekTasks.forEach(task => {
-      const goalId = task.goal_id || 'no-goal';
-      const goal = goals.find(g => g.id === task.goal_id);
+  // Group tasks by day
+  const groupedByDay = useMemo(() => {
+    const days: { date: Date; dayName: string; dateStr: string; tasks: Task[] }[] = [];
+    
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(currentWeekStart, i);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const dayTasks = weekTasks.filter(task => task.due_date === dateStr);
       
-      if (!goalMap.has(goalId)) {
-        // Calculate weekly target based on frequency
-        let weeklyTarget = 7; // default daily
-        if (goal?.task_frequency === 'weekly') weeklyTarget = 1;
-        else if (goal?.task_frequency === 'monthly') weeklyTarget = 0.25;
-
-        goalMap.set(goalId, {
-          goal: goal || {
-            id: 'no-goal',
-            name: 'Unlinked Tasks',
-            emoji: '📌',
-            category: 'other',
-            progress: 0,
-            status: 'on-track',
-            user_id: '',
-            created_at: '',
-            updated_at: '',
-          } as Goal,
-          tasks: [],
-          completed: 0,
-          total: 0,
-          weeklyTarget: Math.ceil(weeklyTarget),
-          targetMet: false,
-        });
-      }
-
-      const summary = goalMap.get(goalId)!;
-      summary.tasks.push(task);
-      summary.total++;
-      if (task.completed) summary.completed++;
-    });
-
-    // Calculate if target is met
-    goalMap.forEach(summary => {
-      summary.targetMet = summary.completed >= summary.weeklyTarget;
-    });
-
-    return Array.from(goalMap.values()).sort((a, b) => b.total - a.total);
-  }, [weekTasks, goals]);
+      days.push({
+        date,
+        dayName: format(date, 'EEEE'),
+        dateStr,
+        tasks: dayTasks,
+      });
+    }
+    
+    return days;
+  }, [weekTasks, currentWeekStart]);
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     setCurrentWeekStart(prev => 
@@ -97,6 +60,39 @@ export function WeeklyGoalView({ tasks, goals, onToggleTask }: WeeklyGoalViewPro
   const totalCompleted = weekTasks.filter(t => t.completed).length;
   const totalTasks = weekTasks.length;
   const weekProgress = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+
+  // Determine task status for display
+  const getTaskStatus = (task: Task): 'completed' | 'missed' | 'paused' | 'pending' => {
+    if (task.completed) return 'completed';
+    
+    // Check if the goal is paused
+    const goal = goals.find(g => g.id === task.goal_id);
+    if (goal?.is_paused) return 'paused';
+    
+    // Check if task is overdue (past date and not completed)
+    if (task.due_date && task.due_date < today) return 'missed';
+    
+    return 'pending';
+  };
+
+  const statusConfig = {
+    completed: { 
+      label: 'Done', 
+      className: 'bg-success/10 text-success border-success/20',
+      icon: Check
+    },
+    missed: { 
+      label: 'Missed', 
+      className: 'bg-destructive/10 text-destructive border-destructive/20',
+      icon: AlertCircle
+    },
+    paused: { 
+      label: 'Paused', 
+      className: 'bg-warning/10 text-warning border-warning/20',
+      icon: Pause
+    },
+    pending: null,
+  };
 
   return (
     <div className="space-y-4">
@@ -151,8 +147,8 @@ export function WeeklyGoalView({ tasks, goals, onToggleTask }: WeeklyGoalViewPro
         </div>
       </Card>
 
-      {/* Goal Summaries */}
-      {weeklySummaries.length === 0 ? (
+      {/* Days of the Week */}
+      {totalTasks === 0 ? (
         <Card className="p-8 text-center">
           <div className="text-4xl mb-3">📭</div>
           <h3 className="font-semibold mb-1">No tasks this week</h3>
@@ -162,74 +158,111 @@ export function WeeklyGoalView({ tasks, goals, onToggleTask }: WeeklyGoalViewPro
         </Card>
       ) : (
         <div className="space-y-3">
-          {weeklySummaries.map(summary => (
-            <Card key={summary.goal.id} className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{summary.goal.emoji}</span>
-                  <div>
-                    <h4 className="font-medium">{summary.goal.name}</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Target: {summary.weeklyTarget}x this week
-                    </p>
-                  </div>
-                </div>
-                <Badge 
-                  variant={summary.targetMet ? "default" : "secondary"}
-                  className={summary.targetMet ? "bg-success text-success-foreground" : ""}
-                >
-                  {summary.completed}/{summary.weeklyTarget} {summary.targetMet ? '✓' : ''}
-                </Badge>
-              </div>
-
-              {/* Progress bar */}
-              <div className="mb-3">
-                <Progress 
-                  value={Math.min((summary.completed / summary.weeklyTarget) * 100, 100)} 
-                  className="h-1.5"
-                />
-              </div>
-
-              {/* Individual tasks */}
-              <div className="space-y-2">
-                {summary.tasks.map(task => (
-                  <div 
-                    key={task.id} 
-                    className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                      task.completed ? 'bg-success/10' : 'bg-white/5 hover:bg-white/10'
-                    }`}
-                  >
-                    <button
-                      onClick={() => onToggleTask?.(task.id, task.completed || false)}
-                      className="flex-shrink-0"
-                    >
-                      {task.completed ? (
-                        <CheckCircle2 className="w-5 h-5 text-success" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
-                      )}
-                    </button>
-                    <span className={`text-sm flex-1 ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                      {task.title}
+          {groupedByDay.map(day => {
+            if (day.tasks.length === 0) return null;
+            
+            const isToday = day.dateStr === today;
+            const completedCount = day.tasks.filter(t => t.completed).length;
+            
+            return (
+              <Card 
+                key={day.dateStr} 
+                className={`p-4 ${isToday ? 'border-primary/50 bg-primary/5' : ''}`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold">{day.dayName}</h4>
+                    <span className="text-sm text-muted-foreground">
+                      {format(day.date, 'MMM d')}
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(task.due_date!), 'EEE')}
-                    </span>
+                    {isToday && (
+                      <Badge variant="default" className="text-xs">Today</Badge>
+                    )}
                   </div>
-                ))}
-              </div>
-
-              {/* Target status message */}
-              {summary.targetMet && (
-                <div className="mt-3 p-2 rounded-lg bg-success/10 border border-success/20">
-                  <p className="text-xs text-success font-medium flex items-center gap-1">
-                    <Target className="w-3 h-3" />
-                    Weekly target achieved! 🎯
-                  </p>
+                  <span className="text-sm text-muted-foreground">
+                    {completedCount}/{day.tasks.length}
+                  </span>
                 </div>
-              )}
-            </Card>
-          ))}
+
+                {/* Task List - Read Only */}
+                <div className="space-y-2">
+                  {day.tasks.map(task => {
+                    const status = getTaskStatus(task);
+                    const statusBadge = statusConfig[status];
+                    const goal = goals.find(g => g.id === task.goal_id);
+                    
+                    return (
+                      <div 
+                        key={task.id} 
+                        className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                          task.completed 
+                            ? 'bg-success/10 border border-success/20' 
+                            : status === 'missed'
+                            ? 'bg-destructive/5 border border-destructive/20'
+                            : status === 'paused'
+                            ? 'bg-warning/5 border border-warning/20'
+                            : 'bg-white/5 border border-white/10'
+                        }`}
+                      >
+                        {/* Status Icon */}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          task.completed 
+                            ? 'bg-success text-success-foreground' 
+                            : status === 'missed'
+                            ? 'bg-destructive/20 text-destructive'
+                            : status === 'paused'
+                            ? 'bg-warning/20 text-warning'
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {task.completed ? (
+                            <Check className="w-4 h-4" />
+                          ) : status === 'missed' ? (
+                            <AlertCircle className="w-3.5 h-3.5" />
+                          ) : status === 'paused' ? (
+                            <Pause className="w-3.5 h-3.5" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-muted-foreground/50" />
+                          )}
+                        </div>
+                        
+                        {/* Goal Emoji */}
+                        <span className="text-lg">{goal?.emoji || task.goal?.emoji || '📌'}</span>
+                        
+                        {/* Task Content */}
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-sm block truncate ${
+                            task.completed ? 'line-through text-muted-foreground' : ''
+                          }`}>
+                            {task.title}
+                          </span>
+                          {/* Goal Action Badge */}
+                          {goal?.target_value && (
+                            <Badge 
+                              variant="outline" 
+                              className="mt-1 text-xs bg-primary/10 text-primary border-primary/20"
+                            >
+                              {goal.target_value}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {/* Status Badge */}
+                        {statusBadge && (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs gap-1 flex-shrink-0 ${statusBadge.className}`}
+                          >
+                            <statusBadge.icon className="w-3 h-3" />
+                            {statusBadge.label}
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
