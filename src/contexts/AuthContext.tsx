@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 import { logError } from '@/lib/logger';
 
 interface Profile {
@@ -55,19 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdminLoaded, setIsAdminLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-
-  const handleSessionTimeout = useCallback(() => {
-    setUser(null);
-    setSession(null);
-    setProfile(null);
-    setStats(null);
-    setSubscription(null);
-    setIsAdmin(false);
-    navigate('/');
-  }, [navigate]);
-
-  // Session timeout hook
-  useSessionTimeout(!!user, handleSessionTimeout);
 
   const fetchUserData = async (userId: string) => {
     try {
