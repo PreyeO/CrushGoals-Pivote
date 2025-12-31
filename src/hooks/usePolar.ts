@@ -22,6 +22,12 @@ export function usePolar() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
+  // Product IDs from Polar.sh (sandbox)
+  const PRODUCT_IDS = {
+    monthly: 'a9be60cf-0410-4f79-9f79-d580efbce621',
+    annual: '9fdc4091-4687-42d1-9635-0006522f5d9d',
+  };
+
   // Pricing in USD cents
   const getAmountInCents = useCallback((plan: PolarPlan): number => {
     switch (plan) {
