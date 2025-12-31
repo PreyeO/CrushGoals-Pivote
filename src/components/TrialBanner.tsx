@@ -11,7 +11,7 @@ interface TrialBannerProps {
 
 export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
   const { isTrialActive, isTrialExpired, hoursLeft, daysLeft } = useTrialStatus();
-  const { isPremium, isLoading } = useSubscription();
+  const { isPremium, isLoading, subscription } = useSubscription();
   const [isDismissed, setIsDismissed] = useState(false);
 
   // Reset dismissal on new session
@@ -25,14 +25,15 @@ export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
   // Don't show while loading to prevent flickering
   if (isLoading) return null;
 
-  // Don't show if premium user
+  // Don't show if PAID premium user (monthly/annual active subscription)
   if (isPremium()) return null;
 
-  // Don't show if dismissed this session (but still show if less than 6 hours)
-  if (isDismissed && hoursLeft > 6) return null;
+  // Don't show if dismissed this session (but still show if less than 6 hours or expired)
+  if (isDismissed && hoursLeft > 6 && !isTrialExpired) return null;
 
-  // Don't show if no trial active and not expired
-  if (!isTrialActive && !isTrialExpired) return null;
+  // Show for: trial users (active or expired) - everyone signs up on trial
+  const shouldShow = isTrialActive || isTrialExpired || subscription?.status === 'trial';
+  if (!shouldShow) return null;
 
   const handleDismiss = () => {
     sessionStorage.setItem('trial_banner_dismissed', 'true');

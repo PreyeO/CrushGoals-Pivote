@@ -165,7 +165,31 @@ export default function AdminLogin() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <Button
+                      variant="link"
+                      type="button"
+                      className="p-0 h-auto text-xs text-primary"
+                      onClick={async () => {
+                        if (!email) {
+                          toast.error('Please enter your email first');
+                          return;
+                        }
+                        try {
+                          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                            redirectTo: `${window.location.origin}/reset-password`,
+                          });
+                          if (error) throw error;
+                          toast.success('Password reset email sent! Check your inbox.');
+                        } catch (err: any) {
+                          toast.error(err.message || 'Failed to send reset email');
+                        }
+                      }}
+                    >
+                      Forgot password?
+                    </Button>
+                  </div>
                   <Input
                     id="password"
                     type="password"

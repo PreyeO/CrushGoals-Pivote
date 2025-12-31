@@ -503,8 +503,8 @@ export function SmartGoalTemplates({ onSelectTemplate, onCreateCustom }: SmartGo
         })}
       </div>
 
-      {/* Challenge Templates Grid - 3 columns */}
-      <div className="grid grid-cols-3 gap-2 max-h-[280px] overflow-y-auto pr-1">
+      {/* Challenge Templates Grid - 3 columns - NO inner scroll, parent modal scrolls */}
+      <div className="grid grid-cols-3 gap-2">
         {filteredTemplates.map((template) => {
           const Icon = template.icon;
           return (
