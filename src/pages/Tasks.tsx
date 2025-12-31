@@ -47,8 +47,8 @@ const getTimeLeftToday = (): { hours: number; minutes: number; formatted: string
 };
 
 export default function Tasks() {
-  const today = new Date().toISOString().split('T')[0];
-  const { tasks, isLoading, addTask, toggleTask, updateTask, deleteTask, celebrationTrigger, clearCelebration } = useTasks(today);
+  const [today, setToday] = useState(() => new Date().toISOString().split('T')[0]);
+  const { tasks, isLoading, addTask, toggleTask, updateTask, deleteTask, refreshTasks, celebrationTrigger, clearCelebration } = useTasks(today);
   const { missedTasks, totalMissed, markTaskComplete, refreshMissedTasks, isLoading: missedLoading } = useMissedTasks();
   const { goals } = useGoals();
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -68,14 +68,23 @@ export default function Tasks() {
   // Fetch all tasks for weekly view (no date filter)
   const { tasks: allTasks, toggleTask: toggleAllTask } = useTasks();
   
-  // Update time left every minute
+  // Update time left every minute and check for date change (midnight refresh)
   useEffect(() => {
-    const interval = setInterval(() => {
+    const checkTimeAndDate = () => {
       setTimeLeft(getTimeLeftToday());
-    }, 60000); // Update every minute
+      
+      // Check if date has changed (midnight passed)
+      const currentDate = new Date().toISOString().split('T')[0];
+      if (currentDate !== today) {
+        setToday(currentDate);
+        toast.success("New day! Your tasks have been refreshed ☀️");
+      }
+    };
+    
+    const interval = setInterval(checkTimeAndDate, 60000); // Check every minute
     
     return () => clearInterval(interval);
-  }, []);
+  }, [today]);
   
   const completedCount = tasks.filter(t => t.completed).length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
