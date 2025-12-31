@@ -143,7 +143,7 @@ export default function Leaderboard() {
                     key={request.id}
                     id={request.id}
                     name={request.user_profile?.full_name || 'Unknown'}
-                    email={request.user_profile?.email || ''}
+                    username={request.user_profile?.username}
                     onAccept={acceptFriendRequest}
                     onReject={rejectFriendRequest}
                   />
