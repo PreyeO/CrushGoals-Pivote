@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Check, Clock, MoreVertical, Pencil, Trash2, Sparkles } from "lucide-react";
+import { Check, Clock, MoreVertical, Pencil, Trash2, Sparkles, Lock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 
 interface TaskItemProps {
   id: string;
@@ -37,7 +39,9 @@ export function TaskItem({
   const [isCompleted, setIsCompleted] = useState(completed);
   const [showXP, setShowXP] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showTrialOverlay, setShowTrialOverlay] = useState(false);
   const { playSound } = useSoundEffects();
+  const { canPerformActions } = useTrialStatus();
 
   // Sync with prop changes
   useEffect(() => {
@@ -46,6 +50,11 @@ export function TaskItem({
 
   const handleComplete = () => {
     if (isCompleted) return;
+    
+    if (!canPerformActions) {
+      setShowTrialOverlay(true);
+      return;
+    }
     
     setIsCompleted(true);
     setShowXP(true);
@@ -201,6 +210,13 @@ export function TaskItem({
           </div>
         </div>
       )}
+
+      {/* Trial Expired Overlay */}
+      <TrialExpiredOverlay 
+        open={showTrialOverlay} 
+        onOpenChange={setShowTrialOverlay}
+        actionType="complete"
+      />
     </div>
   );
 }
