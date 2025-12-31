@@ -159,20 +159,30 @@ export function ConfettiCelebration({
           className="absolute inset-0 flex items-center justify-center animate-celebration-pop pointer-events-auto"
           onClick={handleDismiss}
         >
-          <div className="text-center bg-background/90 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-success/30 shadow-2xl relative max-w-[90vw]">
+          <div className="text-center bg-gradient-to-b from-background/95 to-background/90 backdrop-blur-xl p-8 sm:p-10 rounded-3xl border border-success/40 shadow-[0_0_60px_-15px] shadow-success/30 relative max-w-[90vw]">
+            <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent rounded-3xl" />
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleDismiss();
               }}
-              className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-muted transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition-colors z-10"
               aria-label="Close celebration"
             >
-              <X className="w-4 h-4 text-muted-foreground" />
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
-            <span className="text-5xl sm:text-6xl block mb-3 sm:mb-4">🏆</span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-success mb-2">Goal Crushed!</h2>
-            <p className="text-muted-foreground text-sm sm:text-base">Amazing work!</p>
+            <div className="relative">
+              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center">
+                <span className="text-6xl sm:text-7xl animate-bounce">🏆</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-success to-emerald-400 bg-clip-text text-transparent mb-3">
+                Goal Complete!
+              </h2>
+              <p className="text-muted-foreground text-base sm:text-lg mb-4">You crushed it! Time for a new challenge?</p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/20 border border-success/30">
+                <span className="text-success font-semibold">+100 XP Bonus</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

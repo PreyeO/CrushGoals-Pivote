@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Check, Clock, Star, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Check, Clock, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,20 +54,19 @@ export function TaskItem({
     setTimeout(() => setShowXP(false), 1000);
   };
 
-  const safePriority = priority || 'medium';
-
   const priorityColors = {
-    high: "bg-destructive/20 text-destructive",
-    medium: "bg-warning/20 text-warning",
-    low: "bg-success/20 text-success",
+    high: "bg-destructive/20 text-destructive border-destructive/30",
+    medium: "bg-warning/20 text-warning border-warning/30",
+    low: "bg-success/20 text-success border-success/30",
   };
 
   return (
     <div
       className={cn(
-        "relative flex items-start gap-4 p-4 rounded-xl transition-all duration-300",
-        "bg-white/5 border border-white/10 hover:bg-white/[0.08]",
-        isCompleted && "opacity-60"
+        "relative flex items-center gap-3 p-3 sm:p-4 rounded-2xl transition-all duration-300",
+        "bg-gradient-to-r from-white/5 to-white/[0.02] border border-white/10",
+        "hover:from-white/10 hover:to-white/5 hover:border-white/20",
+        isCompleted && "opacity-50"
       )}
     >
       {/* Checkbox */}
@@ -86,33 +85,35 @@ export function TaskItem({
         )}
       </button>
 
+      {/* Goal Emoji */}
+      <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+        <span className="text-base">{goalEmoji || '🎯'}</span>
+      </div>
+
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className={cn(
-            "text-base font-medium transition-all duration-300",
-            isCompleted && "line-through text-muted-foreground"
-          )}>
-            {title}
-          </span>
-        </div>
+        <span className={cn(
+          "text-sm sm:text-base font-medium transition-all duration-300 block truncate",
+          isCompleted && "line-through text-muted-foreground"
+        )}>
+          {title}
+        </span>
         
-        <div className="flex items-center gap-3 text-sm">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-foreground-secondary">
-            {goalEmoji} {goalName}
-          </span>
-          
+        <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
           {timeEstimate && (
-            <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {timeEstimate}
             </span>
           )}
-          
-          <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium", priorityColors[safePriority])}>
-            <Star className="w-3 h-3" />
-            {safePriority.charAt(0).toUpperCase() + safePriority.slice(1)}
-          </span>
+          {priority && (
+            <span className={cn(
+              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border",
+              priorityColors[priority]
+            )}>
+              {priority.charAt(0).toUpperCase() + priority.slice(1)}
+            </span>
+          )}
         </div>
       </div>
 

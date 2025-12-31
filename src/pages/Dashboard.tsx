@@ -216,64 +216,73 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* 4 Stat Cards Grid */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '50ms' }}>
+        {/* 4 Stat Cards Grid - Always 4 columns */}
+        <section className="grid grid-cols-4 gap-2 sm:gap-3 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '50ms' }}>
           {/* Today's Tasks */}
-          <Card variant="glass" className="p-3 hover-scale">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center shrink-0">
-                <ListTodo className="w-5 h-5 text-white" />
+          <Card variant="glass" className="p-2 sm:p-4 hover-scale relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
+            <div className="relative flex flex-col items-center text-center gap-1 sm:gap-2">
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-gradient-primary flex items-center justify-center">
+                <ListTodo className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="min-w-0">
-                <p className="text-lg font-bold">
+              <div>
+                <p className="text-lg sm:text-2xl font-bold">
                   <span className="text-primary">{completedTasks}</span>
-                  <span className="text-muted-foreground text-sm">/{totalTasks}</span>
+                  <span className="text-muted-foreground text-xs sm:text-sm">/{totalTasks}</span>
                 </p>
-                <p className="text-[10px] text-muted-foreground uppercase">Today's Tasks</p>
+                <p className="text-[8px] sm:text-xs text-muted-foreground uppercase tracking-wide">Tasks</p>
               </div>
             </div>
           </Card>
 
           {/* Day Streak */}
-          <Card variant="glass" className="p-3 hover-scale">
-            <div className="flex items-center gap-3">
+          <Card variant="glass" className="p-2 sm:p-4 hover-scale relative overflow-hidden">
+            <div className={cn(
+              "absolute inset-0",
+              (stats?.current_streak || 0) > 0 
+                ? "bg-gradient-to-br from-orange-500/10 to-red-500/5" 
+                : "bg-gradient-to-br from-muted/20 to-transparent"
+            )} />
+            <div className="relative flex flex-col items-center text-center gap-1 sm:gap-2">
               <div className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                "w-8 h-8 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center",
                 (stats?.current_streak || 0) > 0 
                   ? "bg-gradient-to-br from-orange-500 to-red-500" 
                   : "bg-muted"
               )}>
-                <Flame className="w-5 h-5 text-white" />
+                <Flame className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="min-w-0">
-                <p className="text-lg font-bold">{stats?.current_streak || 0}</p>
-                <p className="text-[10px] text-muted-foreground uppercase">Day Streak</p>
+              <div>
+                <p className="text-lg sm:text-2xl font-bold">{stats?.current_streak || 0}</p>
+                <p className="text-[8px] sm:text-xs text-muted-foreground uppercase tracking-wide">Streak</p>
               </div>
             </div>
           </Card>
 
           {/* Active Goals */}
-          <Card variant="glass" className="p-3 hover-scale">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shrink-0">
-                <Target className="w-5 h-5 text-white" />
+          <Card variant="glass" className="p-2 sm:p-4 hover-scale relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/5" />
+            <div className="relative flex flex-col items-center text-center gap-1 sm:gap-2">
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="min-w-0">
-                <p className="text-lg font-bold">{activeGoals.length}</p>
-                <p className="text-[10px] text-muted-foreground uppercase">Active Goals</p>
+              <div>
+                <p className="text-lg sm:text-2xl font-bold">{activeGoals.length}</p>
+                <p className="text-[8px] sm:text-xs text-muted-foreground uppercase tracking-wide">Goals</p>
               </div>
             </div>
           </Card>
 
-          {/* Completed Tasks */}
-          <Card variant="glass" className="p-3 hover-scale">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0">
-                <Trophy className="w-5 h-5 text-white" />
+          {/* Completed All Time */}
+          <Card variant="glass" className="p-2 sm:p-4 hover-scale relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/5" />
+            <div className="relative flex flex-col items-center text-center gap-1 sm:gap-2">
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="min-w-0">
-                <p className="text-lg font-bold">{stats?.tasks_completed || 0}</p>
-                <p className="text-[10px] text-muted-foreground uppercase">Completed</p>
+              <div>
+                <p className="text-lg sm:text-2xl font-bold">{stats?.tasks_completed || 0}</p>
+                <p className="text-[8px] sm:text-xs text-muted-foreground uppercase tracking-wide">Done</p>
               </div>
             </div>
           </Card>
