@@ -21,6 +21,8 @@ interface GoalCardProps {
   status: "on-track" | "behind" | "ahead" | "completed";
   tasksToday?: { completed: number; total: number };
   totalRemainingTasks?: number;
+  totalTasksCompleted?: number;
+  totalTasksCount?: number;
   startDate?: string;
   endDate?: string;
   isPaused?: boolean;
@@ -44,6 +46,8 @@ export function GoalCard({
   status,
   tasksToday,
   totalRemainingTasks,
+  totalTasksCompleted,
+  totalTasksCount,
   isPaused,
   onClick,
   onEdit,
@@ -181,7 +185,9 @@ export function GoalCard({
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground">Progress</p>
             <p className="text-sm font-medium truncate">
-              {targetValue === 'Complete' || !targetValue ? (
+              {totalTasksCount && totalTasksCount > 0 ? (
+                <><span className="text-primary">{totalTasksCompleted || 0}</span><span className="text-muted-foreground">/{totalTasksCount} tasks</span></>
+              ) : targetValue === 'Complete' || !targetValue ? (
                 <span>{Math.round(progress)}% complete</span>
               ) : (
                 <>{currentValue} <span className="text-muted-foreground">/ {targetValue}</span></>

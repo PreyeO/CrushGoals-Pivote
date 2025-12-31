@@ -21,8 +21,10 @@ import { useInviteHandler } from "@/hooks/useInviteHandler";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { getDisplayStatus } from "@/lib/goalUtils";
 import { ProgressRing } from "@/components/ProgressRing";
 import { useMainLayout } from "@/hooks/useMainLayout";
+import { supabase } from "@/integrations/supabase/client";
 
 const motivationalQuotes = [
   { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -32,7 +34,7 @@ const motivationalQuotes = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { profile, stats } = useAuth();
+  const { profile, stats, user } = useAuth();
   const { mainPaddingClass } = useMainLayout();
   const { goals, isLoading: goalsLoading, addGoal, refreshGoals, firstGoalCelebration, clearFirstGoalCelebration } = useGoals();
   const today = new Date().toISOString().split('T')[0];
@@ -40,6 +42,41 @@ export default function Dashboard() {
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [goalTaskCounts, setGoalTaskCounts] = useState<{ [goalId: string]: { totalCompleted: number; totalCount: number } }>({});
+
+  // Fetch task counts for active goals
+  useEffect(() => {
+    const fetchTaskCounts = async () => {
+      if (!user || goals.length === 0) return;
+
+      const activeGoalIds = goals.filter(g => g.status !== 'completed').map(g => g.id);
+      if (activeGoalIds.length === 0) return;
+
+      try {
+        const { data: allTasks, error } = await supabase
+          .from('tasks')
+          .select('id, goal_id, completed')
+          .eq('user_id', user.id)
+          .in('goal_id', activeGoalIds);
+
+        if (error) throw error;
+
+        const counts: { [goalId: string]: { totalCompleted: number; totalCount: number } } = {};
+        for (const goalId of activeGoalIds) {
+          const goalTasks = allTasks?.filter(t => t.goal_id === goalId) || [];
+          counts[goalId] = {
+            totalCompleted: goalTasks.filter(t => t.completed).length,
+            totalCount: goalTasks.length,
+          };
+        }
+        setGoalTaskCounts(counts);
+      } catch (error) {
+        console.error('Error fetching task counts:', error);
+      }
+    };
+
+    fetchTaskCounts();
+  }, [user, goals]);
 
   // Show onboarding for new users with no goals (check localStorage to not show again)
   useEffect(() => {
@@ -218,8 +255,8 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* 4 Stat Cards Grid - Always 4 columns */}
-        <section className="grid grid-cols-4 gap-2 sm:gap-3 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '50ms' }}>
+        {/* 4 Stat Cards Grid - 2 columns on mobile, 4 on sm+ */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6 animate-slide-up opacity-0" style={{ animationDelay: '50ms' }}>
           {/* Today's Tasks */}
           <Card variant="glass" className="p-2 sm:p-4 hover-scale relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
@@ -353,7 +390,7 @@ export default function Dashboard() {
           </div>
 
           {goalsLoading ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[1, 2, 3, 4].map((i) => (
                 <Card key={i} variant="glass" className="p-4 animate-pulse">
                   <div className="h-8 bg-white/10 rounded mb-3" />
@@ -372,7 +409,7 @@ export default function Dashboard() {
               </Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {activeGoals.slice(0, 4).map((goal, index) => (
                 <div
                   key={goal.id}
@@ -387,8 +424,10 @@ export default function Dashboard() {
                     currentValue={goal.current_value}
                     targetValue={goal.target_value || 'Complete'}
                     timeRemaining={goal.deadline ? `${new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short' })}` : ''}
-                    status={goal.status}
+                    status={getDisplayStatus(goal)}
                     tasksToday={{ completed: 0, total: 0 }}
+                    totalTasksCompleted={goalTaskCounts[goal.id]?.totalCompleted}
+                    totalTasksCount={goalTaskCounts[goal.id]?.totalCount}
                   />
                 </div>
               ))}
