@@ -72,58 +72,51 @@ export function useTrialNotifications() {
 
     const currentHour = new Date().getHours();
 
-    if (trialDaysLeft === 3) {
-      if (currentHour < 12) {
-        toast.info("🎉 You have 3 days to try everything free!", {
-          description: "Explore all features and crush your goals!",
-          duration: 6000,
-        });
-      } else if (currentHour >= 18) {
-        toast.info("✨ Great start! 2 days of trial left", {
-          description: "Keep crushing those goals!",
-          duration: 5000,
-        });
-      }
+    // 2-day (48-hour) trial notifications
+    if (trialDaysLeft === 2 && hoursLeft > 36) {
+      toast.info("🎉 Welcome! 48 hours of free access!", {
+        description: "Explore all features and crush your goals!",
+        duration: 6000,
+      });
       return;
     }
 
-    if (trialDaysLeft === 2) {
-      if (currentHour < 12) {
-        toast("⚡ Keep your streak alive!", {
-          description: "2 trial days left - you're doing great!",
-          duration: 5000,
-        });
-      } else if (currentHour >= 18) {
-        toast.warning("📅 Last full day tomorrow!", {
-          description: "Your streak is at risk. Keep going!",
-          duration: 5000,
-        });
-      }
+    if (trialDaysLeft === 2 && hoursLeft <= 36 && hoursLeft > 24) {
+      toast("⚡ 36 hours left in your trial!", {
+        description: "Set your first goal to get started!",
+        duration: 5000,
+      });
       return;
     }
 
-    if (trialDaysLeft <= 1) {
-      if (hoursLeft > 6) {
-        toast.error("🚨 FINAL DAY!", {
-          description: "Your trial ends tonight at midnight",
-          duration: 8000,
-        });
-      } else if (hoursLeft > 4) {
-        toast.error("⏰ 6 hours left on your trial!", {
-          description: "Upgrade now to keep your progress",
-          duration: 8000,
-        });
-      } else if (hoursLeft > 1) {
-        toast.error("🔥 4 hours left!", {
-          description: "Your streak will reset unless you upgrade",
-          duration: 10000,
-        });
-      } else if (hoursLeft <= 1) {
-        toast.error("⚠️ 1 HOUR LEFT!", {
-          description: "Don't lose your progress!",
-          duration: 15000,
-        });
-      }
+    if (trialDaysLeft <= 1 && hoursLeft > 12) {
+      toast.warning("📅 Less than 24 hours left!", {
+        description: "Your trial ends soon - upgrade to keep your progress!",
+        duration: 6000,
+      });
+      return;
+    }
+
+    if (hoursLeft <= 12 && hoursLeft > 6) {
+      toast.error("🚨 12 hours left!", {
+        description: "Your trial ends soon",
+        duration: 8000,
+      });
+    } else if (hoursLeft <= 6 && hoursLeft > 2) {
+      toast.error("⏰ Only " + hoursLeft + " hours left!", {
+        description: "Upgrade now to keep your progress",
+        duration: 8000,
+      });
+    } else if (hoursLeft <= 2 && hoursLeft > 1) {
+      toast.error("🔥 2 hours left!", {
+        description: "Your streak will reset unless you upgrade",
+        duration: 10000,
+      });
+    } else if (hoursLeft <= 1) {
+      toast.error("⚠️ LESS THAN 1 HOUR LEFT!", {
+        description: "Don't lose your progress!",
+        duration: 15000,
+      });
     }
   }, [isOnTrial, isPremiumUser, hoursLeft, trialDaysLeft]);
 
