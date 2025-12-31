@@ -43,6 +43,7 @@ export function useResendEmail() {
 
   const sendWelcomeEmail = async (email: string, name: string): Promise<boolean> => {
     const safeName = escapeHtml(name);
+    const firstName = safeName.split(' ')[0] || safeName;
     const baseUrl = window.location.origin;
 
     const html = `
@@ -55,25 +56,35 @@ export function useResendEmail() {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0b; color: #ffffff; margin: 0; padding: 40px 20px;">
           <div style="max-width: 560px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1f 0%, #0d0d10 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1);">
             <div style="text-align: center; margin-bottom: 32px;">
-              <div style="font-size: 48px; margin-bottom: 16px;">🏆</div>
-              <h1 style="margin: 0; font-size: 28px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to CrushGoals!</h1>
+              <div style="font-size: 48px; margin-bottom: 16px;">🎯</div>
+              <h1 style="margin: 0; font-size: 28px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to CrushGoals, ${firstName}!</h1>
+            </div>
+            
+            <!-- Trial Badge -->
+            <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
+              <p style="margin: 0 0 8px; color: rgba(255,255,255,0.9); font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+                🎁 YOUR FREE TRIAL
+              </p>
+              <p style="margin: 0; color: #ffffff; font-size: 32px; font-weight: bold;">
+                48 HOURS
+              </p>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.8); font-size: 14px;">
+                Unlimited access to all premium features
+              </p>
             </div>
             
             <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
-              Hey ${safeName}! 👋
-            </p>
-            
-            <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
-              You've just joined thousands of goal-crushers who are turning their dreams into reality, one task at a time.
+              You've just unlocked <strong style="color: #ffffff;">48 hours of unlimited access</strong> to everything CrushGoals has to offer. No credit card required - just pure goal-crushing power!
             </p>
             
             <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 24px; border: 1px solid rgba(99, 102, 241, 0.2);">
               <h3 style="margin: 0 0 12px 0; color: #6366f1;">Here's what you can do:</h3>
               <ul style="margin: 0; padding-left: 20px; color: #a1a1aa;">
-                <li style="margin-bottom: 8px;">🎯 Set meaningful goals with smart breakdowns</li>
-                <li style="margin-bottom: 8px;">🔥 Build streaks to stay consistent</li>
-                <li style="margin-bottom: 8px;">⚡ Earn XP and level up</li>
-                <li style="margin-bottom: 8px;">🏅 Compete with friends on leaderboards</li>
+                <li style="margin-bottom: 8px;">✅ Set unlimited goals across all categories</li>
+                <li style="margin-bottom: 8px;">🔥 Build streaks and earn XP rewards</li>
+                <li style="margin-bottom: 8px;">📊 Track your progress with detailed analytics</li>
+                <li style="margin-bottom: 8px;">🏆 Unlock achievements and climb the leaderboard</li>
+                <li style="margin-bottom: 8px;">👥 Share goals with friends for accountability</li>
               </ul>
             </div>
             
@@ -81,8 +92,15 @@ export function useResendEmail() {
               <a href="${baseUrl}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Start Crushing Goals →</a>
             </div>
             
+            <!-- Urgency Note -->
+            <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 24px;">
+              <p style="margin: 0; color: #fbbf24; font-size: 14px;">
+                ⏰ <strong>Pro tip:</strong> Users who set their first goal within 24 hours are 3x more likely to build lasting habits!
+              </p>
+            </div>
+            
             <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
-              Let's make it happen! 💪<br>
+              Questions? Reply to this email - we're here to help!<br>
               The CrushGoals Team
             </p>
           </div>
@@ -92,7 +110,7 @@ export function useResendEmail() {
 
     return sendEmail({
       to: email,
-      subject: "Welcome to CrushGoals! 🏆 Let's crush some goals",
+      subject: "🎯 Welcome to CrushGoals - Your 48-Hour Free Trial Starts Now!",
       html,
       email_type: "welcome",
     });
