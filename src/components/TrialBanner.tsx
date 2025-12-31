@@ -11,7 +11,7 @@ interface TrialBannerProps {
 
 export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
   const { isTrialActive, isTrialExpired, hoursLeft, daysLeft } = useTrialStatus();
-  const { isPremium } = useSubscription();
+  const { isPremium, isLoading } = useSubscription();
   const [isDismissed, setIsDismissed] = useState(false);
 
   // Reset dismissal on new session
@@ -21,6 +21,9 @@ export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
       setIsDismissed(false);
     }
   }, []);
+
+  // Don't show while loading to prevent flickering
+  if (isLoading) return null;
 
   // Don't show if premium user
   if (isPremium()) return null;
