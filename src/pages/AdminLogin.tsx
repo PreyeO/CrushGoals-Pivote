@@ -4,16 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminRateLimiter } from '@/hooks/useAdminRateLimiter';
 import { toast } from 'sonner';
-import { Shield, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Shield, ArrowLeft, AlertTriangle, Mail, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
-const loginSchema = z.object({
+const emailSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 export default function AdminLogin() {
@@ -21,7 +21,8 @@ export default function AdminLogin() {
   const { user, isAdmin, isAdminLoaded } = useAuth();
   const { checkRateLimit, recordAttempt } = useAdminRateLimiter();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [step, setStep] = useState<'email' | 'otp'>('email');
   const [isLoading, setIsLoading] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(3);
@@ -38,10 +39,10 @@ export default function AdminLogin() {
     }
   }, [user, isAdmin, isAdminLoaded, adminVerifiedLocally, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validation = loginSchema.safeParse({ email, password });
+    const validation = emailSchema.safeParse({ email });
     if (!validation.success) {
       toast.error(validation.error.errors[0].message);
       return;
@@ -60,9 +61,45 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Send OTP via Supabase magic link (OTP mode)
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password,
+        options: {
+          shouldCreateUser: false, // Don't create new users - admin must already exist
+        },
+      });
+
+      if (error) {
+        await recordAttempt(email, false);
+        setRemainingAttempts(prev => Math.max(0, prev - 1));
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      toast.success('Login code sent! Check your email.');
+      setStep('otp');
+    } catch (error) {
+      await recordAttempt(email, false);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otpCode.length !== 6) {
+      toast.error('Please enter the 6-digit code');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode,
+        type: 'email',
       });
 
       if (error) {
@@ -87,6 +124,8 @@ export default function AdminLogin() {
           await recordAttempt(email, false);
           await supabase.auth.signOut();
           toast.error('Access denied. This login is for administrators only.');
+          setStep('email');
+          setOtpCode('');
           setIsLoading(false);
           return;
         }
@@ -138,7 +177,10 @@ export default function AdminLogin() {
             </div>
             <CardTitle className="text-2xl">Admin Portal</CardTitle>
             <CardDescription>
-              Secure login for administrators only
+              {step === 'email' 
+                ? 'Enter your admin email to receive a login code'
+                : 'Enter the 6-digit code sent to your email'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -150,8 +192,8 @@ export default function AdminLogin() {
                   Too many failed login attempts. Please try again in 30 minutes.
                 </p>
               </div>
-            ) : (
-              <form onSubmit={handleLogin} className="space-y-4">
+            ) : step === 'email' ? (
+              <form onSubmit={handleSendOTP} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -160,42 +202,6 @@ export default function AdminLogin() {
                     placeholder="admin@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <Button
-                      variant="link"
-                      type="button"
-                      className="p-0 h-auto text-xs text-primary"
-                      onClick={async () => {
-                        if (!email) {
-                          toast.error('Please enter your email first');
-                          return;
-                        }
-                        try {
-                          const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                            redirectTo: `${window.location.origin}/reset-password`,
-                          });
-                          if (error) throw error;
-                          toast.success('Password reset email sent! Check your inbox.');
-                        } catch (err: any) {
-                          toast.error(err.message || 'Failed to send reset email');
-                        }
-                      }}
-                    >
-                      Forgot password?
-                    </Button>
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={isLoading}
                   />
@@ -212,9 +218,78 @@ export default function AdminLogin() {
                   className="w-full" 
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Signing in...' : 'Sign In as Admin'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending Code...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Login Code
+                    </>
+                  )}
                 </Button>
               </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Verification Code</Label>
+                  <div className="flex justify-center">
+                    <InputOTP 
+                      maxLength={6} 
+                      value={otpCode} 
+                      onChange={setOtpCode}
+                      disabled={isLoading}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Check your email for the 6-digit code
+                  </p>
+                </div>
+                
+                {remainingAttempts < 3 && remainingAttempts > 0 && (
+                  <p className="text-sm text-amber-500 text-center">
+                    Warning: {remainingAttempts} attempt{remainingAttempts !== 1 ? 's' : ''} remaining before lockout
+                  </p>
+                )}
+                
+                <Button 
+                  onClick={handleVerifyOTP}
+                  className="w-full" 
+                  disabled={isLoading || otpCode.length !== 6}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify & Sign In'
+                  )}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setStep('email');
+                    setOtpCode('');
+                  }}
+                  disabled={isLoading}
+                >
+                  Use a different email
+                </Button>
+              </div>
             )}
 
             <p className="mt-6 text-center text-sm text-muted-foreground">

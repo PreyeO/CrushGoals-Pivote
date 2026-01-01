@@ -51,9 +51,23 @@ export function TrialExpiredOverlay({
     }
   };
 
+  // Non-dismissible - only allow opening, not closing
+  const handleOpenChange = (isOpen: boolean) => {
+    // Only allow opening, not closing (user must subscribe)
+    if (isOpen) {
+      onOpenChange(true);
+    }
+    // Ignore close attempts - user cannot dismiss this modal
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent 
+        className="sm:max-w-md bg-card border-border p-0 overflow-hidden max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        hideCloseButton
+      >
         {/* Header with Lock Animation */}
         <div className="relative bg-gradient-to-br from-destructive/20 via-destructive/10 to-transparent p-6 text-center">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(239,68,68,0.15),transparent_70%)]" />
@@ -171,16 +185,6 @@ export function TrialExpiredOverlay({
               <p className="text-xs text-muted-foreground">Processing...</p>
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 pt-0 text-center">
-          <button
-            onClick={() => onOpenChange(false)}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Maybe later
-          </button>
         </div>
       </DialogContent>
     </Dialog>

@@ -462,7 +462,6 @@ export default function Landing() {
             <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
             <a href="#" className="hover:text-foreground transition-colors">Contact</a>
-            <a href="/admin-login" className="hover:text-foreground transition-colors">Admin</a>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Made with ❤️ for goal crushers

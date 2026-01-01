@@ -125,12 +125,6 @@ export function GoalCard({
                       View Calendar
                     </DropdownMenuItem>
                   )}
-                  {onShare && (
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(); }}>
-                      <Users className="w-4 h-4 mr-2 text-primary" />
-                      Share with Friends
-                    </DropdownMenuItem>
-                  )}
                   {onDuplicate && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
                       <Copy className="w-4 h-4 mr-2" />
@@ -152,7 +146,7 @@ export function GoalCard({
                       )}
                     </DropdownMenuItem>
                   )}
-                  {(onViewCalendar || onDuplicate || onPauseToggle || onShare) && (onEdit || onDelete) && <DropdownMenuSeparator />}
+                  {(onViewCalendar || onDuplicate || onPauseToggle) && (onEdit || onDelete) && <DropdownMenuSeparator />}
                   {onEdit && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                       <Pencil className="w-4 h-4 mr-2" />
