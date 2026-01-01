@@ -12,6 +12,63 @@ const PRODUCTS = {
   basic_annual: "9fdc4091-4687-42d1-9635-0006522f5d9d",
 };
 
+// Allowed callback paths to prevent open redirect attacks
+const ALLOWED_CALLBACK_PATHS = ['/settings', '/dashboard', '/subscription', '/'];
+
+// Helper function to convert hex string to Uint8Array
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
+// Helper function to sanitize callback URL and prevent open redirect
+function sanitizeCallbackUrl(callbackUrl: string | undefined): string {
+  const defaultPath = '/settings?payment=success';
+  
+  if (!callbackUrl) {
+    return defaultPath;
+  }
+
+  try {
+    // Remove any protocol or domain prefix
+    let path = callbackUrl;
+    
+    // Check for protocol-relative URLs (//evil.com)
+    if (path.startsWith('//')) {
+      console.warn('Blocked protocol-relative redirect attempt:', path);
+      return defaultPath;
+    }
+    
+    // Check for full URLs with protocol
+    if (path.includes('://')) {
+      console.warn('Blocked full URL redirect attempt:', path);
+      return defaultPath;
+    }
+    
+    // Ensure path starts with /
+    if (!path.startsWith('/')) {
+      path = '/' + path;
+    }
+    
+    // Extract base path without query params
+    const basePath = path.split('?')[0];
+    
+    // Validate against allowed paths
+    if (ALLOWED_CALLBACK_PATHS.includes(basePath)) {
+      return `${basePath}?payment=success`;
+    }
+    
+    console.warn('Callback path not in allowlist:', basePath);
+    return defaultPath;
+  } catch (e) {
+    console.warn('Error sanitizing callback URL:', e);
+    return defaultPath;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -36,20 +93,21 @@ serve(async (req) => {
     // Check if this is a webhook (Polar webhooks have specific headers)
     const polarSignature = req.headers.get("webhook-signature") || req.headers.get("polar-signature");
     
+    // Clone request to read body multiple times if needed for webhook verification
+    const clonedReq = req.clone();
+    const rawBody = await clonedReq.text();
+    
     let body: any = {};
     const contentType = req.headers.get("content-type") || "";
     
-    if (contentType.includes("application/json")) {
-      const text = await req.text();
-      if (text) {
-        body = JSON.parse(text);
-      }
+    if (contentType.includes("application/json") && rawBody) {
+      body = JSON.parse(rawBody);
     }
 
     // Handle webhook from Polar (detected by signature header or event type)
     if (polarSignature || body.type?.startsWith("checkout.") || body.type?.startsWith("order.")) {
       console.log("Handling Polar webhook");
-      return await handleWebhook(req, body, supabase, polarSignature);
+      return await handleWebhook(rawBody, body, supabase, polarSignature);
     }
 
     const { action } = body;
@@ -79,6 +137,10 @@ serve(async (req) => {
       const { plan, callbackUrl } = body;
       const productId = plan === "basic_annual" ? PRODUCTS.basic_annual : PRODUCTS.basic_monthly;
 
+      // Sanitize callback URL to prevent open redirect attacks
+      const sanitizedCallbackPath = sanitizeCallbackUrl(callbackUrl);
+      const origin = req.headers.get("origin") || "https://crushgoals.app";
+
       console.log("Creating Polar checkout for user:", user.id, "plan:", plan, "productId:", productId);
 
       // Create checkout session with Polar API
@@ -91,7 +153,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           product_id: productId,
-          success_url: `${req.headers.get("origin") || "https://crushgoals.app"}${callbackUrl}?checkout_id={CHECKOUT_ID}`,
+          success_url: `${origin}${sanitizedCallbackPath}&checkout_id={CHECKOUT_ID}`,
           customer_email: user.email,
           metadata: {
             user_id: user.id,
@@ -228,13 +290,64 @@ serve(async (req) => {
   }
 });
 
-async function handleWebhook(req: Request, body: any, supabase: any, signature: string | null) {
+async function handleWebhook(rawBody: string, body: any, supabase: any, signature: string | null) {
   const webhookSecret = Deno.env.get("POLAR_WEBHOOK_SECRET");
   
-  // Verify webhook signature if secret is configured
-  if (webhookSecret && signature) {
-    // Note: Add proper signature verification for production
-    console.log("Webhook signature present:", !!signature);
+  // Verify webhook signature - REQUIRED for production security
+  if (!webhookSecret) {
+    console.error("POLAR_WEBHOOK_SECRET not configured - rejecting webhook");
+    return new Response(
+      JSON.stringify({ error: "Webhook secret not configured" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  if (!signature) {
+    console.error("Missing webhook signature - rejecting request");
+    return new Response(
+      JSON.stringify({ error: "Missing signature" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Verify HMAC signature
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(webhookSecret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    // Polar signature format may be "sha256=<hex>" or just "<hex>"
+    const signatureHex = signature.startsWith('sha256=') 
+      ? signature.substring(7) 
+      : signature;
+
+    const isValid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      hexToBytes(signatureHex),
+      encoder.encode(rawBody)
+    );
+
+    if (!isValid) {
+      console.error("Invalid webhook signature - rejecting request");
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Webhook signature verified successfully");
+  } catch (verifyError) {
+    console.error("Signature verification error:", verifyError);
+    return new Response(
+      JSON.stringify({ error: "Signature verification failed" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   const event = body;
