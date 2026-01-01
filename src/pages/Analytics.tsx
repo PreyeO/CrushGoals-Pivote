@@ -364,7 +364,7 @@ export default function Analytics() {
                   
                   const isPerfect = day.data && day.data.total > 0 && day.data.completed === day.data.total;
                   const hasPartial = day.data && day.data.total > 0 && day.data.completed > 0 && day.data.completed < day.data.total;
-                  const hasActivity = day.data && day.data.total > 0;
+                  const hasMissed = day.data && day.data.total > 0 && day.data.completed === 0;
                   const isToday = day.dateStr === new Date().toISOString().split('T')[0];
                   
                   return (
@@ -375,8 +375,8 @@ export default function Analytics() {
                           ? 'bg-success text-success-foreground font-medium' 
                           : hasPartial
                           ? 'bg-warning/30 text-warning'
-                          : hasActivity
-                          ? 'bg-muted/50 text-muted-foreground'
+                          : hasMissed
+                          ? 'bg-destructive/30 text-destructive'
                           : 'bg-muted/20 text-muted-foreground'
                       } ${isToday ? 'ring-2 ring-primary' : ''}`}
                       title={day.data ? `${day.data.completed}/${day.data.total} tasks` : 'No tasks'}
@@ -398,7 +398,7 @@ export default function Analytics() {
                   <span>Partial</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded bg-muted/50" />
+                  <div className="w-3 h-3 rounded bg-destructive/30" />
                   <span>Missed</span>
                 </div>
               </div>
@@ -504,18 +504,6 @@ export default function Analytics() {
                     {insight.text}
                   </div>
                 ))}
-                
-                {/* Quick Stats */}
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  <div className="p-3 rounded-lg bg-muted/20 text-center">
-                    <p className="text-lg font-bold">{stats?.longest_streak || 0}</p>
-                    <p className="text-xs text-muted-foreground">Longest Streak</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted/20 text-center">
-                    <p className="text-lg font-bold">Lvl {stats?.level || 1}</p>
-                    <p className="text-xs text-muted-foreground">{(stats?.total_xp || 0).toLocaleString()} XP</p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
