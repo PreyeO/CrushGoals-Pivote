@@ -27,6 +27,7 @@ export default function AdminLogin() {
   const [isLocked, setIsLocked] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(3);
   const [adminVerifiedLocally, setAdminVerifiedLocally] = useState(false);
+  const [tempUserId, setTempUserId] = useState<string | null>(null);
 
   // Redirect to admin dashboard if already logged in as admin OR after local verification
   useEffect(() => {
@@ -61,18 +62,88 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      // Send OTP via Supabase magic link (OTP mode)
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false, // Don't create new users - admin must already exist
+      // First, check if this email belongs to an admin user
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+
+      if (profileError || !profileData) {
+        await recordAttempt(email, false);
+        setRemainingAttempts(prev => Math.max(0, prev - 1));
+        toast.error('No admin account found with this email');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if user has admin role
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', profileData.user_id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (!roleData) {
+        await recordAttempt(email, false);
+        setRemainingAttempts(prev => Math.max(0, prev - 1));
+        toast.error('Access denied. This login is for administrators only.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Generate OTP using the database function
+      const { data: otpData, error: otpError } = await supabase.rpc('generate_email_otp', {
+        p_email: email.toLowerCase(),
+        p_user_id: profileData.user_id,
+      });
+
+      if (otpError || !otpData) {
+        console.error('OTP generation error:', otpError);
+        await recordAttempt(email, false);
+        toast.error('Failed to generate login code');
+        setIsLoading(false);
+        return;
+      }
+
+      // Store user_id for verification step
+      setTempUserId(profileData.user_id);
+
+      // Send OTP via our custom Resend edge function
+      const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
+        body: {
+          to: email,
+          subject: 'Your CrushGoals Admin Login Code',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #7C3AED; margin-bottom: 20px;">Admin Login Code</h1>
+              <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+                You requested to log in to the CrushGoals Admin Portal. Use the code below to complete your login:
+              </p>
+              <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #7C3AED;">${otpData}</span>
+              </div>
+              <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
+                This code expires in 10 minutes.
+              </p>
+              <p style="font-size: 14px; color: #666;">
+                If you didn't request this code, please ignore this email.
+              </p>
+              <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />
+              <p style="font-size: 12px; color: #999;">
+                This is an automated message from CrushGoals Admin Portal.
+              </p>
+            </div>
+          `,
+          email_type: 'otp',
         },
       });
 
-      if (error) {
+      if (emailError) {
+        console.error('Email send error:', emailError);
         await recordAttempt(email, false);
-        setRemainingAttempts(prev => Math.max(0, prev - 1));
-        toast.error(error.message);
+        toast.error('Failed to send login code. Please try again.');
         setIsLoading(false);
         return;
       }
@@ -80,6 +151,7 @@ export default function AdminLogin() {
       toast.success('Login code sent! Check your email.');
       setStep('otp');
     } catch (error) {
+      console.error('Admin login error:', error);
       await recordAttempt(email, false);
       toast.error('An unexpected error occurred');
     } finally {
@@ -96,49 +168,55 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: otpCode,
-        type: 'email',
+      // Call our custom edge function that verifies OTP and creates a session
+      const { data, error } = await supabase.functions.invoke('admin-otp-login', {
+        body: {
+          email: email.toLowerCase(),
+          otp: otpCode,
+        },
       });
 
       if (error) {
+        console.error('Admin login error:', error);
         await recordAttempt(email, false);
         setRemainingAttempts(prev => Math.max(0, prev - 1));
-        toast.error(error.message);
+        toast.error('Failed to verify login. Please try again.');
         setIsLoading(false);
         return;
       }
 
-      if (data.user) {
-        // Check if user is admin
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
+      if (!data?.success) {
+        await recordAttempt(email, false);
+        setRemainingAttempts(prev => Math.max(0, prev - 1));
+        toast.error(data?.error || 'Invalid or expired code. Please try again.');
+        setIsLoading(false);
+        return;
+      }
 
-        if (!roleData) {
-          // Not an admin - sign them out and show error
+      // We have the verification URL - use verifyOtp with the token to create session
+      if (data.token) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          email: data.email,
+          token: data.token,
+          type: 'magiclink',
+        });
+
+        if (verifyError) {
+          console.error('Session creation error:', verifyError);
           await recordAttempt(email, false);
-          await supabase.auth.signOut();
-          toast.error('Access denied. This login is for administrators only.');
-          setStep('email');
-          setOtpCode('');
+          toast.error('Failed to create session. Please try again.');
           setIsLoading(false);
           return;
         }
 
-        // Record successful admin login
+        // Session created successfully!
         await recordAttempt(email, true);
         toast.success('Welcome back, Admin!');
-        
-        // Set flag to indicate we've verified admin locally
-        // The useEffect will handle navigation once AuthContext confirms
         setAdminVerifiedLocally(true);
       }
+      
     } catch (error) {
+      console.error('Verify error:', error);
       await recordAttempt(email, false);
       toast.error('An unexpected error occurred');
     } finally {
