@@ -15,13 +15,13 @@ const PRODUCTS = {
 // Allowed callback paths to prevent open redirect attacks
 const ALLOWED_CALLBACK_PATHS = ['/settings', '/dashboard', '/subscription', '/'];
 
-// Helper function to convert hex string to Uint8Array
-function hexToBytes(hex: string): Uint8Array {
+// Helper function to convert hex string to ArrayBuffer
+function hexToArrayBuffer(hex: string): ArrayBuffer {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
     bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
   }
-  return bytes;
+  return bytes.buffer as ArrayBuffer;
 }
 
 // Helper function to sanitize callback URL and prevent open redirect
@@ -329,7 +329,7 @@ async function handleWebhook(rawBody: string, body: any, supabase: any, signatur
     const isValid = await crypto.subtle.verify(
       'HMAC',
       key,
-      hexToBytes(signatureHex),
+      hexToArrayBuffer(signatureHex),
       encoder.encode(rawBody)
     );
 
