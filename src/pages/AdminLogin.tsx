@@ -41,53 +41,32 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      // First, check if this email belongs to an admin user
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', email.toLowerCase())
-        .maybeSingle();
-
-      if (profileError || !profileData) {
-        setError('No admin account found with this email');
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if user has admin role
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', profileData.user_id)
-        .eq('role', 'admin')
-        .maybeSingle();
-
-      if (!roleData) {
-        setError('Access denied. This login is for administrators only.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Admin verified - use magic link to create session
-      const { data: linkData, error: linkError } = await supabase.functions.invoke('admin-otp-login', {
+      // Call the edge function which uses service role to bypass RLS
+      const { data, error: functionError } = await supabase.functions.invoke('admin-otp-login', {
         body: {
           email: email.toLowerCase(),
-          skipOtp: true, // Signal to skip OTP verification
+          skipOtp: true,
         },
       });
 
-      if (linkError || !linkData?.success) {
-        console.error('Admin login error:', linkError || linkData?.error);
+      if (functionError) {
+        console.error('Admin login error:', functionError);
         setError('Failed to authenticate. Please try again.');
         setIsLoading(false);
         return;
       }
 
+      if (!data?.success) {
+        setError(data?.error || 'Access denied. This login is for administrators only.');
+        setIsLoading(false);
+        return;
+      }
+
       // Use the token to create a session
-      if (linkData.token) {
+      if (data.token) {
         const { error: verifyError } = await supabase.auth.verifyOtp({
-          email: linkData.email,
-          token: linkData.token,
+          email: data.email,
+          token: data.token,
           type: 'magiclink',
         });
 
