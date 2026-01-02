@@ -1,17 +1,37 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  ChevronLeft, ChevronRight, Target, Calendar, 
-  Sparkles, CalendarDays, Dumbbell, DollarSign, 
-  BookOpen, Briefcase, Heart, Palette, Brain, 
-  Edit3, TrendingUp, Users, Trophy
+import {
+  ChevronLeft,
+  ChevronRight,
+  Target,
+  Calendar,
+  Sparkles,
+  CalendarDays,
+  Dumbbell,
+  DollarSign,
+  BookOpen,
+  Briefcase,
+  Heart,
+  Palette,
+  Brain,
+  Edit3,
+  TrendingUp,
+  Users,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SmartGoalTemplates, PopularGoalTemplate, goalCategories } from "./SmartGoalTemplates";
+import { SmartGoalTemplates, PopularGoalTemplate } from "./SmartGoalTemplates";
+import { goalCategories } from "@/constants/goalCategories";
 import { addDays, format } from "date-fns";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
@@ -30,17 +50,27 @@ export interface GoalData {
   startDate: string;
   deadline: string;
   reason: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
+  frequency: "daily" | "weekly" | "monthly";
 }
 
 // Category-specific config for custom goals
-const categoryConfig: Record<string, {
-  label: string;
-  emoji: string;
-  icon: any;
-  examples: string;
-  frequencyTip: string;
-}> = {
+const categoryConfig: Record<
+  string,
+  {
+    label: string;
+    emoji: string;
+    icon: any;
+    examples: string;
+    frequencyTip: string;
+  }
+> = {
+  custom: {
+    label: "Custom Goal",
+    emoji: "✏️",
+    icon: Edit3,
+    examples: "Create your own unique goal",
+    frequencyTip: "Choose based on your goal type.",
+  },
   finance: {
     label: "Finance",
     emoji: "💰",
@@ -69,7 +99,7 @@ const categoryConfig: Record<string, {
     examples: "Get promoted, network",
     frequencyTip: "Daily for job search, weekly for networking.",
   },
-  'side-hustle': {
+  "side-hustle": {
     label: "Side Hustle",
     emoji: "💼",
     icon: TrendingUp,
@@ -83,7 +113,7 @@ const categoryConfig: Record<string, {
     examples: "Prayer, meditation",
     frequencyTip: "Daily works best for spiritual habits.",
   },
-  'mental-health': {
+  "mental-health": {
     label: "Mental Health",
     emoji: "🧠",
     icon: Brain,
@@ -111,13 +141,6 @@ const categoryConfig: Record<string, {
     examples: "Morning routine, habits",
     frequencyTip: "Daily for habits.",
   },
-  custom: {
-    label: "Custom Goal",
-    emoji: "✏️",
-    icon: Edit3,
-    examples: "Create your own unique goal",
-    frequencyTip: "Choose based on your goal type.",
-  },
 };
 
 // Calculate days between two dates
@@ -131,71 +154,73 @@ const getDaysBetween = (start: string, end: string): number => {
 
 // Generate breakdown preview
 const getBreakdownPreview = (
-  targetValue: string, 
-  days: number, 
-  frequency: 'daily' | 'weekly' | 'monthly'
+  targetValue: string,
+  days: number,
+  frequency: "daily" | "weekly" | "monthly"
 ): string => {
-  if (!targetValue || days <= 0) return '';
-  
+  if (!targetValue || days <= 0) return "";
+
   const match = targetValue.match(/^\$?₦?(\d+(?:,\d{3})*(?:\.\d+)?)\s*(.*)$/);
-  if (!match) return '';
-  
-  const value = parseFloat(match[1].replace(/,/g, ''));
-  const unit = match[2].trim() || 'units';
-  
+  if (!match) return "";
+
+  const value = parseFloat(match[1].replace(/,/g, ""));
+  const unit = match[2].trim() || "units";
+
   let periodsCount: number;
   let periodLabel: string;
-  
+
   switch (frequency) {
-    case 'daily':
+    case "daily":
       periodsCount = days;
-      periodLabel = 'day';
+      periodLabel = "day";
       break;
-    case 'weekly':
+    case "weekly":
       periodsCount = Math.ceil(days / 7);
-      periodLabel = 'week';
+      periodLabel = "week";
       break;
-    case 'monthly':
+    case "monthly":
       periodsCount = Math.ceil(days / 30);
-      periodLabel = 'month';
+      periodLabel = "month";
       break;
   }
-  
+
   const perPeriod = value / periodsCount;
   const displayValue = perPeriod % 1 === 0 ? perPeriod : perPeriod.toFixed(1);
-  
-  const isCurrency = targetValue.startsWith('$') || targetValue.startsWith('₦');
-  const currencySymbol = targetValue.startsWith('$') ? '$' : '₦';
-  
+
+  const isCurrency = targetValue.startsWith("$") || targetValue.startsWith("₦");
+  const currencySymbol = targetValue.startsWith("$") ? "$" : "₦";
+
   if (isCurrency) {
-    return `${currencySymbol}${Number(displayValue).toLocaleString()} per ${periodLabel}`;
+    return `${currencySymbol}${Number(
+      displayValue
+    ).toLocaleString()} per ${periodLabel}`;
   }
-  
+
   return `${displayValue} ${unit} per ${periodLabel}`;
 };
 
 const taskFrequencies = [
-  { id: 'daily', label: 'Daily', desc: 'Every day' },
-  { id: 'weekly', label: 'Weekly', desc: 'Once a week' },
-  { id: 'monthly', label: 'Monthly', desc: 'Once a month' },
+  { id: "daily", label: "Daily", desc: "Every day" },
+  { id: "weekly", label: "Weekly", desc: "Once a week" },
+  { id: "monthly", label: "Monthly", desc: "Once a month" },
 ] as const;
 
 // Get emoji for category
 const getCategoryEmoji = (category: string): string => {
   const emojiMap: Record<string, string> = {
-    fitness: '💪',
-    finance: '💰',
-    learning: '📚',
-    career: '🚀',
-    'side-hustle': '💼',
-    spiritual: '🙏',
-    'mental-health': '🧠',
-    relationship: '❤️',
-    content: '🎬',
-    lifestyle: '✨',
-    custom: '✏️',
+    fitness: "💪",
+    finance: "💰",
+    learning: "📚",
+    career: "🚀",
+    "side-hustle": "💼",
+    spiritual: "🙏",
+    "mental-health": "🧠",
+    relationship: "❤️",
+    content: "🎬",
+    lifestyle: "✨",
+    custom: "✏️",
   };
-  return emojiMap[category] || '🎯';
+  return emojiMap[category] || "🎯";
 };
 
 const formatParticipants = (count: number) => {
@@ -205,23 +230,34 @@ const formatParticipants = (count: number) => {
   return count.toString();
 };
 
-export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProps) {
-  const [step, setStep] = useState(1);
+export function AddGoalModal({
+  open,
+  onOpenChange,
+  onSuccess,
+}: AddGoalModalProps) {
+  const [step, setStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<PopularGoalTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<PopularGoalTemplate | null>(null);
   const [goalName, setGoalName] = useState("");
   const [goalTarget, setGoalTarget] = useState("");
   const [customInput, setCustomInput] = useState("");
   // Default to today and 30 days from now
   const today = new Date();
-  const [startDate, setStartDate] = useState(today.toISOString().split('T')[0]);
-  const [deadline, setDeadline] = useState(format(addDays(today, 30), 'yyyy-MM-dd'));
+  const [startDate, setStartDate] = useState(today.toISOString().split("T")[0]);
+  const [deadline, setDeadline] = useState(
+    format(addDays(today, 30), "yyyy-MM-dd")
+  );
   const [reason, setReason] = useState("");
-  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly">(
+    "daily"
+  );
   const [showTrialExpired, setShowTrialExpired] = useState(false);
   const { canPerformActions } = useTrialStatus();
 
-  const config = selectedCategory ? categoryConfig[selectedCategory] || categoryConfig.custom : null;
+  const config = selectedCategory
+    ? categoryConfig[selectedCategory] || categoryConfig.custom
+    : null;
 
   // Handle template selection from SmartGoalTemplates
   const handleTemplateSelect = (template: PopularGoalTemplate) => {
@@ -229,29 +265,29 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setSelectedCategory(template.category);
     setGoalName(template.name);
     setFrequency(template.frequency);
-    
+
     // Use template's default duration instead of hardcoded 365
     const today = new Date();
-    const startDateStr = today.toISOString().split('T')[0];
+    const startDateStr = today.toISOString().split("T")[0];
     const endDate = addDays(today, template.defaultDuration);
-    const endDateStr = format(endDate, 'yyyy-MM-dd');
-    
+    const endDateStr = format(endDate, "yyyy-MM-dd");
+
     setStartDate(startDateStr);
     setDeadline(endDateStr);
-    setGoalTarget('');
-    setCustomInput('');
+    setGoalTarget("");
+    setCustomInput("");
     setReason(`I want to ${template.description.toLowerCase()}`);
-    setStep(2);
+    setStep(3);
   };
 
   // Handle custom goal creation
   const handleCreateCustom = () => {
     setSelectedTemplate(null);
-    setSelectedCategory('custom');
-    setGoalName('');
-    setGoalTarget('');
-    setReason('');
-    setStep(2);
+    setSelectedCategory("custom");
+    setGoalName("");
+    setGoalTarget("");
+    setReason("");
+    setStep(3);
   };
 
   const handleSubmit = () => {
@@ -278,7 +314,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   };
 
   const resetForm = () => {
-    setStep(1);
+    setStep(0);
     setSelectedCategory(null);
     setSelectedTemplate(null);
     setGoalName("");
@@ -286,10 +322,10 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
     setCustomInput("");
     // Reset to today + 30 days
     const now = new Date();
-    setStartDate(now.toISOString().split('T')[0]);
-    setDeadline(format(addDays(now, 30), 'yyyy-MM-dd'));
+    setStartDate(now.toISOString().split("T")[0]);
+    setDeadline(format(addDays(now, 30), "yyyy-MM-dd"));
     setReason("");
-    setFrequency('daily');
+    setFrequency("daily");
   };
 
   const handleClose = (isOpen: boolean) => {
@@ -298,8 +334,11 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
   };
 
   const daysToAchieve = getDaysBetween(startDate, deadline);
-  const canProceed = goalName.trim() && startDate && deadline && daysToAchieve > 0;
-  const breakdownPreview = goalTarget ? getBreakdownPreview(goalTarget, daysToAchieve, frequency) : '';
+  const canProceed =
+    goalName.trim() && startDate && deadline && daysToAchieve > 0;
+  const breakdownPreview = goalTarget
+    ? getBreakdownPreview(goalTarget, daysToAchieve, frequency)
+    : "";
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -309,11 +348,12 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
           <div className="p-3 sm:p-4 pb-2 sm:pb-3 border-b border-border shrink-0">
             <DialogHeader>
               <DialogDescription className="sr-only">
-                Create a new goal by selecting a template and setting your timeline and frequency.
+                Create a new goal by selecting a template and setting your
+                timeline and frequency.
               </DialogDescription>
               <div className="flex items-center gap-2 sm:gap-3">
-                {step > 1 && (
-                  <button 
+                {step > 0 && (
+                  <button
                     onClick={() => setStep(step - 1)}
                     className="p-1 sm:p-1.5 rounded-lg hover:bg-muted transition-colors"
                   >
@@ -322,18 +362,27 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                 )}
                 <div className="flex-1 min-w-0">
                   <DialogTitle className="text-base sm:text-lg font-bold">
-                    {step === 1 ? "Choose Your Goal" : "Customize Your Goal"}
+                    {step === 0
+                      ? "Start Crushing 2026"
+                      : step === 1
+                      ? "Choose Category"
+                      : step === 2
+                      ? "Choose Your Goal"
+                      : "Customize Your Goal"}
                   </DialogTitle>
                   <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
-                    {step === 1 
-                      ? "Pick from popular goals or create your own" 
-                      : config?.examples || "Set your goal details"
-                    }
+                    {step === 0
+                      ? "Choose how you'd like to create your goal"
+                      : step === 1
+                      ? "Select a category for your personal goal"
+                      : step === 2
+                      ? "Pick from popular goals or create your own"
+                      : config?.examples || "Set your goal details"}
                   </p>
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  {[1, 2].map((s) => (
-                    <div 
+                  {[0, 1, 2, 3].map((s) => (
+                    <div
                       key={s}
                       className={cn(
                         "w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-colors",
@@ -348,16 +397,101 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
 
           {/* Scrollable Content - min-h-0 enables flex shrink for proper scrolling */}
           <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
-            {/* Step 1: Template Selection */}
+            {/* Step 0: Choose Goal Type */}
+            {step === 0 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Set a Personal Goal */}
+                  <button
+                    onClick={() => setStep(1)}
+                    className="p-4 rounded-xl border-2 border-border bg-secondary/50 hover:bg-secondary hover:border-primary/30 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                        <Target className="w-5 h-5" />
+                      </div>
+                      <span className="text-sm font-medium">
+                        🎯 Set a Personal Goal
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Define what you want to achieve this year
+                    </p>
+                  </button>
+
+                  {/* Join a Challenge */}
+                  <button
+                    onClick={() => setStep(2)}
+                    className="p-4 rounded-xl border-2 border-border bg-secondary/50 hover:bg-secondary hover:border-primary/30 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                        <Trophy className="w-5 h-5" />
+                      </div>
+                      <span className="text-sm font-medium">
+                        🏆 Join a Challenge
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Compete with others in popular challenges
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 1: Custom Goal Categories */}
             {step === 1 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(categoryConfig).map(([key, config]) => {
+                    const Icon = config.icon;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setSelectedCategory(key);
+                          setSelectedTemplate(null);
+                          setGoalName("");
+                          setGoalTarget("");
+                          setCustomInput("");
+                          setReason("");
+                          setFrequency("daily");
+                          setStep(3);
+                        }}
+                        className="p-3 rounded-xl border border-border bg-secondary/50 hover:bg-secondary hover:border-primary/30 transition-all text-left group"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-lg">{config.emoji}</span>
+                          <span className="text-sm font-medium">
+                            {config.label}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {config.examples}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Template Selection */}
+            {step === 2 && (
               <SmartGoalTemplates
-                onSelectTemplate={handleTemplateSelect}
-                onCreateCustom={handleCreateCustom}
+                onSelectTemplate={(template) => {
+                  handleTemplateSelect(template);
+                  setStep(3);
+                }}
+                onCreateCustom={() => {
+                  setStep(1);
+                }}
               />
             )}
 
-            {/* Step 2: Goal Details */}
-            {step === 2 && config && (
+            {/* Step 3: Goal Details */}
+            {step === 3 && config && (
               <div className="space-y-4">
                 {/* Selected Template/Category Header */}
                 {selectedTemplate ? (
@@ -366,10 +500,15 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                       <selectedTemplate.icon className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">{selectedTemplate.name}</p>
+                      <p className="font-semibold text-sm truncate">
+                        {selectedTemplate.name}
+                      </p>
                       <div className="flex items-center gap-1 mt-0.5">
                         <Trophy className="w-3 h-3 text-success" />
-                        <span className="text-xs text-success">{formatParticipants(selectedTemplate.participants)} crushing it</span>
+                        <span className="text-xs text-success">
+                          {formatParticipants(selectedTemplate.participants)}{" "}
+                          crushing it
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -378,20 +517,29 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                     <span className="text-2xl">{config.emoji}</span>
                     <div>
                       <p className="font-semibold text-sm">{config.label}</p>
-                      <p className="text-xs text-muted-foreground">{config.examples}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {config.examples}
+                      </p>
                     </div>
                   </div>
                 )}
 
                 {/* Goal Name - More relatable label */}
                 <div className="space-y-2">
-                  <Label htmlFor="goalName" className="text-sm font-medium flex items-center gap-2">
+                  <Label
+                    htmlFor="goalName"
+                    className="text-sm font-medium flex items-center gap-2"
+                  >
                     <Target className="w-4 h-4 text-primary" />
                     What do you want to achieve?
                   </Label>
                   <Input
                     id="goalName"
-                    placeholder={selectedTemplate ? selectedTemplate.name : `e.g., ${config.examples.split(',')[0].trim()}`}
+                    placeholder={
+                      selectedTemplate
+                        ? selectedTemplate.name
+                        : `e.g., ${config.examples.split(",")[0].trim()}`
+                    }
                     value={goalName}
                     onChange={(e) => setGoalName(e.target.value)}
                     className="bg-secondary/50 border-border h-11 rounded-xl text-sm"
@@ -401,7 +549,9 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                 {/* Frequency Selection - MOVED BEFORE task description */}
                 {!selectedTemplate && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">How often will you work on this?</Label>
+                    <Label className="text-sm font-medium">
+                      How often will you work on this?
+                    </Label>
                     <div className="grid grid-cols-3 gap-2">
                       {taskFrequencies.map((freq) => (
                         <button
@@ -416,7 +566,9 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                           )}
                         >
                           <p className="text-sm font-medium">{freq.label}</p>
-                          <p className="text-[10px] text-muted-foreground">{freq.desc}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {freq.desc}
+                          </p>
                         </button>
                       ))}
                     </div>
@@ -424,19 +576,21 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                 )}
 
                 {/* Target (for measured template goals only) */}
-                {selectedTemplate?.smartType === 'measured' && (
+                {selectedTemplate?.smartType === "measured" && (
                   <div className="space-y-2">
                     <Label htmlFor="goalTarget" className="text-sm font-medium">
-                      {selectedTemplate.targetLabel || 'Your target'}
+                      {selectedTemplate.targetLabel || "Your target"}
                     </Label>
                     <div className="relative">
                       {selectedTemplate && !selectedTemplate.targetSuffix && (
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₦</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                          ₦
+                        </span>
                       )}
                       <Input
                         id="goalTarget"
                         type="number"
-                        placeholder={selectedTemplate.targetPlaceholder || '0'}
+                        placeholder={selectedTemplate.targetPlaceholder || "0"}
                         value={goalTarget}
                         onChange={(e) => setGoalTarget(e.target.value)}
                         className={cn(
@@ -451,7 +605,9 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                       )}
                     </div>
                     {breakdownPreview && (
-                      <p className="text-xs text-success font-medium">→ {breakdownPreview}</p>
+                      <p className="text-xs text-success font-medium">
+                        → {breakdownPreview}
+                      </p>
                     )}
                   </div>
                 )}
@@ -459,8 +615,17 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                 {/* Daily action description for custom goals - AFTER frequency */}
                 {!selectedTemplate && (
                   <div className="space-y-2">
-                    <Label htmlFor="taskDescription" className="text-sm font-medium">
-                      What's your {frequency === 'daily' ? 'daily' : frequency === 'weekly' ? 'weekly' : 'monthly'} action?
+                    <Label
+                      htmlFor="taskDescription"
+                      className="text-sm font-medium"
+                    >
+                      What's your{" "}
+                      {frequency === "daily"
+                        ? "daily"
+                        : frequency === "weekly"
+                        ? "weekly"
+                        : "monthly"}{" "}
+                      action?
                     </Label>
                     <Input
                       id="taskDescription"
@@ -483,7 +648,10 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                     </Label>
                     <Input
                       id="customInput"
-                      placeholder={selectedTemplate.customInputPlaceholder || "Enter details..."}
+                      placeholder={
+                        selectedTemplate.customInputPlaceholder ||
+                        "Enter details..."
+                      }
                       value={customInput}
                       onChange={(e) => setCustomInput(e.target.value)}
                       className="bg-secondary border-border h-10"
@@ -497,24 +665,30 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                     <CalendarDays className="w-4 h-4 text-primary" />
                     <span className="font-medium text-sm">Timeline</span>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Start Date</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Start Date
+                      </Label>
                       <Input
                         type="date"
                         value={startDate}
-                        min={new Date().toISOString().split('T')[0]}
+                        min={new Date().toISOString().split("T")[0]}
                         onChange={(e) => setStartDate(e.target.value)}
                         className="bg-background/50 border-border h-10 text-sm rounded-xl"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">End Date</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        End Date
+                      </Label>
                       <Input
                         type="date"
                         value={deadline}
-                        min={startDate || new Date().toISOString().split('T')[0]}
+                        min={
+                          startDate || new Date().toISOString().split("T")[0]
+                        }
                         onChange={(e) => setDeadline(e.target.value)}
                         className="bg-background/50 border-border h-10 text-sm rounded-xl"
                       />
@@ -523,8 +697,12 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
 
                   {daysToAchieve > 0 && (
                     <div className="flex items-center justify-center gap-2 pt-2">
-                      <span className="text-2xl font-bold text-primary">{daysToAchieve}</span>
-                      <span className="text-sm text-muted-foreground">days to crush it</span>
+                      <span className="text-2xl font-bold text-primary">
+                        {daysToAchieve}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        days to crush it
+                      </span>
                     </div>
                   )}
                 </div>
@@ -550,7 +728,9 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                           )}
                         >
                           <p className="text-sm font-medium">{freq.label}</p>
-                          <p className="text-[10px] text-muted-foreground">{freq.desc}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {freq.desc}
+                          </p>
                         </button>
                       ))}
                     </div>
@@ -566,7 +746,10 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
                     </p>
                     <ul className="space-y-0.5">
                       {selectedTemplate.tips.slice(0, 2).map((tip, i) => (
-                        <li key={i} className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                        <li
+                          key={i}
+                          className="text-[11px] text-muted-foreground flex items-start gap-1.5"
+                        >
                           <span className="text-primary">•</span>
                           {tip}
                         </li>
@@ -577,10 +760,15 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
 
                 {/* Why - Optional */}
                 <div className="space-y-2">
-                  <Label htmlFor="reason" className="text-sm font-medium flex items-center gap-2">
+                  <Label
+                    htmlFor="reason"
+                    className="text-sm font-medium flex items-center gap-2"
+                  >
                     <Sparkles className="w-4 h-4 text-premium" />
                     Why does this matter?
-                    <span className="text-xs text-muted-foreground">(optional)</span>
+                    <span className="text-xs text-muted-foreground">
+                      (optional)
+                    </span>
                   </Label>
                   <Textarea
                     id="reason"
@@ -596,7 +784,7 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
           </div>
 
           {/* Fixed Footer - Premium Button */}
-          {step === 2 && (
+          {step === 3 && (
             <div className="p-4 pt-3 border-t border-border shrink-0">
               <Button
                 variant="hero"
@@ -614,9 +802,9 @@ export function AddGoalModal({ open, onOpenChange, onSuccess }: AddGoalModalProp
         </div>
       </DialogContent>
 
-      <TrialExpiredOverlay 
-        open={showTrialExpired} 
-        onOpenChange={setShowTrialExpired} 
+      <TrialExpiredOverlay
+        open={showTrialExpired}
+        onOpenChange={setShowTrialExpired}
       />
     </Dialog>
   );

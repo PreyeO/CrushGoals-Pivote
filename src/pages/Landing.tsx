@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ParticleBackground } from "@/components/ParticleBackground";
@@ -27,52 +27,58 @@ const features = [
   {
     icon: Target,
     title: "Smart Goal Breaking",
-    description: "Break your big audacious goals into daily actionable tasks you can actually complete.",
+    description:
+      "Break your big audacious goals into daily actionable tasks you can actually complete.",
   },
   {
     icon: Flame,
     title: "Streak Motivation",
-    description: "Build unbreakable habits with gamification. Never break your streak again.",
+    description:
+      "Build unbreakable habits with gamification. Never break your streak again.",
   },
   {
     icon: BarChart3,
     title: "Progress Analytics",
-    description: "See exactly how close you are to winning with beautiful data visualization.",
+    description:
+      "See exactly how close you are to winning with beautiful data visualization.",
   },
   {
     icon: Zap,
     title: "Daily Action Plans",
-    description: "Wake up knowing exactly what to do. No more guessing or procrastinating.",
+    description:
+      "Wake up knowing exactly what to do. No more guessing or procrastinating.",
   },
   {
     icon: Trophy,
     title: "Achievement System",
-    description: "Earn badges, level up, and celebrate every milestone on your journey.",
+    description:
+      "Earn badges, level up, and celebrate every milestone on your journey.",
   },
   {
     icon: Users,
     title: "Community & Leaderboard",
-    description: "Compete with other goal crushers and stay accountable together.",
+    description:
+      "Compete with other goal crushers and stay accountable together.",
   },
 ];
 
 const testimonials = [
   {
     name: "Sarah M.",
-    role: "Entrepreneur",
-    text: "Best investment I've made this year! Lost 15kg and launched my business all because of this app.",
+    role: "Marketing Manager",
+    text: "Finally built the habit of reading daily. I've read 8 books this year and it feels amazing!",
     rating: 5,
   },
   {
     name: "James T.",
     role: "Software Developer",
-    text: "The streak feature is addictive. I've read 12 books in 3 months. Never thought I could.",
+    text: "The streak feature keeps me accountable. I've been coding for 45 minutes daily for 3 months straight.",
     rating: 5,
   },
   {
     name: "Emily N.",
-    role: "Medical Student",
-    text: "Finally passed my exams with distinction. The daily task breakdown saved me.",
+    role: "Student",
+    text: "Helped me organize my study schedule. My grades improved and I feel more in control of my goals.",
     rating: 5,
   },
 ];
@@ -83,15 +89,15 @@ export default function Landing() {
   const { user, isAdmin, isAdminLoaded } = useAuth();
   const navigate = useNavigate();
   const { getPricing, currentCurrency } = useCurrency();
-  const pricing = getPricing();
+  const pricing = useMemo(() => getPricing(), [currentCurrency]);
 
   // Redirect if already logged in - admins go to /admin, regular users to /dashboard
   useEffect(() => {
     if (user && isAdminLoaded) {
       if (isAdmin) {
-        navigate('/admin');
+        navigate("/admin");
       } else {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     }
   }, [user, isAdmin, isAdminLoaded, navigate]);
@@ -100,17 +106,29 @@ export default function Landing() {
     // Navigation is handled by the useEffect based on admin status
   };
 
-  // Pro tier pricing (coming soon)
-  const proPricing = {
-    NGN: { monthly: '₦3,500', annual: '₦30,000' },
-    USD: { monthly: '$6.99', annual: '$59.99' },
-    GBP: { monthly: '£5.49', annual: '$47.99' },
-    EUR: { monthly: '€6.49', annual: '€54.99' },
-    CAD: { monthly: 'C$9.49', annual: 'C$79.99' },
-    AUD: { monthly: 'A$10.49', annual: 'A$89.99' },
+  // Pro tier pricing (coming soon) - dynamically calculated
+  const proPricing = useMemo(
+    () => ({
+      monthly: pricing.monthly.amount * 2.33, // Based on original pricing ratios
+      annual: pricing.annual.amount * 1.82, // Based on original pricing ratios
+    }),
+    [pricing]
+  );
+
+  const formatProPrice = (amount: number) => {
+    if (pricing.code === "NGN") {
+      return `${pricing.symbol}${Math.round(amount).toLocaleString()}`;
+    }
+    return `${pricing.symbol}${amount.toFixed(2)}`;
   };
 
-  const currentProPricing = proPricing[pricing.code as keyof typeof proPricing] || proPricing.NGN;
+  const currentProPricing = useMemo(
+    () => ({
+      monthly: formatProPrice(proPricing.monthly),
+      annual: formatProPrice(proPricing.annual),
+    }),
+    [proPricing, pricing]
+  );
 
   const pricingPlans = [
     {
@@ -139,7 +157,7 @@ export default function Landing() {
       period: "/month",
       annualPrice: currentProPricing.annual,
       annualPeriod: "/year",
-      annualSavings: pricing.code === 'NGN' ? 'Save 29%' : 'Save 28%',
+      annualSavings: pricing.code === "NGN" ? "Save 29%" : "Save 28%",
       description: "For ambitious goal crushers",
       features: [
         "Everything in Basic",
@@ -172,7 +190,7 @@ export default function Landing() {
               CrushGoals
             </span>
           </div>
-          
+
           {/* Desktop Menu */}
           <div className="hidden sm:flex items-center gap-4">
             <Button variant="ghost" onClick={() => setAuthOpen(true)}>
@@ -184,11 +202,15 @@ export default function Landing() {
           </div>
 
           {/* Mobile Menu Button */}
-          <button 
+          <button
             className="sm:hidden p-2 rounded-lg hover:bg-white/10"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
           </button>
         </div>
 
@@ -196,10 +218,22 @@ export default function Landing() {
         {mobileMenuOpen && (
           <div className="sm:hidden absolute top-full left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-white/10">
             <div className="flex flex-col gap-3">
-              <Button variant="ghost" onClick={() => { setAuthOpen(true); setMobileMenuOpen(false); }}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setAuthOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
                 Sign In
               </Button>
-              <Button variant="hero" onClick={() => { setAuthOpen(true); setMobileMenuOpen(false); }}>
+              <Button
+                variant="hero"
+                onClick={() => {
+                  setAuthOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
                 Start Free Trial
               </Button>
             </div>
@@ -217,7 +251,7 @@ export default function Landing() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
             </span>
             <span className="text-xs sm:text-sm text-foreground-secondary">
-              Join 10,000+ people crushing their goals
+              Join 1,200+ people crushing their goals
             </span>
           </div>
 
@@ -231,13 +265,19 @@ export default function Landing() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-base sm:text-xl text-foreground-secondary max-w-2xl mx-auto mb-8 sm:mb-10 animate-slide-up opacity-0 px-4" style={{ animationDelay: "100ms" }}>
-            The only goal tracker that actually works. Smart planning, gamification,
-            and accountability — all in one beautiful app.
+          <p
+            className="text-base sm:text-xl text-foreground-secondary max-w-2xl mx-auto mb-8 sm:mb-10 animate-slide-up opacity-0 px-4"
+            style={{ animationDelay: "100ms" }}
+          >
+            The only goal tracker that actually works. Smart planning,
+            gamification, and accountability — all in one beautiful app.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 animate-slide-up opacity-0 px-4" style={{ animationDelay: "200ms" }}>
+          <div
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 animate-slide-up opacity-0 px-4"
+            style={{ animationDelay: "200ms" }}
+          >
             <Button
               variant="hero"
               size="xl"
@@ -254,24 +294,18 @@ export default function Landing() {
           </div>
 
           {/* Social Proof */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-8 sm:mt-10 animate-fade-in opacity-0" style={{ animationDelay: "300ms" }}>
-            <div className="flex -space-x-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-primary border-2 border-background"
-                  style={{ zIndex: 5 - i }}
-                />
-              ))}
-            </div>
+          <div
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-8 sm:mt-10 animate-fade-in opacity-0"
+            style={{ animationDelay: "300ms" }}
+          >
             <div className="text-center sm:text-left">
               <div className="flex items-center justify-center sm:justify-start gap-1">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <Star key={i} className="w-4 h-4 fill-premium text-premium" />
                 ))}
-                <span className="text-sm font-medium ml-1">4.9/5</span>
+                <span className="text-sm font-medium ml-1">4.8/5</span>
               </div>
-              <p className="text-sm text-muted-foreground">from 2,847 reviews</p>
+              <p className="text-sm text-muted-foreground">from 320+ reviews</p>
             </div>
           </div>
         </div>
@@ -291,7 +325,8 @@ export default function Landing() {
               <span className="text-primary-gradient">Succeed</span>
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-              We've built the ultimate toolkit for goal achievement. No more juggling multiple apps.
+              We've built the ultimate toolkit for goal achievement. No more
+              juggling multiple apps.
             </p>
           </div>
 
@@ -314,7 +349,8 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
-              Loved by <span className="text-primary-gradient">Goal Crushers</span>
+              Loved by{" "}
+              <span className="text-primary-gradient">Goal Crushers</span>
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground">
               Real results from real people worldwide.
@@ -331,7 +367,10 @@ export default function Landing() {
               >
                 <div className="flex items-center gap-1 mb-4">
                   {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-premium text-premium" />
+                    <Star
+                      key={i}
+                      className="w-4 h-4 fill-premium text-premium"
+                    />
                   ))}
                 </div>
                 <p className="text-foreground-secondary mb-4 leading-relaxed text-sm sm:text-base">
@@ -342,8 +381,12 @@ export default function Landing() {
                     {testimonial.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="font-semibold text-sm sm:text-base">{testimonial.name}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{testimonial.role}</p>
+                    <p className="font-semibold text-sm sm:text-base">
+                      {testimonial.name}
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      {testimonial.role}
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -357,7 +400,8 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
-              Simple, <span className="text-primary-gradient">Affordable</span> Pricing
+              Simple, <span className="text-primary-gradient">Affordable</span>{" "}
+              Pricing
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground mb-4">
               Start with a 2-day free trial. No credit card required.
@@ -373,7 +417,9 @@ export default function Landing() {
               <Card
                 key={plan.name}
                 variant="glass"
-                className={`p-6 sm:p-8 relative ${plan.popular ? "border-primary/50 shadow-glow-md" : ""} ${plan.comingSoon ? "opacity-80" : ""}`}
+                className={`p-6 sm:p-8 relative ${
+                  plan.popular ? "border-primary/50 shadow-glow-md" : ""
+                } ${plan.comingSoon ? "opacity-80" : ""}`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-primary rounded-full text-xs sm:text-sm font-semibold text-primary-foreground">
@@ -387,16 +433,23 @@ export default function Landing() {
                 )}
                 <div className="text-center mb-6">
                   <h3 className="text-lg sm:text-xl font-bold">{plan.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{plan.subtitle}</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {plan.subtitle}
+                  </p>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-3xl sm:text-4xl font-extrabold">{plan.price}</span>
+                    <span className="text-3xl sm:text-4xl font-extrabold">
+                      {plan.price}
+                    </span>
                     <span className="text-muted-foreground">{plan.period}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">{plan.description}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {plan.description}
+                  </p>
                   {plan.annualPrice && (
                     <div className="mt-3 p-2 rounded-lg bg-success/10 border border-success/20">
                       <p className="text-xs text-success font-medium">
-                        💰 {plan.annualPrice}{plan.annualPeriod} — {plan.annualSavings}
+                        💰 {plan.annualPrice}
+                        {plan.annualPeriod} — {plan.annualSavings}
                       </p>
                     </div>
                   )}
@@ -405,7 +458,9 @@ export default function Landing() {
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-3">
                       <Check className="w-4 h-4 text-success flex-shrink-0" />
-                      <span className="text-foreground-secondary text-sm">{feature}</span>
+                      <span className="text-foreground-secondary text-sm">
+                        {feature}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -435,7 +490,7 @@ export default function Landing() {
             Ready to Crush Your Goals?
           </h2>
           <p className="text-base sm:text-xl text-muted-foreground mb-8 sm:mb-10">
-            Join thousands of ambitious people transforming their lives in 2026.
+            Join over 1,200 ambitious people transforming their lives in 2026.
           </p>
           <Button
             variant="hero"
@@ -459,9 +514,7 @@ export default function Landing() {
             <span className="font-semibold">CrushGoals</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-foreground transition-colors">Contact</a>
+            <span>Contact us: ayibakep@gmail.com</span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Made with ❤️ for goal crushers
