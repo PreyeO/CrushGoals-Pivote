@@ -241,10 +241,12 @@ export default function Goals() {
               <h1 className="text-2xl sm:text-3xl font-bold mb-1">My Goals</h1>
               <p className="text-muted-foreground text-sm">Track and manage all your goals</p>
             </div>
-            <Button variant="hero" className="gap-2 w-full sm:w-auto" onClick={() => setAddGoalOpen(true)}>
-              <Plus className="w-5 h-5" />
-              Add New Goal
-            </Button>
+            {!isMobile && (
+              <Button variant="hero" className="gap-2 w-full sm:w-auto" onClick={() => setAddGoalOpen(true)}>
+                <Plus className="w-5 h-5" />
+                Add New Goal
+              </Button>
+            )}
           </div>
 
           {/* Filters */}
@@ -647,6 +649,17 @@ export default function Goals() {
         onComplete={clearFirstGoalCelebration}
         type="firstGoal"
       />
+
+      {/* Floating Action Button for Mobile */}
+      {isMobile && (
+        <button
+          onClick={() => setAddGoalOpen(true)}
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95"
+          aria-label="Add new goal"
+        >
+          <Plus className="w-6 h-6 text-white" />
+        </button>
+      )}
     </div>
   );
 }

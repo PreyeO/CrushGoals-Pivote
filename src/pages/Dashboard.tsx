@@ -39,6 +39,7 @@ import { useMainLayout } from "@/hooks/useMainLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const motivationalQuotes = [
   {
@@ -152,6 +153,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, stats, user } = useAuth();
   const { mainPaddingClass } = useMainLayout();
+  const isMobile = useIsMobile();
   const {
     goals,
     isLoading: goalsLoading,
@@ -419,21 +421,23 @@ export default function Dashboard() {
                 </span>
               </p>
             </div>
-            <Button
-              variant="hero"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={() => {
-                if (!canPerformActions) {
-                  setShowTrialExpiredOverlay(true);
-                } else {
-                  setAddGoalOpen(true);
-                }
-              }}
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              New Goal
-            </Button>
+            {!isMobile && (
+              <Button
+                variant="hero"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  if (!canPerformActions) {
+                    setShowTrialExpiredOverlay(true);
+                  } else {
+                    setAddGoalOpen(true);
+                  }
+                }}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                New Goal
+              </Button>
+            )}
           </div>
         </header>
         {/* Main Content Container */}
@@ -813,6 +817,23 @@ export default function Dashboard() {
           open={showExpiryModal}
           onAcknowledge={acknowledgeExpiry}
         />
+        
+        {/* Floating Action Button for Mobile */}
+        {isMobile && (
+          <button
+            onClick={() => {
+              if (!canPerformActions) {
+                setShowTrialExpiredOverlay(true);
+              } else {
+                setAddGoalOpen(true);
+              }
+            }}
+            className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95"
+            aria-label="Add new goal"
+          >
+            <Plus className="w-6 h-6 text-white" />
+          </button>
+        )}
       </main>
     </div>
   );
