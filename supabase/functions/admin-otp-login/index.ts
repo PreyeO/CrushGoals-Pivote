@@ -11,7 +11,8 @@ const corsHeaders = {
 
 interface AdminLoginRequest {
   email: string;
-  otp: string;
+  skipOtp?: boolean;
+  otp?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -21,11 +22,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, otp }: AdminLoginRequest = await req.json();
+    const { email, skipOtp, otp }: AdminLoginRequest = await req.json();
 
-    if (!email || !otp) {
+    if (!email) {
       return new Response(
-        JSON.stringify({ error: "Email and OTP are required" }),
+        JSON.stringify({ error: "Email is required" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -64,18 +65,20 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Verify OTP
-    const { data: isValid, error: verifyError } = await supabaseAdmin.rpc("verify_email_otp", {
-      p_otp: otp,
-      p_user_id: profileData.user_id,
-    });
+    // If not skipping OTP, verify it
+    if (!skipOtp && otp) {
+      const { data: isValid, error: verifyError } = await supabaseAdmin.rpc("verify_email_otp", {
+        p_otp: otp,
+        p_user_id: profileData.user_id,
+      });
 
-    if (verifyError || !isValid) {
-      console.error("OTP verification error:", verifyError);
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired OTP" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      if (verifyError || !isValid) {
+        console.error("OTP verification error:", verifyError);
+        return new Response(
+          JSON.stringify({ error: "Invalid or expired OTP" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
     }
 
     // Generate a magic link token for the user (this creates a session)
@@ -96,19 +99,14 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Extract the token from the generated link
-    // The link format is: https://<project>.supabase.co/auth/v1/verify?token=xxx&type=magiclink&redirect_to=...
     const url = new URL(linkData.properties.action_link);
     const token = url.searchParams.get("token");
-    const tokenHash = url.hash?.replace("#", "") || "";
 
     console.log("Admin login successful for:", email);
 
     return new Response(
       JSON.stringify({
         success: true,
-        // Return the verification URL that can be used to create a session
-        verificationUrl: linkData.properties.action_link,
-        // Also return token details for direct verification
         token,
         email: email.toLowerCase(),
       }),
