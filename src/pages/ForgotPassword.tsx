@@ -45,8 +45,8 @@ export default function ForgotPassword() {
         return;
       }
 
-      // data.resetLink is our app-friendly reset link (token_hash + email) to prevent instant expiry.
-      const sent = await sendPasswordResetEmail(email.trim(), data.resetLink);
+       // data.resetLink is our app-friendly reset link (token_hash) to prevent instant expiry.
+       const sent = await sendPasswordResetEmail(email.trim(), data.resetLink);
       if (!sent) {
         toast.error("Failed to send email. Please try again.");
         return;
