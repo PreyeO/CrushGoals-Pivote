@@ -19,8 +19,8 @@ export default function ResetPassword() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Support two reset link styles:
-  // 1) Supabase-style redirect: #access_token=...&type=recovery
-  // 2) Our safer link: ?type=recovery&token_hash=...&email=...
+  // 1) Backend-style redirect: #access_token=...&type=recovery
+  // 2) Our safer link: ?type=recovery&token_hash=...
   const [tokenHash, setTokenHash] = useState<string | null>(null);
   const [resetEmail, setResetEmail] = useState<string | null>(null);
 
@@ -48,8 +48,8 @@ export default function ResetPassword() {
       return;
     }
 
-    // Valid if we either have an access_token already OR we have token_hash+email for deferred verification.
-    if (!accessToken && !(token_hash && email)) {
+    // Valid if we either have an access_token already OR we have token_hash for deferred verification.
+    if (!accessToken && !token_hash) {
       setIsValidLink(false);
       toast.error("Invalid or expired reset link. Please request a new one.");
       return;
@@ -82,13 +82,12 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      // If the link contains token_hash/email, verify ONLY when user submits.
+      // If the link contains token_hash, verify ONLY when user submits.
       // This avoids email clients/link scanners consuming the token before the user uses it.
-      if (tokenHash && resetEmail) {
+      if (tokenHash) {
         const { error: verifyError } = await supabase.auth.verifyOtp({
           type: "recovery",
           token_hash: tokenHash,
-          email: resetEmail,
         });
 
         if (verifyError) {

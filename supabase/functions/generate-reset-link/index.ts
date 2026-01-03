@@ -157,8 +157,9 @@ const handler = async (req: Request): Promise<Response> => {
     const tokenHash = (data.properties as any)?.hashed_token || (data.properties as any)?.hashedToken;
 
     // Prefer our safer app link when token hash is available; fallback to actionLink otherwise.
+    // Note: for verifyOtp({ type: 'recovery', token_hash }), ONLY token_hash + type are allowed.
     const resetLink = tokenHash
-      ? `${siteUrl}/reset-password?type=recovery&token_hash=${encodeURIComponent(tokenHash)}&email=${encodeURIComponent(email)}`
+      ? `${siteUrl}/reset-password?type=recovery&token_hash=${encodeURIComponent(tokenHash)}`
       : actionLink;
 
     if (!resetLink) {
