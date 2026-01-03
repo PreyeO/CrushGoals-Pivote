@@ -27,12 +27,12 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
         <BrowserRouter>
           <AuthProvider>
             <SidebarProvider>
               <ErrorBoundary fallbackTitle="App error">
+                <Toaster />
+                <Sonner />
                 <Routes>
                   <Route path="/" element={<Landing />} />
                   <Route path="/admin-login" element={<AdminLogin />} />
