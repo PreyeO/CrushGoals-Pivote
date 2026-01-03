@@ -30,8 +30,21 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(() => {
+    if (localStorage.getItem('crushgoals_remember_me') === 'true') {
+      return localStorage.getItem('crushgoals_saved_email') || "";
+    }
+    return "";
+  });
+  const [password, setPassword] = useState(() => {
+    if (localStorage.getItem('crushgoals_remember_me') === 'true') {
+      return localStorage.getItem('crushgoals_saved_password') || "";
+    }
+    return "";
+  });
+  const [rememberMe, setRememberMe] = useState(() => 
+    localStorage.getItem('crushgoals_remember_me') === 'true'
+  );
   const [agreed, setAgreed] = useState(false);
   const [showOnLeaderboard, setShowOnLeaderboard] = useState(true); // Default to ON
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -213,6 +226,15 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
           // Record successful login server-side
           await recordAttempt(email, true);
           const userName = data.user.user_metadata?.full_name || email.split("@")[0];
+          
+          // Save credentials if "Remember me" is checked
+          if (rememberMe) {
+            localStorage.setItem('crushgoals_saved_email', email.trim());
+            localStorage.setItem('crushgoals_saved_password', password);
+          } else {
+            localStorage.removeItem('crushgoals_saved_email');
+            localStorage.removeItem('crushgoals_saved_password');
+          }
           
           toast.success("Welcome back!");
           onSuccess({ name: userName, email: email.trim() });
@@ -420,15 +442,18 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
                 <Checkbox 
                   id="remember" 
                   className="mt-0.5"
+                  checked={rememberMe}
                   onCheckedChange={(checked) => {
-                    // Store preference in localStorage for session persistence
-                    if (checked) {
+                    const isChecked = checked === true;
+                    setRememberMe(isChecked);
+                    if (isChecked) {
                       localStorage.setItem('crushgoals_remember_me', 'true');
                     } else {
                       localStorage.removeItem('crushgoals_remember_me');
+                      localStorage.removeItem('crushgoals_saved_email');
+                      localStorage.removeItem('crushgoals_saved_password');
                     }
                   }}
-                  defaultChecked={localStorage.getItem('crushgoals_remember_me') === 'true'}
                 />
                 <Label htmlFor="remember" className="text-sm text-muted-foreground">
                   Remember me
