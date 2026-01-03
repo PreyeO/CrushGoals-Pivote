@@ -83,6 +83,14 @@ export default function Settings() {
     const paymentStatus = params.get('payment');
     const status = params.get('status');
     
+    // Handle cancelled payment
+    if (paymentStatus === 'cancelled' || status === 'cancelled') {
+      toast.info("Payment was cancelled. You can try again when ready.");
+      // Clear URL params
+      window.history.replaceState({}, '', '/settings?section=subscription');
+      return;
+    }
+    
     // Flutterwave returns status=successful or status=cancelled
     if ((paymentStatus === 'success' || status === 'successful') && (transactionId || txRef)) {
       setVerifyingPayment(true);

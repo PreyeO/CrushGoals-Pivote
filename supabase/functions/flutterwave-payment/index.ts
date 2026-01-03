@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
       const txRef = `cg_${user.id.slice(0, 8)}_${Date.now()}`;
 
       // Create Flutterwave payment link
-      // Use test key if available, otherwise use live key
-      const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY_TEST") || Deno.env.get("FLUTTERWAVE_SECRET_KEY");
+      // Use live key for production, fallback to test key
+      const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY") || Deno.env.get("FLUTTERWAVE_SECRET_KEY_TEST");
       
       // Log key diagnostics (safe - only prefix and length)
       const keyPrefix = flutterwaveSecretKey ? flutterwaveSecretKey.substring(0, 12) : "MISSING";
@@ -89,12 +89,14 @@ Deno.serve(async (req) => {
 
       const siteUrl = Deno.env.get("SITE_URL") || "https://crushgoals.lovable.app";
       const redirectUrl = `${siteUrl}${callbackUrl || "/settings?section=subscription"}&payment=success`;
+      const cancelUrl = `${siteUrl}/settings?section=subscription&payment=cancelled`;
 
       const paymentPayload = {
         tx_ref: txRef,
         amount: amount,
         currency: currency,
         redirect_url: redirectUrl,
+        payment_options: "card,banktransfer,ussd",
         customer: {
           email: user.email,
           name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
@@ -108,6 +110,7 @@ Deno.serve(async (req) => {
           user_id: user.id,
           plan: plan,
           currency: currency,
+          cancel_action: cancelUrl,
         },
       };
 
@@ -168,7 +171,7 @@ Deno.serve(async (req) => {
 
       console.log(`[Flutterwave] Verifying payment - tx_id: ${transaction_id}, tx_ref: ${tx_ref}`);
 
-      const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY_TEST") || Deno.env.get("FLUTTERWAVE_SECRET_KEY");
+      const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY") || Deno.env.get("FLUTTERWAVE_SECRET_KEY_TEST");
       if (!flutterwaveSecretKey) {
         return new Response(
           JSON.stringify({ error: "Payment configuration error" }),
@@ -265,7 +268,7 @@ Deno.serve(async (req) => {
 
     // =============== WEBHOOK ===============
     if (action === "webhook") {
-      const secretHash = Deno.env.get("FLUTTERWAVE_SECRET_HASH_TEST") || Deno.env.get("FLUTTERWAVE_SECRET_HASH");
+      const secretHash = Deno.env.get("FLUTTERWAVE_SECRET_HASH") || Deno.env.get("FLUTTERWAVE_SECRET_HASH_TEST");
       const signature = req.headers.get("verif-hash");
 
       // Verify webhook signature
