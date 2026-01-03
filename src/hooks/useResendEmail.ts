@@ -380,7 +380,16 @@ export function useResendEmail() {
             </p>
             
             <div style="text-align: center; margin-bottom: 24px;">
-              <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Reset Password →</a>
+              <a href="${resetLink}" target="_blank" rel="noreferrer" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Reset Password →</a>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+              <p style="margin: 0 0 8px 0; color: #a1a1aa; font-size: 14px;">
+                If the button doesn’t work, copy and paste this link into your browser:
+              </p>
+              <p style="margin: 0; font-size: 14px; word-break: break-all;">
+                <a href="${resetLink}" target="_blank" rel="noreferrer" style="color: #a78bfa; text-decoration: underline;">${resetLink}</a>
+              </p>
             </div>
             
             <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 24px;">
@@ -402,6 +411,8 @@ export function useResendEmail() {
       to: email,
       subject: "🔐 Reset your CrushGoals password",
       html,
+      text: `Reset your CrushGoals password\n\nOpen this link to reset your password (expires in 1 hour):\n${resetLink}\n\nIf you didn't request this, you can ignore this email.`,
+      from: "CrushGoals <no-reply@hello.crushgoals.app>",
       email_type: "password_reset",
     });
   };
