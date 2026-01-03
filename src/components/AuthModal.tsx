@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,14 @@ import { useResendEmail } from "@/hooks/useResendEmail";
 
 interface AuthModalProps {
   open: boolean;
+  defaultTab?: "signin" | "signup";
   onOpenChange: (open: boolean) => void;
   onSuccess: (userData: { name: string; email: string }) => void;
 }
 
-export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
+export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthModalProps) {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"signin" | "signup">("signup");
+  const [tab, setTab] = useState<"signin" | "signup">(defaultTab ?? "signup");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -38,6 +39,11 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const { checkRateLimit, recordAttempt } = useRateLimiter();
   const { sendWelcomeEmail } = useResendEmail();
 
+  useEffect(() => {
+    if (open && defaultTab) {
+      setTab(defaultTab);
+    }
+  }, [open, defaultTab]);
   const checkUsernameAvailability = async (value: string) => {
     if (value.length < 3) return;
     

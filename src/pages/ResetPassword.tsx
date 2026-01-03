@@ -15,19 +15,24 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isValidLink, setIsValidLink] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Check if we have access token in URL (from email link)
+    // Accept both hash and query params (different email clients can rewrite links)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
+    const queryParams = new URLSearchParams(window.location.search);
 
-    if (!accessToken || type !== 'recovery') {
+    const accessToken = hashParams.get("access_token") || queryParams.get("access_token");
+    const type = hashParams.get("type") || queryParams.get("type");
+
+    // If the session was already established by the auth redirect, accessToken might be missing.
+    // We'll treat missing token+type as invalid but won't auto-redirect away.
+    if (!accessToken || type !== "recovery") {
+      setIsValidLink(false);
       toast.error("Invalid or expired reset link. Please request a new one.");
-      navigate('/');
     }
-  }, [navigate]);
+  }, []);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -68,14 +73,44 @@ export default function ResetPassword() {
       // Sign out and redirect to login
       setTimeout(async () => {
         await supabase.auth.signOut();
-        navigate('/');
-      }, 2000);
+        navigate('/?auth=signin');
+      }, 1200);
     } catch {
       toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!isValidLink) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-card border-border">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow-md">
+                <Target className="w-7 h-7 text-primary-foreground" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Reset link expired</CardTitle>
+            <CardDescription>
+              Request a fresh password reset link, then open it on this device.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button className="w-full" variant="hero" onClick={() => navigate("/auth/forgot")}
+            >
+              Request new reset link
+            </Button>
+            <Button className="w-full" variant="outline" onClick={() => navigate("/?auth=signin")}
+            >
+              Back to Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isSuccess) {
     return (

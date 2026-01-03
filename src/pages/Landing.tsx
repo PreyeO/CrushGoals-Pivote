@@ -7,7 +7,7 @@ import { FeatureCard } from "@/components/FeatureCard";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Target,
   Flame,
@@ -85,11 +85,24 @@ const testimonials = [
 
 export default function Landing() {
   const [authOpen, setAuthOpen] = useState(false);
+  const [authDefaultTab, setAuthDefaultTab] = useState<"signin" | "signup">("signup");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAdmin, isAdminLoaded } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { getPricing, currentCurrency } = useCurrency();
   const pricing = useMemo(() => getPricing(), [currentCurrency]);
+
+  // Open auth modal via shareable URLs (e.g. /?auth=signin)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const auth = params.get("auth");
+
+    if (auth === "signin" || auth === "signup") {
+      setAuthDefaultTab(auth);
+      setAuthOpen(true);
+    }
+  }, [location.search]);
 
   // Redirect if already logged in - admins go to /admin, regular users to /dashboard
   useEffect(() => {
@@ -102,7 +115,7 @@ export default function Landing() {
     }
   }, [user, isAdmin, isAdminLoaded, navigate]);
 
-  const handleAuthSuccess = (userData: { name: string; email: string }) => {
+  const handleAuthSuccess = (_userData: { name: string; email: string }) => {
     // Navigation is handled by the useEffect based on admin status
   };
 
@@ -525,6 +538,7 @@ export default function Landing() {
       {/* Auth Modal */}
       <AuthModal
         open={authOpen}
+        defaultTab={authDefaultTab}
         onOpenChange={setAuthOpen}
         onSuccess={handleAuthSuccess}
       />
