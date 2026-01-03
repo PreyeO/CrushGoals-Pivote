@@ -39,7 +39,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 interface AdminLoginRequest {
   email: string;
   passphrase: string;
-  action: "direct_login";
+  action: "verify_admin";
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -68,9 +68,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    if (action !== "direct_login") {
+    if (action !== "verify_admin") {
       return new Response(
-        JSON.stringify({ error: "Valid action is required (direct_login)" }),
+        JSON.stringify({ error: "Valid action is required (verify_admin)" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -96,55 +96,49 @@ const handler = async (req: Request): Promise<Response> => {
     // Create admin client with service role key
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Check if user exists in profiles
-    const { data: profileData, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("user_id")
-      .eq("email", email.toLowerCase())
+    // Check if user exists and has admin role
+    const { data: roleData, error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role, user_id")
+      .eq("role", "admin")
       .maybeSingle();
 
-    if (profileError || !profileData) {
-      console.error("Profile lookup error:", profileError);
+    if (roleError) {
+      console.error("Role lookup error:", roleError);
       return new Response(
-        JSON.stringify({ error: "Admin user not found. Please register first." }),
-        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    // Generate a magic link token for the user (this creates a session)
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
-      email: email.toLowerCase(),
-      options: {
-        redirectTo: "https://crushgoals.app/admin",
-      },
-    });
-
-    if (linkError || !linkData) {
-      console.error("Link generation error:", linkError);
-      return new Response(
-        JSON.stringify({ error: "Failed to generate login session" }),
+        JSON.stringify({ error: "Failed to verify admin status" }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Record successful login
+    // Verify the email matches the admin user
+    if (roleData) {
+      const { data: profileData } = await supabaseAdmin
+        .from("profiles")
+        .select("email")
+        .eq("user_id", roleData.user_id)
+        .maybeSingle();
+      
+      if (!profileData || profileData.email.toLowerCase() !== email.toLowerCase()) {
+        return new Response(
+          JSON.stringify({ error: "Admin credentials mismatch" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
+    // Record successful verification
     await supabaseAdmin.rpc("record_login_attempt", {
       attempt_email: email.toLowerCase(),
       attempt_success: true,
     });
 
-    // Extract the token from the generated link
-    const url = new URL(linkData.properties.action_link);
-    const token = url.searchParams.get("token");
-
-    console.log("Admin direct login successful for:", email);
+    console.log("Admin verification successful for:", email);
 
     return new Response(
       JSON.stringify({
         success: true,
-        token,
-        email: email.toLowerCase(),
+        verified: true,
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );

@@ -25,7 +25,10 @@ export function TrialExpiredOverlay({
   onOpenChange,
   actionType = 'goal'
 }: TrialExpiredOverlayProps) {
-  const { stats } = useAuth();
+  const { stats, isAdmin } = useAuth();
+
+  // Admins should never see this overlay
+  if (isAdmin) return null;
   const { getPricing } = useCurrency();
   const { initializePayment, isLoading } = useFlutterwave();
   const { refreshSubscription } = useSubscription();

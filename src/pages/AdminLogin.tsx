@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, ArrowLeft, AlertTriangle, Loader2, Mail, Lock } from 'lucide-react';
+import { Shield, ArrowLeft, AlertTriangle, Loader2, Mail, Lock, Key } from 'lucide-react';
 import { z } from 'zod';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
   passphrase: z.string().min(1, 'Passphrase is required'),
 });
 
@@ -19,6 +20,7 @@ export default function AdminLogin() {
   const navigate = useNavigate();
   const { user, isAdmin, isAdminLoaded } = useAuth();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +32,11 @@ export default function AdminLogin() {
     }
   }, [user, isAdmin, isAdminLoaded, navigate]);
 
-  const handleDirectLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
-    const validation = loginSchema.safeParse({ email, passphrase });
+    const validation = loginSchema.safeParse({ email, password, passphrase });
     if (!validation.success) {
       setError(validation.error.errors[0].message);
       return;
@@ -43,45 +45,43 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const { data, error: functionError } = await supabase.functions.invoke('admin-otp-login', {
+      // Step 1: Verify admin passphrase with edge function
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('admin-otp-login', {
         body: {
           email: email.toLowerCase(),
           passphrase,
-          action: 'direct_login',
+          action: 'verify_admin',
         },
       });
 
-      if (functionError) {
-        console.error('Admin login error:', functionError);
-        setError('Failed to login. Please try again.');
+      if (verifyError) {
+        console.error('Admin verification error:', verifyError);
+        setError('Failed to verify admin credentials. Please try again.');
         setIsLoading(false);
         return;
       }
 
-      if (!data?.success) {
-        setError(data?.error || 'Access denied. Invalid credentials.');
+      if (!verifyData?.success) {
+        setError(verifyData?.error || 'Access denied. Invalid admin credentials.');
         setIsLoading(false);
         return;
       }
 
-      // Use the token to create a session
-      if (data.token) {
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          email: data.email,
-          token: data.token,
-          type: 'magiclink',
-        });
+      // Step 2: Login with email/password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase(),
+        password,
+      });
 
-        if (verifyError) {
-          console.error('Session creation error:', verifyError);
-          setError('Failed to create session. Please try again.');
-          setIsLoading(false);
-          return;
-        }
-
-        toast.success('Welcome back, Admin!');
-        navigate('/admin', { replace: true });
+      if (signInError) {
+        console.error('Sign in error:', signInError);
+        setError('Invalid email or password.');
+        setIsLoading(false);
+        return;
       }
+
+      toast.success('Welcome back, Admin!');
+      navigate('/admin', { replace: true });
     } catch (error) {
       console.error('Admin login error:', error);
       setError('An unexpected error occurred');
@@ -125,7 +125,7 @@ export default function AdminLogin() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleDirectLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Admin Email</Label>
                 <div className="relative">
@@ -147,9 +147,29 @@ export default function AdminLogin() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="passphrase">Passphrase</Label>
+                <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Your account password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError(null);
+                    }}
+                    required
+                    disabled={isLoading}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="passphrase">Admin Passphrase</Label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="passphrase"
                     type="password"

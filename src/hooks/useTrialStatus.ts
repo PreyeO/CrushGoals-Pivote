@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TrialStatus {
   isTrialActive: boolean;
@@ -12,6 +13,7 @@ interface TrialStatus {
 
 export function useTrialStatus(): TrialStatus {
   const { subscription, isPremium, getTrialDaysLeft } = useSubscription();
+  const { isAdmin } = useAuth();
 
   const trialEndsAt = useMemo(() => {
     if (!subscription?.trial_ends_at) return null;
@@ -39,17 +41,23 @@ export function useTrialStatus(): TrialStatus {
 
   // Trial is expired if user was on trial but time has passed
   const isTrialExpired = useMemo(() => {
+    // Admins never have expired trials
+    if (isAdmin) return false;
     if (isPremiumUser) return false;
     if (subscription?.status === 'active') return false;
     if (!trialEndsAt) return false;
     return trialEndsAt.getTime() <= Date.now();
-  }, [isPremiumUser, subscription?.status, trialEndsAt]);
+  }, [isAdmin, isPremiumUser, subscription?.status, trialEndsAt]);
 
   // User can perform actions if:
-  // 1. They are premium (paid subscription)
-  // 2. They have an active trial
-  // 3. They have an active subscription status
+  // 1. They are an admin (always allowed)
+  // 2. They are premium (paid subscription)
+  // 3. They have an active trial
+  // 4. They have an active subscription status
   const canPerformActions = useMemo(() => {
+    // Admins can always perform actions
+    if (isAdmin) return true;
+    
     // Premium users can always perform actions
     if (isPremiumUser) return true;
     
@@ -61,7 +69,7 @@ export function useTrialStatus(): TrialStatus {
     
     // Trial expired and not subscribed = cannot perform actions
     return false;
-  }, [isPremiumUser, subscription?.status, isTrialActive]);
+  }, [isAdmin, isPremiumUser, subscription?.status, isTrialActive]);
 
   return {
     isTrialActive,
