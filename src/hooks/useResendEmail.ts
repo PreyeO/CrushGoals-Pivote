@@ -66,7 +66,7 @@ export function useResendEmail() {
                 🎁 YOUR FREE TRIAL
               </p>
               <p style="margin: 0; color: #ffffff; font-size: 32px; font-weight: bold;">
-                48 HOURS
+                7 DAYS
               </p>
               <p style="margin: 8px 0 0; color: rgba(255,255,255,0.8); font-size: 14px;">
                 Unlimited access to all premium features
@@ -74,7 +74,7 @@ export function useResendEmail() {
             </div>
             
             <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
-              You've just unlocked <strong style="color: #ffffff;">48 hours of unlimited access</strong> to everything CrushGoals has to offer. No credit card required - just pure goal-crushing power!
+              You've just unlocked <strong style="color: #ffffff;">7 days of unlimited access</strong> to everything CrushGoals has to offer. No credit card required - just pure goal-crushing power!
             </p>
             
             <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 24px; border: 1px solid rgba(99, 102, 241, 0.2);">
@@ -110,7 +110,7 @@ export function useResendEmail() {
 
     return sendEmail({
       to: email,
-      subject: "🎯 Welcome to CrushGoals - Your 48-Hour Free Trial Starts Now!",
+      subject: "🎯 Welcome to CrushGoals - Your 7-Day Free Trial Starts Now!",
       html,
       email_type: "welcome",
     });
