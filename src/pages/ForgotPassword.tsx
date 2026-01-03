@@ -87,7 +87,7 @@ export default function ForgotPassword() {
                   If an account exists for <strong>{email}</strong>, a reset link has been sent.
                 </p>
               </div>
-              <Button variant="outline" className="w-full" onClick={() => navigate("/auth/signin")}>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/?auth=signin")}>
                 Back to Sign In
               </Button>
             </div>
@@ -113,7 +113,7 @@ export default function ForgotPassword() {
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Reset Link"}
               </Button>
 
-              <Button type="button" variant="ghost" className="w-full" onClick={() => navigate("/auth/signin")}> 
+              <Button type="button" variant="ghost" className="w-full" onClick={() => navigate("/?auth=signin")}> 
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Sign In
               </Button>
