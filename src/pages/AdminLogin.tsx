@@ -7,17 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, ArrowLeft, AlertTriangle, Loader2, Mail } from 'lucide-react';
+import { Shield, ArrowLeft, AlertTriangle, Loader2, Mail, Lock } from 'lucide-react';
 import { z } from 'zod';
 
-const emailSchema = z.object({
+const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
+  passphrase: z.string().min(1, 'Passphrase is required'),
 });
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { user, isAdmin, isAdminLoaded } = useAuth();
   const [email, setEmail] = useState('');
+  const [passphrase, setPassphrase] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +34,7 @@ export default function AdminLogin() {
     e.preventDefault();
     setError(null);
     
-    const validation = emailSchema.safeParse({ email });
+    const validation = loginSchema.safeParse({ email, passphrase });
     if (!validation.success) {
       setError(validation.error.errors[0].message);
       return;
@@ -44,6 +46,7 @@ export default function AdminLogin() {
       const { data, error: functionError } = await supabase.functions.invoke('admin-otp-login', {
         body: {
           email: email.toLowerCase(),
+          passphrase,
           action: 'direct_login',
         },
       });
@@ -56,7 +59,7 @@ export default function AdminLogin() {
       }
 
       if (!data?.success) {
-        setError(data?.error || 'Access denied. This login is for the designated administrator only.');
+        setError(data?.error || 'Access denied. Invalid credentials.');
         setIsLoading(false);
         return;
       }
@@ -118,7 +121,7 @@ export default function AdminLogin() {
             </div>
             <CardTitle className="text-2xl">Admin Portal</CardTitle>
             <CardDescription>
-              Enter your admin email to access the dashboard
+              Enter your admin credentials to access the dashboard
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -134,6 +137,26 @@ export default function AdminLogin() {
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
+                      setError(null);
+                    }}
+                    required
+                    disabled={isLoading}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="passphrase">Passphrase</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="passphrase"
+                    type="password"
+                    placeholder="Enter admin passphrase"
+                    value={passphrase}
+                    onChange={(e) => {
+                      setPassphrase(e.target.value);
                       setError(null);
                     }}
                     required

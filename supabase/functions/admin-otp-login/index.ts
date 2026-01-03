@@ -4,8 +4,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Hardcoded admin email - ONLY this email can access admin
+// Hardcoded admin credentials - ONLY this email and passphrase can access admin
 const ADMIN_EMAIL = "omusukup@yahoo.com";
+const ADMIN_PASSPHRASE = "SperAdmin@123#";
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -37,6 +38,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 
 interface AdminLoginRequest {
   email: string;
+  passphrase: string;
   action: "direct_login";
 }
 
@@ -50,11 +52,18 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, action }: AdminLoginRequest = await req.json();
+    const { email, passphrase, action }: AdminLoginRequest = await req.json();
 
     if (!email) {
       return new Response(
         JSON.stringify({ error: "Email is required" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!passphrase) {
+      return new Response(
+        JSON.stringify({ error: "Passphrase is required" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -72,6 +81,15 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({ error: "Access denied. This login is for the designated administrator only." }),
         { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Verify the passphrase
+    if (passphrase !== ADMIN_PASSPHRASE) {
+      console.log("Invalid passphrase attempt for admin:", email);
+      return new Response(
+        JSON.stringify({ error: "Invalid passphrase. Access denied." }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
