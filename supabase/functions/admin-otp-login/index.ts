@@ -4,9 +4,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Hardcoded admin credentials - ONLY this email and passphrase can access admin
-const ADMIN_EMAIL = "omusukup@yahoo.com";
-const ADMIN_PASSPHRASE = "SperAdmin@123#";
+// Admin credentials from environment secrets
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL")!;
+const ADMIN_PASSPHRASE = Deno.env.get("ADMIN_PASSPHRASE")!;
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
