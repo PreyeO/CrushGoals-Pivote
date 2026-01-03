@@ -24,7 +24,7 @@ interface UserAchievementStats {
 }
 
 export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps) {
-  const { user, stats } = useAuth();
+  const { user, stats, isAdmin } = useAuth();
   const { getPricing } = useCurrency();
   const { getTrialDaysLeft } = useSubscription();
   const { initializePayment, isLoading } = useFlutterwave();
@@ -35,6 +35,9 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
     currentStreak: 0,
     goalsCreated: 0,
   });
+
+  // Admins should never see this modal
+  if (isAdmin) return null;
 
   const pricing = getPricing();
   const trialDaysLeft = getTrialDaysLeft();

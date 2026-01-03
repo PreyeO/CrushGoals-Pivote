@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TrialBannerProps {
   onUpgradeClick: () => void;
@@ -11,9 +12,13 @@ interface TrialBannerProps {
 export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
   const { isTrialActive, isTrialExpired, hoursLeft } = useTrialStatus();
   const { isPremium, isLoading, subscription } = useSubscription();
+  const { isAdmin } = useAuth();
 
   // Don't show while loading to prevent flickering
   if (isLoading) return null;
+
+  // Don't show for admins
+  if (isAdmin) return null;
 
   // Don't show if PAID premium user (monthly/annual active subscription)
   if (isPremium()) return null;
