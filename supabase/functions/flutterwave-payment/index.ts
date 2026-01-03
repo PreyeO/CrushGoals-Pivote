@@ -62,7 +62,8 @@ Deno.serve(async (req) => {
       const txRef = `cg_${user.id.slice(0, 8)}_${Date.now()}`;
 
       // Create Flutterwave payment link
-      const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY");
+      // Use test key if available, otherwise use live key
+      const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY_TEST") || Deno.env.get("FLUTTERWAVE_SECRET_KEY");
       if (!flutterwaveSecretKey) {
         console.error("[Flutterwave] Missing FLUTTERWAVE_SECRET_KEY");
         return new Response(
@@ -152,7 +153,7 @@ Deno.serve(async (req) => {
 
       console.log(`[Flutterwave] Verifying payment - tx_id: ${transaction_id}, tx_ref: ${tx_ref}`);
 
-      const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY");
+      const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY_TEST") || Deno.env.get("FLUTTERWAVE_SECRET_KEY");
       if (!flutterwaveSecretKey) {
         return new Response(
           JSON.stringify({ error: "Payment configuration error" }),
@@ -249,7 +250,7 @@ Deno.serve(async (req) => {
 
     // =============== WEBHOOK ===============
     if (action === "webhook") {
-      const secretHash = Deno.env.get("FLUTTERWAVE_SECRET_HASH");
+      const secretHash = Deno.env.get("FLUTTERWAVE_SECRET_HASH_TEST") || Deno.env.get("FLUTTERWAVE_SECRET_HASH");
       const signature = req.headers.get("verif-hash");
 
       // Verify webhook signature
