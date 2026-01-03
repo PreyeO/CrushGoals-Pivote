@@ -36,12 +36,7 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
     }
     return "";
   });
-  const [password, setPassword] = useState(() => {
-    if (localStorage.getItem('crushgoals_remember_me') === 'true') {
-      return localStorage.getItem('crushgoals_saved_password') || "";
-    }
-    return "";
-  });
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(() => 
     localStorage.getItem('crushgoals_remember_me') === 'true'
   );
@@ -227,13 +222,11 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
           await recordAttempt(email, true);
           const userName = data.user.user_metadata?.full_name || email.split("@")[0];
           
-          // Save credentials if "Remember me" is checked
+          // Save email if "Remember me" is checked (password is never stored - Supabase handles session persistence)
           if (rememberMe) {
             localStorage.setItem('crushgoals_saved_email', email.trim());
-            localStorage.setItem('crushgoals_saved_password', password);
           } else {
             localStorage.removeItem('crushgoals_saved_email');
-            localStorage.removeItem('crushgoals_saved_password');
           }
           
           toast.success("Welcome back!");
@@ -451,7 +444,6 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
                     } else {
                       localStorage.removeItem('crushgoals_remember_me');
                       localStorage.removeItem('crushgoals_saved_email');
-                      localStorage.removeItem('crushgoals_saved_password');
                     }
                   }}
                 />
