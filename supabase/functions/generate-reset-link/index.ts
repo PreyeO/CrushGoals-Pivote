@@ -126,8 +126,17 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Generate password reset link
-    const redirectTo = `${origin || 'https://crushgoals.app'}/reset-password`;
-    
+    // NOTE: We intentionally generate the recovery token, but we DO NOT send the raw verify/action link to users.
+    // Many email clients/security scanners prefetch links which can consume one-time tokens.
+    // Instead, we send an app link that contains token_hash + email and only verifies when the user submits a new password.
+
+    const allAllowedOrigins = [...ALLOWED_ORIGINS, ...DEV_ORIGINS];
+    const siteUrl = origin && allAllowedOrigins.includes(origin)
+      ? origin
+      : "https://www.crushgoals.app";
+
+    const redirectTo = `${siteUrl}/reset-password`;
+
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email: email,
@@ -144,8 +153,13 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // The generated link includes the token - we need to construct the proper URL
-    const resetLink = data.properties?.action_link;
+    const actionLink = data.properties?.action_link;
+    const tokenHash = (data.properties as any)?.hashed_token || (data.properties as any)?.hashedToken;
+
+    // Prefer our safer app link when token hash is available; fallback to actionLink otherwise.
+    const resetLink = tokenHash
+      ? `${siteUrl}/reset-password?type=recovery&token_hash=${encodeURIComponent(tokenHash)}&email=${encodeURIComponent(email)}`
+      : actionLink;
 
     if (!resetLink) {
       console.error("No reset link in response:", data);
@@ -158,7 +172,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Password reset link generated for: ${email}`);
 
     return new Response(
-      JSON.stringify({ success: true, resetLink }),
+      JSON.stringify({ success: true, resetLink, actionLink }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
