@@ -404,7 +404,7 @@ export default function Landing() {
               Pricing
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground mb-4">
-              Start with a 2-day free trial. No credit card required.
+              Start with a 7-day free trial. No credit card required.
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <span>Prices shown in {currentCurrency.name}</span>

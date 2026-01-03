@@ -92,7 +92,7 @@ const handler = async (req: Request): Promise<Response> => {
                   🎁 YOUR FREE TRIAL
                 </p>
                 <p style="margin: 0; color: #ffffff; font-size: 32px; font-weight: bold;">
-                  48 HOURS
+                  7 DAYS
                 </p>
                 <p style="margin: 8px 0 0; color: rgba(255,255,255,0.8); font-size: 14px;">
                   Unlimited access to all premium features
@@ -105,7 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
           <tr>
             <td style="padding: 30px 40px;">
               <p style="margin: 0 0 20px; color: #d1d5db; font-size: 16px; line-height: 1.6;">
-                You've just unlocked <strong style="color: #ffffff;">48 hours of unlimited access</strong> to everything CrushGoals has to offer. No credit card required - just pure goal-crushing power!
+                You've just unlocked <strong style="color: #ffffff;">7 days of unlimited access</strong> to everything CrushGoals has to offer. No credit card required - just pure goal-crushing power!
               </p>
               
               <!-- Features List -->
@@ -187,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "CrushGoals <onboarding@resend.dev>",
         to: [email],
-        subject: "🎯 Welcome to CrushGoals - Your 48-Hour Free Trial Starts Now!",
+        subject: "🎯 Welcome to CrushGoals - Your 7-Day Free Trial Starts Now!",
         html: emailHtml,
       }),
     });
