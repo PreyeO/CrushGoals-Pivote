@@ -7,7 +7,7 @@ import { Flame, Trophy, Zap, Target, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useSubscription } from '@/hooks/useSubscription';
-import { usePaystack } from '@/hooks/usePaystack';
+import { useFlutterwave } from '@/hooks/useFlutterwave';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TrialExpiryModalProps {
@@ -27,7 +27,7 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
   const { user, stats } = useAuth();
   const { getPricing } = useCurrency();
   const { getTrialDaysLeft } = useSubscription();
-  const { initializePayment, isLoading: paystackLoading } = usePaystack();
+  const { initializePayment, isLoading } = useFlutterwave();
   const [userStats, setUserStats] = useState<UserAchievementStats>({
     tasksCompleted: 0,
     xpEarned: 0,
@@ -75,14 +75,7 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
   }, [open, user?.id, stats]);
 
   const handleUpgrade = async (plan: 'monthly' | 'annual') => {
-    // Use Paystack for NGN payments
-    if (pricing.isNigeria) {
-      await initializePayment(plan);
-    } else {
-      // For international payments, will integrate Stripe later
-      console.log('International payment for:', plan);
-      onAcknowledge();
-    }
+    await initializePayment(plan);
   };
 
   return (
@@ -139,7 +132,7 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
             {/* Monthly Plan */}
             <Card 
               className="p-4 cursor-pointer hover:border-primary transition-colors"
-              onClick={() => !paystackLoading && handleUpgrade('monthly')}
+              onClick={() => !isLoading && handleUpgrade('monthly')}
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -156,7 +149,7 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
             {/* Annual Plan */}
             <Card 
               className="p-4 cursor-pointer border-2 border-primary bg-primary/5 hover:bg-primary/10 transition-colors relative"
-              onClick={() => !paystackLoading && handleUpgrade('annual')}
+              onClick={() => !isLoading && handleUpgrade('annual')}
             >
               <Badge className="absolute -top-2 left-4 bg-primary">
                 <Crown className="w-3 h-3 mr-1" />
@@ -180,9 +173,9 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
             variant="hero" 
             className="w-full mb-3"
             onClick={() => handleUpgrade('annual')}
-            disabled={paystackLoading}
+            disabled={isLoading}
           >
-            {paystackLoading ? (
+            {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Processing...
@@ -198,7 +191,7 @@ export function TrialExpiryModal({ open, onAcknowledge }: TrialExpiryModalProps)
           <button
             onClick={onAcknowledge}
             className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-            disabled={paystackLoading}
+            disabled={isLoading}
           >
             Not ready? Your progress will be saved, but your streak resets to 0.
           </button>

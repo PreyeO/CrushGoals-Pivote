@@ -16,8 +16,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/hooks/useCurrency";
-import { usePaystack } from "@/hooks/usePaystack";
-import { usePolar } from "@/hooks/usePolar";
+import { useFlutterwave } from "@/hooks/useFlutterwave";
 import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 import { useNotifications } from "@/hooks/useNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -39,8 +38,7 @@ export default function Settings() {
   const { profile, isLoading: profileLoading, updateProfile } = useProfile();
   const { subscription, isLoading: subscriptionLoading, isPremium, getTrialDaysLeft, refreshSubscription } = useSubscription();
   const { getPricing } = useCurrency();
-  const { initializePayment, verifyPayment, isLoading: paystackLoading } = usePaystack();
-  const { initializePayment: initializePolarPayment, isLoading: polarLoading } = usePolar();
+  const { initializePayment, verifyPayment, isLoading: flutterwaveLoading } = useFlutterwave();
   const { payments: paymentHistory, isLoading: paymentsLoading } = usePaymentHistory();
   const { settings: notificationSettings, updateSettings: updateNotificationSettings, requestPermission, permissionStatus } = useNotifications();
   const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission, settings: pushSettings, updateSettings: updatePushSettings } = usePushNotifications();
@@ -77,20 +75,23 @@ export default function Settings() {
     }
   }, [profile]);
 
-  // Handle Paystack payment callback
+  // Handle Flutterwave payment callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const reference = params.get('reference') || params.get('trxref');
+    const transactionId = params.get('transaction_id');
+    const txRef = params.get('tx_ref');
     const paymentStatus = params.get('payment');
+    const status = params.get('status');
     
-    if (reference && paymentStatus === 'success') {
+    // Flutterwave returns status=successful or status=cancelled
+    if ((paymentStatus === 'success' || status === 'successful') && (transactionId || txRef)) {
       setVerifyingPayment(true);
-      verifyPayment(reference).then((result) => {
+      verifyPayment(transactionId || undefined, txRef || undefined).then((result) => {
         if (result?.success) {
           refreshSubscription();
         }
         // Clear URL params
-        window.history.replaceState({}, '', '/settings');
+        window.history.replaceState({}, '', '/settings?section=subscription');
       }).finally(() => {
         setVerifyingPayment(false);
       });
@@ -150,12 +151,7 @@ export default function Settings() {
   const handleUpgrade = async (plan: 'monthly' | 'annual') => {
     setLoadingPlan(plan);
     try {
-      if (pricing.isNigeria) {
-        await initializePayment(plan);
-      } else {
-        // International payments via Polar.sh
-        await initializePolarPayment(plan);
-      }
+      await initializePayment(plan);
     } finally {
       setLoadingPlan(null);
     }
@@ -466,7 +462,7 @@ export default function Settings() {
                           </h3>
                           <p className="text-xs sm:text-sm text-muted-foreground">
                             {subscription?.status === 'trial' && trialDaysLeft > 0
-                              ? `${Math.min(trialDaysLeft, 2)} day${Math.min(trialDaysLeft, 2) === 1 ? '' : 's'} left in trial`
+                              ? `${Math.ceil(trialDaysLeft)} day${Math.ceil(trialDaysLeft) === 1 ? '' : 's'} left in trial`
                               : isPremium() && subscription?.current_period_end
                               ? `Renews ${new Date(subscription.current_period_end).toLocaleDateString()}`
                               : 'Upgrade to unlock all features'

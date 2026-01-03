@@ -1,9 +1,6 @@
 project_id = "jnoqlbqilwohfyfudnss"
 
-[functions.paystack-payment]
-verify_jwt = false
-
-[functions.polar-payment]
+[functions.flutterwave-payment]
 verify_jwt = false
 
 [functions.send-email]
