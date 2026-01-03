@@ -73,7 +73,7 @@ export default function ResetPassword() {
       // Sign out and redirect to login
       setTimeout(async () => {
         await supabase.auth.signOut();
-        navigate('/?auth=signin');
+        navigate('/auth/signin');
       }, 1200);
     } catch {
       toast.error("An unexpected error occurred. Please try again.");
@@ -102,7 +102,7 @@ export default function ResetPassword() {
             >
               Request new reset link
             </Button>
-            <Button className="w-full" variant="outline" onClick={() => navigate("/?auth=signin")}
+            <Button className="w-full" variant="outline" onClick={() => navigate("/auth/signin")}
             >
               Back to Sign In
             </Button>
