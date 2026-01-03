@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logError, logDebug } from "@/lib/logger";
+import { CRUSHGOALS_FROM, renderBrandedEmail } from "@/lib/emailTemplate";
 
 type EmailType = "welcome" | "otp" | "password_reset" | "friend_invite" | "shared_goal_invite" | "streak_reminder";
 
@@ -361,58 +362,39 @@ export function useResendEmail() {
     email: string,
     resetLink: string
   ): Promise<boolean> => {
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0b; color: #ffffff; margin: 0; padding: 40px 20px;">
-          <div style="max-width: 560px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1f 0%, #0d0d10 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1);">
-            <div style="text-align: center; margin-bottom: 32px;">
-              <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
-              <h1 style="margin: 0; font-size: 28px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Reset Your Password</h1>
-            </div>
-            
-            <p style="font-size: 16px; line-height: 1.6; color: #a1a1aa; margin-bottom: 24px;">
-              We received a request to reset your password. Click the button below to create a new password:
-            </p>
-            
-            <div style="text-align: center; margin-bottom: 24px;">
-              <a href="${resetLink}" target="_blank" rel="noreferrer" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Reset Password →</a>
-            </div>
+    const bodyHtml = `
+      <p style="font-size:16px;line-height:1.6;color:#a1a1aa;margin:0 0 18px;">
+        We received a request to reset your password. Click the button below to create a new password.
+      </p>
 
-            <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
-              <p style="margin: 0 0 8px 0; color: #a1a1aa; font-size: 14px;">
-                If the button doesn’t work, copy and paste this link into your browser:
-              </p>
-              <p style="margin: 0; font-size: 14px; word-break: break-all;">
-                <a href="${resetLink}" target="_blank" rel="noreferrer" style="color: #a78bfa; text-decoration: underline;">${resetLink}</a>
-              </p>
-            </div>
-            
-            <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 24px;">
-              <p style="margin: 0; color: #fbbf24; font-size: 14px;">
-                ⏱️ This link expires in <strong>1 hour</strong>
-              </p>
-            </div>
-            
-            <p style="font-size: 14px; color: #71717a; text-align: center; margin: 0;">
-              If you didn't request a password reset, you can safely ignore this email.<br>
-              Your password will remain unchanged.
-            </p>
-          </div>
-        </body>
-      </html>
+      <div style="text-align:center;margin:22px 0 18px;">
+        <a href="${resetLink}" target="_blank" rel="noreferrer" style="display:inline-block;background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:16px;">Reset Password →</a>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin:0 0 18px;">
+        <p style="margin:0 0 8px;color:#a1a1aa;font-size:13px;">If the button doesn’t work, copy and paste this link:</p>
+        <p style="margin:0;font-size:13px;word-break:break-all;">
+          <a href="${resetLink}" target="_blank" rel="noreferrer" style="color:#a78bfa;text-decoration:underline;">${resetLink}</a>
+        </p>
+      </div>
+
+      <div style="background:rgba(251,191,36,0.10);border:1px solid rgba(251,191,36,0.30);border-radius:12px;padding:14px;text-align:center;">
+        <p style="margin:0;color:#fbbf24;font-size:13px;">⏱️ This link expires in <strong>1 hour</strong></p>
+      </div>
     `;
+
+    const html = renderBrandedEmail({
+      title: "Reset your password",
+      preheader: "Reset your CrushGoals password",
+      bodyHtml,
+    });
 
     return sendEmail({
       to: email,
       subject: "🔐 Reset your CrushGoals password",
       html,
       text: `Reset your CrushGoals password\n\nOpen this link to reset your password (expires in 1 hour):\n${resetLink}\n\nIf you didn't request this, you can ignore this email.`,
-      from: "CrushGoals <no-reply@hello.crushgoals.app>",
+      from: CRUSHGOALS_FROM,
       email_type: "password_reset",
     });
   };
