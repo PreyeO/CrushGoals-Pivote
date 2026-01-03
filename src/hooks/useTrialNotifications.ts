@@ -46,7 +46,7 @@ export function useTrialNotifications() {
     if (hoursLeft <= 1) return 'critical';
     if (hoursLeft <= 6) return 'urgent';
     if (trialDaysLeft <= 1) return 'urgent';
-    if (trialDaysLeft <= 2) return 'gentle';
+    if (trialDaysLeft <= 3) return 'gentle';
     return 'none';
   }, [isOnTrial, isPremiumUser, hoursLeft, trialDaysLeft]);
 
@@ -97,8 +97,8 @@ export function useTrialNotifications() {
       return;
     }
 
-    if (trialDaysLeft <= 2 && hoursLeft > 24) {
-      toast.warning("⏰ Less than 2 days left!", {
+    if (trialDaysLeft <= 3 && hoursLeft > 48) {
+      toast.warning("⏰ Less than 3 days left!", {
         description: "Your trial ends soon - upgrade to keep your progress!",
         duration: 6000,
       });

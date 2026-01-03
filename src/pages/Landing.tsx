@@ -471,14 +471,14 @@ export default function Landing() {
                   onClick={() => !plan.comingSoon && setAuthOpen(true)}
                   disabled={plan.comingSoon}
                 >
-                  {plan.comingSoon ? "Coming Soon" : "Start 2-Day Free Trial"}
+                  {plan.comingSoon ? "Coming Soon" : "Start 7-Day Free Trial"}
                 </Button>
               </Card>
             ))}
           </div>
 
           <p className="text-center text-xs sm:text-sm text-muted-foreground mt-6 sm:mt-8">
-            🔒 Secure payment • Cancel anytime • 2-day free trial
+            🔒 Secure payment • Cancel anytime • 7-day free trial
           </p>
         </div>
       </section>
