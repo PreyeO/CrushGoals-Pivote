@@ -80,19 +80,25 @@ export default function Settings() {
     const params = new URLSearchParams(window.location.search);
     const transactionId = params.get('transaction_id');
     const txRef = params.get('tx_ref');
-    const paymentStatus = params.get('payment');
-    const status = params.get('status');
+    const status = params.get('status'); // Flutterwave adds this: 'successful', 'cancelled', 'failed'
     
-    // Handle cancelled payment
-    if (paymentStatus === 'cancelled' || status === 'cancelled') {
+    // Handle cancelled payment (user clicked X or cancelled)
+    if (status === 'cancelled') {
       toast.info("Payment was cancelled. You can try again when ready.");
-      // Clear URL params
+      // Clear URL params but stay on subscription section
       window.history.replaceState({}, '', '/settings?section=subscription');
       return;
     }
     
-    // Flutterwave returns status=successful or status=cancelled
-    if ((paymentStatus === 'success' || status === 'successful') && (transactionId || txRef)) {
+    // Handle failed payment
+    if (status === 'failed') {
+      toast.error("Payment failed. Please try again or use a different payment method.");
+      window.history.replaceState({}, '', '/settings?section=subscription');
+      return;
+    }
+    
+    // Handle successful payment - verify with backend
+    if (status === 'successful' && (transactionId || txRef)) {
       setVerifyingPayment(true);
       verifyPayment(transactionId || undefined, txRef || undefined).then((result) => {
         if (result?.success) {
