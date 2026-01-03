@@ -38,12 +38,14 @@ export default function ForgotPassword() {
         body: { email: email.trim() },
       });
 
+      // Always return a generic success message (don’t reveal whether the email exists).
       if (resetError || !data?.resetLink) {
         setEmailSent(true);
         toast.success("If an account exists, a password reset email has been sent!");
         return;
       }
 
+      // data.resetLink is our app-friendly reset link (token_hash + email) to prevent instant expiry.
       const sent = await sendPasswordResetEmail(email.trim(), data.resetLink);
       if (!sent) {
         toast.error("Failed to send email. Please try again.");

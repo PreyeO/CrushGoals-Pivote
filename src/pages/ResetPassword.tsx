@@ -18,20 +18,45 @@ export default function ResetPassword() {
   const [isValidLink, setIsValidLink] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Support two reset link styles:
+  // 1) Supabase-style redirect: #access_token=...&type=recovery
+  // 2) Our safer link: ?type=recovery&token_hash=...&email=...
+  const [tokenHash, setTokenHash] = useState<string | null>(null);
+  const [resetEmail, setResetEmail] = useState<string | null>(null);
+
   useEffect(() => {
-    // Accept both hash and query params (different email clients can rewrite links)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const queryParams = new URLSearchParams(window.location.search);
 
-    const accessToken = hashParams.get("access_token") || queryParams.get("access_token");
-    const type = hashParams.get("type") || queryParams.get("type");
+    const errorCode = hashParams.get("error_code") || queryParams.get("error_code");
+    const errorDescription = hashParams.get("error_description") || queryParams.get("error_description");
 
-    // If the session was already established by the auth redirect, accessToken might be missing.
-    // We'll treat missing token+type as invalid but won't auto-redirect away.
-    if (!accessToken || type !== "recovery") {
+    if (errorCode) {
+      setIsValidLink(false);
+      toast.error(decodeURIComponent(errorDescription || "Reset link is invalid or has expired"));
+      return;
+    }
+
+    const type = hashParams.get("type") || queryParams.get("type");
+    const accessToken = hashParams.get("access_token") || queryParams.get("access_token");
+    const token_hash = hashParams.get("token_hash") || queryParams.get("token_hash");
+    const email = hashParams.get("email") || queryParams.get("email");
+
+    if (type !== "recovery") {
+      setIsValidLink(false);
+      toast.error("Invalid reset link. Please request a new one.");
+      return;
+    }
+
+    // Valid if we either have an access_token already OR we have token_hash+email for deferred verification.
+    if (!accessToken && !(token_hash && email)) {
       setIsValidLink(false);
       toast.error("Invalid or expired reset link. Please request a new one.");
+      return;
     }
+
+    setTokenHash(token_hash);
+    setResetEmail(email);
   }, []);
 
   const validateForm = () => {
@@ -57,23 +82,38 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
+      // If the link contains token_hash/email, verify ONLY when user submits.
+      // This avoids email clients/link scanners consuming the token before the user uses it.
+      if (tokenHash && resetEmail) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          type: "recovery",
+          token_hash: tokenHash,
+          email: resetEmail,
+        });
+
+        if (verifyError) {
+          setIsValidLink(false);
+          toast.error(verifyError.message);
+          return;
+        }
+      }
+
       const { error } = await supabase.auth.updateUser({
-        password: password,
+        password,
       });
 
       if (error) {
         toast.error(error.message);
-        setIsLoading(false);
         return;
       }
 
       setIsSuccess(true);
       toast.success("Password updated successfully!");
-      
-      // Sign out and redirect to login
+
+      // Sign out and redirect to login (prevents auto-entering the app via the recovery session)
       setTimeout(async () => {
         await supabase.auth.signOut();
-        navigate('/?auth=signin');
+        navigate("/?auth=signin");
       }, 1200);
     } catch {
       toast.error("An unexpected error occurred. Please try again.");
