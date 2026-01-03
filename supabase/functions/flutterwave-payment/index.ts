@@ -88,8 +88,8 @@ Deno.serve(async (req) => {
       }
 
       const siteUrl = Deno.env.get("SITE_URL") || "https://crushgoals.lovable.app";
-      const redirectUrl = `${siteUrl}${callbackUrl || "/settings?section=subscription"}&payment=success`;
-      const cancelUrl = `${siteUrl}/settings?section=subscription&payment=cancelled`;
+      // Use clean redirect URL - Flutterwave appends status, transaction_id, tx_ref automatically
+      const redirectUrl = `${siteUrl}/settings?section=subscription`;
 
       const paymentPayload = {
         tx_ref: txRef,
@@ -110,7 +110,6 @@ Deno.serve(async (req) => {
           user_id: user.id,
           plan: plan,
           currency: currency,
-          cancel_action: cancelUrl,
         },
       };
 
