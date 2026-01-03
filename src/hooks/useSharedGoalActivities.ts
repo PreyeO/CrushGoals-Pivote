@@ -60,15 +60,13 @@ export function useSharedGoalActivities(sharedGoalId: string | null) {
       commentsData?.forEach(c => userIds.add(c.user_id));
       activitiesData?.forEach(a => userIds.add(a.user_id));
 
-      // Fetch profiles for usernames
+      // Use secure RPC function to fetch profiles (prevents direct table access)
       const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, username, full_name')
-        .in('user_id', Array.from(userIds));
+        .rpc('get_social_profiles', { p_user_ids: Array.from(userIds) });
 
       const userMap: Record<string, string> = {};
-      profiles?.forEach(p => {
-        userMap[p.user_id] = p.username || p.full_name.split(' ')[0] || 'Anonymous';
+      profiles?.forEach((p: { user_id: string; username: string | null; full_name: string | null }) => {
+        userMap[p.user_id] = p.username || (p.full_name ? p.full_name.split(' ')[0] : null) || 'Anonymous';
       });
 
       setComments((commentsData || []).map(c => ({
@@ -112,12 +110,11 @@ export function useSharedGoalActivities(sharedGoalId: string | null) {
           
           // Don't show toast for own activities
           if (newActivity.user_id !== user?.id) {
-            // Fetch the username for this user
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('username, full_name')
-              .eq('user_id', newActivity.user_id)
-              .single();
+            // Use secure RPC function to fetch profile data
+            const { data: profileDataArray } = await supabase
+              .rpc('get_social_profiles', { p_user_ids: [newActivity.user_id] });
+            
+            const profileData = profileDataArray?.[0] as { username: string | null; full_name: string | null } | undefined;
 
             const username = profileData?.username || profileData?.full_name?.split(' ')[0] || 'Someone';
 
