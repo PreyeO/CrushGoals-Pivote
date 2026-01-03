@@ -3,6 +3,9 @@ project_id = "jnoqlbqilwohfyfudnss"
 [functions.flutterwave-payment]
 verify_jwt = false
 
+[functions.generate-reset-link]
+verify_jwt = false
+
 [functions.send-email]
 verify_jwt = true
 
