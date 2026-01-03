@@ -136,63 +136,62 @@ export function useFriends() {
     if (!user) return false;
 
     try {
-      // Find user by email
-      const { data: targetProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .eq('email', email.toLowerCase().trim())
-        .maybeSingle();
+      // Check if user exists using secure RPC (avoids email enumeration)
+      const { data: userExists, error: existsError } = await supabase.rpc('check_invitee_email_exists', {
+        p_email: email.toLowerCase().trim()
+      });
 
-      if (profileError) throw profileError;
+      if (existsError) throw existsError;
 
-      if (!targetProfile) {
+      if (!userExists) {
         toast.error('User not found', { description: 'No user with that email exists.' });
         return false;
       }
 
-      if (targetProfile.user_id === user.id) {
+      // Get basic user info using secure RPC
+      const { data: basicInfo, error: infoError } = await supabase.rpc('get_invitee_basic_info', {
+        p_email: email.toLowerCase().trim()
+      });
+
+      if (infoError) throw infoError;
+
+      // We need to get the user_id - use an edge function or RPC for this
+      // For now, create a friend invite instead of direct friendship
+      // The friendship will be established when they accept
+      const displayName = basicInfo?.[0]?.username || 'this user';
+      
+      // Check own email to prevent self-add
+      const { data: ownProfile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (ownProfile?.email?.toLowerCase() === email.toLowerCase().trim()) {
         toast.error("You can't add yourself as a friend!");
         return false;
       }
 
-      // Check if friendship already exists (using separate queries to avoid string interpolation)
-      const { data: sentFriendship } = await supabase
-        .from('friendships')
-        .select('id, status')
-        .eq('user_id', user.id)
-        .eq('friend_id', targetProfile.user_id)
-        .maybeSingle();
-
-      const { data: receivedFriendship } = await supabase
-        .from('friendships')
-        .select('id, status')
-        .eq('user_id', targetProfile.user_id)
-        .eq('friend_id', user.id)
-        .maybeSingle();
-
-      const existing = sentFriendship || receivedFriendship;
-
-      if (existing) {
-        if (existing.status === 'accepted') {
-          toast.info('Already friends!');
-        } else if (existing.status === 'pending') {
-          toast.info('Friend request already sent!');
-        }
-        return false;
-      }
-
-      // Create friendship request
-      const { error } = await supabase
-        .from('friendships')
+      // Since we can't get the target user_id directly due to RLS,
+      // we create a friend_invite record instead. The friendship
+      // will be established when the invitee processes it.
+      const { error: inviteError } = await supabase
+        .from('friend_invites')
         .insert({
-          user_id: user.id,
-          friend_id: targetProfile.user_id,
-          status: 'pending',
+          inviter_id: user.id,
+          invitee_email: email.toLowerCase().trim(),
         });
 
-      if (error) throw error;
+      if (inviteError) {
+        // Check for duplicate
+        if (inviteError.code === '23505') {
+          toast.info('Friend request already sent to this email!');
+          return false;
+        }
+        throw inviteError;
+      }
 
-      toast.success('Friend request sent!', { description: `Sent to ${targetProfile.full_name}` });
+      toast.success('Friend request sent!', { description: `Sent to ${displayName}` });
       return true;
     } catch (error) {
       logError('Error sending friend request:', error);

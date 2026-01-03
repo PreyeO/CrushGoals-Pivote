@@ -136,116 +136,80 @@ export function InviteFriendModal({ open, onOpenChange, onSuccess }: InviteFrien
 
     setIsLoading(true);
     try {
-      // Check if user exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .eq('email', email.trim().toLowerCase())
-        .maybeSingle();
+      // Check if user exists using secure RPC (avoids email enumeration via RLS)
+      const { data: userExists } = await supabase.rpc('check_invitee_email_exists', {
+        p_email: email.trim().toLowerCase()
+      });
 
-      if (existingProfile) {
-        // User exists - create friendship request (using separate queries to avoid string interpolation)
-        const { data: sentFriendship } = await supabase
-          .from('friendships')
-          .select('id, status')
-          .eq('user_id', user.id)
-          .eq('friend_id', existingProfile.user_id)
+      const selectedGoal = goals.find(g => g.id === selectedGoalId);
+      
+      // Create shared goal if needed
+      let sharedGoalId: string | undefined;
+      if (selectedGoal) {
+        const { data: existingSharedGoal } = await supabase
+          .from('shared_goals')
+          .select('id')
+          .eq('goal_id', selectedGoalId)
+          .eq('owner_id', user.id)
           .maybeSingle();
 
-        const { data: receivedFriendship } = await supabase
-          .from('friendships')
-          .select('id, status')
-          .eq('user_id', existingProfile.user_id)
-          .eq('friend_id', user.id)
-          .maybeSingle();
-
-        const existingFriendship = sentFriendship || receivedFriendship;
-
-        if (existingFriendship) {
-          if (existingFriendship.status === 'pending') {
-            toast.info("Friend request already pending");
-          } else {
-            toast.info("You're already friends!");
-          }
-          setIsLoading(false);
-          return;
-        }
-
-        // Create friendship request
-        const { error: friendshipError } = await supabase
-          .from('friendships')
-          .insert({
-            user_id: user.id,
-            friend_id: existingProfile.user_id,
-            status: 'pending',
-          });
-
-        if (friendshipError) throw friendshipError;
-
-        // Create shared goal invite
-        const selectedGoal = goals.find(g => g.id === selectedGoalId);
-        if (selectedGoal) {
-          // Check if shared goal already exists for this goal
-          let sharedGoalId: string;
-          const { data: existingSharedGoal } = await supabase
+        if (existingSharedGoal) {
+          sharedGoalId = existingSharedGoal.id;
+        } else {
+          const { data: newSharedGoal, error: sgError } = await supabase
             .from('shared_goals')
-            .select('id')
-            .eq('goal_id', selectedGoalId)
-            .eq('owner_id', user.id)
-            .maybeSingle();
-
-          if (existingSharedGoal) {
-            sharedGoalId = existingSharedGoal.id;
-          } else {
-            // Create shared goal
-            const { data: newSharedGoal, error: sgError } = await supabase
-              .from('shared_goals')
-              .insert({
-                goal_id: selectedGoalId,
-                owner_id: user.id,
-                name: `${selectedGoal.name} Challenge`,
-              })
-              .select('id')
-              .single();
-
-            if (sgError) throw sgError;
-            sharedGoalId = newSharedGoal.id;
-
-            // Add owner as member
-            await supabase.from('shared_goal_members').insert({
-              shared_goal_id: sharedGoalId,
-              user_id: user.id,
+            .insert({
               goal_id: selectedGoalId,
-            });
-          }
+              owner_id: user.id,
+              name: `${selectedGoal.name} Challenge`,
+            })
+            .select('id')
+            .single();
 
-          // Create shared goal invite
-          await supabase.from('shared_goal_invites').insert({
+          if (sgError) throw sgError;
+          sharedGoalId = newSharedGoal.id;
+
+          // Add owner as member
+          await supabase.from('shared_goal_members').insert({
             shared_goal_id: sharedGoalId,
-            inviter_id: user.id,
-            invitee_email: email.trim().toLowerCase(),
-            invitee_user_id: existingProfile.user_id,
+            user_id: user.id,
+            goal_id: selectedGoalId,
           });
         }
 
-        toast.success(`Friend request sent to ${existingProfile.full_name}!`);
+        // Create shared goal invite (works for both existing and new users)
+        await supabase.from('shared_goal_invites').insert({
+          shared_goal_id: sharedGoalId,
+          inviter_id: user.id,
+          invitee_email: email.trim().toLowerCase(),
+          invitee_user_id: null, // Will be resolved when they accept
+        });
+      }
+
+      if (userExists) {
+        // User exists - they'll see the invite when they log in
+        // Get their display name for the toast
+        const { data: basicInfo } = await supabase.rpc('get_invitee_basic_info', {
+          p_email: email.trim().toLowerCase()
+        });
+        const displayName = basicInfo?.[0]?.username || 'your friend';
+        toast.success(`Invite sent to ${displayName}!`, {
+          description: "They'll see your invite when they log in."
+        });
       } else {
-        // User doesn't exist - create invite in friend_invites table
-        const { data: inviteData, error: inviteError } = await supabase
+        // User doesn't exist - create friend invite and send email
+        const { error: inviteError } = await supabase
           .from('friend_invites')
           .insert({
             inviter_id: user.id,
             invitee_email: email.trim().toLowerCase(),
             goal_id: selectedGoalId,
-          })
-          .select('invite_token')
-          .single();
+          });
 
-        if (inviteError) throw inviteError;
+        if (inviteError && inviteError.code !== '23505') throw inviteError;
 
         // Send invitation email
         const inviterName = profile?.full_name || profile?.username || 'Your friend';
-        const selectedGoal = goals.find(g => g.id === selectedGoalId);
         
         await sendFriendInviteEmail(
           email.trim(),

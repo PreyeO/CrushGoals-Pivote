@@ -162,12 +162,14 @@ export function useSharedGoals() {
     if (!user) return false;
 
     try {
-      // Check if user exists
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', email.toLowerCase().trim())
-        .maybeSingle();
+      // Check if user exists using secure RPC (avoids email enumeration)
+      const { data: userExists } = await supabase.rpc('check_invitee_email_exists', {
+        p_email: email.toLowerCase().trim()
+      });
+      
+      // Note: We don't need the user_id immediately - the invite record
+      // will capture invitee_user_id as null for new users, and the
+      // invitee can accept via their email match in RLS policies
 
       // Get shared goal details for the email
       const { data: sharedGoalData } = await supabase
@@ -185,7 +187,7 @@ export function useSharedGoals() {
           shared_goal_id: sharedGoalId,
           inviter_id: user.id,
           invitee_email: email.toLowerCase().trim(),
-          invitee_user_id: existingUser?.user_id || null,
+          invitee_user_id: null, // Will be resolved when invitee accepts via email match
         });
 
       if (error) throw error;
