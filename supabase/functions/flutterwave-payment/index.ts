@@ -64,10 +64,25 @@ Deno.serve(async (req) => {
       // Create Flutterwave payment link
       // Use test key if available, otherwise use live key
       const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY_TEST") || Deno.env.get("FLUTTERWAVE_SECRET_KEY");
+      
+      // Log key diagnostics (safe - only prefix and length)
+      const keyPrefix = flutterwaveSecretKey ? flutterwaveSecretKey.substring(0, 12) : "MISSING";
+      const keyLength = flutterwaveSecretKey?.length || 0;
+      console.log(`[Flutterwave] Using key: ${keyPrefix}... (length: ${keyLength})`);
+      
       if (!flutterwaveSecretKey) {
         console.error("[Flutterwave] Missing FLUTTERWAVE_SECRET_KEY");
         return new Response(
           JSON.stringify({ error: "Payment configuration error" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Validate key format - must be a Secret Key (starts with FLWSECK_)
+      if (!flutterwaveSecretKey.startsWith("FLWSECK_") && !flutterwaveSecretKey.startsWith("FLWSECK-")) {
+        console.error(`[Flutterwave] Invalid key format. Expected FLWSECK_... but got ${keyPrefix}...`);
+        return new Response(
+          JSON.stringify({ error: "Invalid Flutterwave key configuration. Please use a Secret Key (FLWSECK_...)" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
