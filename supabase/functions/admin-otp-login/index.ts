@@ -4,10 +4,33 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://crushgoals.app',
+  'https://www.crushgoals.app',
+  'https://crushgoals.lovable.app',
+  'https://jnoqlbqilwohfyfudnss.supabase.co',
+];
+
+const DEV_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:8080',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allAllowedOrigins = [...ALLOWED_ORIGINS, ...DEV_ORIGINS];
+  const isAllowed = origin && allAllowedOrigins.includes(origin);
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 interface AdminLoginRequest {
   email: string;
@@ -16,6 +39,9 @@ interface AdminLoginRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
