@@ -1,8 +1,9 @@
 // Service Worker for CrushGoals PWA with Offline Support
 
-const CACHE_NAME = "crushgoals-v1.1";
-const API_CACHE_NAME = "crushgoals-api-v1.1";
-const STATIC_CACHE_NAME = "crushgoals-static-v1.1";
+const CACHE_VERSION = "v1.2";
+const CACHE_NAME = `crushgoals-${CACHE_VERSION}`;
+const API_CACHE_NAME = `crushgoals-api-${CACHE_VERSION}`;
+const STATIC_CACHE_NAME = `crushgoals-static-${CACHE_VERSION}`;
 
 // Files to cache immediately
 const STATIC_ASSETS = [
@@ -77,13 +78,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Handle static assets
-  if (
-    request.destination === "script" ||
-    request.destination === "style" ||
-    request.destination === "image" ||
-    request.destination === "font"
-  ) {
+  // Handle static assets (cache only images/fonts; never cache JS/CSS to avoid stale bundles)
+  if (request.destination === "image" || request.destination === "font") {
     event.respondWith(handleStaticRequest(request));
     return;
   }
