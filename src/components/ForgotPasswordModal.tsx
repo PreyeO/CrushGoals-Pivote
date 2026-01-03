@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useResendEmail } from "@/hooks/useResendEmail";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -21,6 +22,7 @@ export function ForgotPasswordModal({ open, onOpenChange, onBack }: ForgotPasswo
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [error, setError] = useState("");
+  const { sendPasswordResetEmail } = useResendEmail();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,12 +38,24 @@ export function ForgotPasswordModal({ open, onOpenChange, onBack }: ForgotPasswo
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Generate a password reset link using Supabase admin API via edge function
+      const { data, error: resetError } = await supabase.functions.invoke("generate-reset-link", {
+        body: { email: email.trim() },
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (resetError || !data?.resetLink) {
+        // Don't reveal if email exists or not for security
+        setEmailSent(true);
+        toast.success("If an account exists, a password reset email has been sent!");
+        setIsLoading(false);
+        return;
+      }
+
+      // Send the email via Resend
+      const emailSent = await sendPasswordResetEmail(email.trim(), data.resetLink);
+      
+      if (!emailSent) {
+        toast.error("Failed to send email. Please try again.");
         setIsLoading(false);
         return;
       }

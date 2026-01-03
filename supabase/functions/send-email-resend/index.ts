@@ -153,16 +153,16 @@ const handler = async (req: Request): Promise<Response> => {
     const clientIP = getClientIP(req);
     let userId: string | null = null;
 
-    // For OTP emails during signup, allow unauthenticated requests with stricter rate limiting
-    if (email_type === "otp") {
-      // Stricter rate limit for unauthenticated OTP requests
+    // For OTP and password_reset emails, allow unauthenticated requests with stricter rate limiting
+    if (email_type === "otp" || email_type === "password_reset") {
+      // Stricter rate limit for unauthenticated requests
       const rateLimit = checkRateLimit(clientIP, RATE_LIMIT_MAX_OTP_REQUESTS);
       
       if (!rateLimit.allowed) {
-        console.warn(`OTP rate limit exceeded for IP: ${clientIP}`);
+        console.warn(`${email_type} rate limit exceeded for IP: ${clientIP}`);
         return new Response(
           JSON.stringify({ 
-            error: "Too many OTP requests. Please try again later.",
+            error: "Too many requests. Please try again later.",
             retryAfter: Math.ceil(rateLimit.resetIn / 1000)
           }),
           { 
@@ -175,7 +175,7 @@ const handler = async (req: Request): Promise<Response> => {
           }
         );
       }
-      console.log(`OTP email request from IP: ${clientIP}`);
+      console.log(`${email_type} email request from IP: ${clientIP}`);
     } else {
       // All other email types require authentication
       if (!authHeader) {
