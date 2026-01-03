@@ -39,13 +39,14 @@ const App = () => (
                   <Route path="/admin-login" element={<AdminLogin />} />
                   <Route path="/auth/forgot" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
                   <Route
                     path="/goals"
                     element={
