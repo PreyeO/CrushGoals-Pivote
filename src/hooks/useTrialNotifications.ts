@@ -72,19 +72,35 @@ export function useTrialNotifications() {
 
     const currentHour = new Date().getHours();
 
-    // 2-day (48-hour) trial notifications
-    if (hoursLeft > 36 && hoursLeft <= 48) {
-      toast.info("🎉 Welcome! 48 hours of free access!", {
+    // 7-day trial notifications
+    if (hoursLeft > 144 && hoursLeft <= 168) {
+      toast.info("🎉 Welcome! 7 days of free access!", {
         description: "Explore all features and crush your goals!",
         duration: 6000,
       });
       return;
     }
 
-    if (hoursLeft <= 36 && hoursLeft > 24) {
-      toast("⚡ 36 hours left in your trial!", {
+    if (hoursLeft <= 144 && hoursLeft > 96) {
+      toast("⚡ 5+ days left in your trial!", {
         description: "Set your first goal to get started!",
         duration: 5000,
+      });
+      return;
+    }
+
+    if (hoursLeft <= 96 && hoursLeft > 48) {
+      toast("📅 About 3 days left in your trial!", {
+        description: "Explore all premium features!",
+        duration: 5000,
+      });
+      return;
+    }
+
+    if (trialDaysLeft <= 2 && hoursLeft > 24) {
+      toast.warning("⏰ Less than 2 days left!", {
+        description: "Your trial ends soon - upgrade to keep your progress!",
+        duration: 6000,
       });
       return;
     }

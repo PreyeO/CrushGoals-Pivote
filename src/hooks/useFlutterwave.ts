@@ -5,40 +5,43 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
 import { logError } from '@/lib/logger';
 
-export type PaystackPlan = 'monthly' | 'annual';
+export type FlutterwavePlan = 'monthly' | 'annual';
 
-interface PaystackInitResponse {
+interface FlutterwaveInitResponse {
   authorization_url: string;
-  access_code: string;
-  reference: string;
+  tx_ref: string;
+  success: boolean;
 }
 
-interface PaystackVerifyResponse {
+interface FlutterwaveVerifyResponse {
   success: boolean;
   plan: string;
   amount: number;
   currency: string;
 }
 
-export function usePaystack() {
+export function useFlutterwave() {
   const { user } = useAuth();
   const { getPricing } = useCurrency();
   const [isLoading, setIsLoading] = useState(false);
 
-  const getAmountInKobo = useCallback((plan: PaystackPlan): number => {
+  const getPaymentDetails = useCallback((plan: FlutterwavePlan) => {
     const pricing = getPricing();
     
-    switch (plan) {
-      case 'monthly':
-        return Math.round(pricing.monthly.amount * 100);
-      case 'annual':
-        return Math.round(pricing.annual.amount * 100);
-      default:
-        return 0;
-    }
+    // Get amount in the smallest unit based on currency
+    // Flutterwave expects the actual amount, not kobo/cents
+    const amount = plan === 'monthly' 
+      ? pricing.monthly.amount 
+      : pricing.annual.amount;
+    
+    return {
+      amount,
+      currency: pricing.code,
+      planName: plan === 'annual' ? 'basic_annual' : 'basic_monthly',
+    };
   }, [getPricing]);
 
-  const initializePayment = useCallback(async (plan: PaystackPlan): Promise<PaystackInitResponse | null> => {
+  const initializePayment = useCallback(async (plan: FlutterwavePlan): Promise<FlutterwaveInitResponse | null> => {
     if (!user) {
       toast.error('Please sign in to continue');
       return null;
@@ -47,16 +50,9 @@ export function usePaystack() {
     setIsLoading(true);
     
     try {
-      const amount = getAmountInKobo(plan);
-      
-      if (amount <= 0) {
-        throw new Error('Invalid plan amount');
-      }
+      const { amount, currency, planName } = getPaymentDetails(plan);
 
-      // Map plan to full plan name for edge function (basic tier)
-      const planName = plan === 'monthly' ? 'basic_monthly' : 'basic_annual';
-
-      console.log(`Initializing Paystack payment for plan: ${planName}, amount: ${amount} kobo`);
+      console.log(`[Flutterwave] Initializing payment - plan: ${planName}, amount: ${amount} ${currency}`);
 
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -66,16 +62,20 @@ export function usePaystack() {
         return null;
       }
 
-      // Use fetch directly with query parameter for action
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/paystack-payment?action=initialize`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/flutterwave-payment?action=initialize`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
           'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ amount, plan: planName }),
+        body: JSON.stringify({ 
+          amount, 
+          currency, 
+          plan: planName,
+          callbackUrl: '/settings?section=subscription',
+        }),
       });
 
       const data = await response.json();
@@ -84,30 +84,39 @@ export function usePaystack() {
         throw new Error(data.error || 'Failed to initialize payment');
       }
       
-      // Redirect to Paystack checkout
+      // Redirect to Flutterwave checkout
       if (data.authorization_url) {
         window.location.href = data.authorization_url;
+        return {
+          authorization_url: data.authorization_url,
+          tx_ref: data.tx_ref,
+          success: true,
+        };
       }
 
-      return data as PaystackInitResponse;
-    } catch (error) {
-      logError('Paystack initialization error:', error);
-      toast.error('Failed to initialize payment. Please try again.');
+      throw new Error('No checkout URL returned');
+    } catch (error: any) {
+      logError('Flutterwave initialization error:', error);
+      toast.error(error.message || 'Failed to initialize payment. Please try again.');
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [user, getAmountInKobo]);
+  }, [user, getPaymentDetails]);
 
-  const verifyPayment = useCallback(async (reference: string): Promise<PaystackVerifyResponse | null> => {
+  const verifyPayment = useCallback(async (transactionId?: string, txRef?: string): Promise<FlutterwaveVerifyResponse | null> => {
     if (!user) {
+      return null;
+    }
+
+    if (!transactionId && !txRef) {
       return null;
     }
 
     setIsLoading(true);
     
     try {
-      console.log(`Verifying Paystack payment: ${reference}`);
+      console.log(`[Flutterwave] Verifying payment - tx_id: ${transactionId}, tx_ref: ${txRef}`);
 
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -116,16 +125,18 @@ export function usePaystack() {
         return null;
       }
 
-      // Use fetch directly with query parameter for action
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/paystack-payment?action=verify`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/flutterwave-payment?action=verify`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
           'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ reference }),
+        body: JSON.stringify({ 
+          transaction_id: transactionId,
+          tx_ref: txRef,
+        }),
       });
 
       const data = await response.json();
@@ -136,12 +147,13 @@ export function usePaystack() {
       
       if (data.success) {
         toast.success('Payment successful! Your subscription is now active.');
+        return data as FlutterwaveVerifyResponse;
       }
 
-      return data as PaystackVerifyResponse;
-    } catch (error) {
-      logError('Paystack verification error:', error);
-      toast.error('Payment verification failed. Please contact support.');
+      throw new Error(data.error || 'Payment verification failed');
+    } catch (error: any) {
+      logError('Flutterwave verification error:', error);
+      toast.error(error.message || 'Payment verification failed. Please contact support.');
       return null;
     } finally {
       setIsLoading(false);
@@ -152,6 +164,6 @@ export function usePaystack() {
     initializePayment,
     verifyPayment,
     isLoading,
-    getAmountInKobo,
+    getPaymentDetails,
   };
 }

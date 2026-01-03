@@ -1,4 +1,5 @@
 // Performance monitoring utilities for CrushGoals
+import { useEffect, useCallback } from 'react';
 
 interface PerformanceMetric {
   name: string;
@@ -80,7 +81,7 @@ class PerformanceMonitor {
     }
   }
 
-  private recordMetric(name: string, value: number, type: "measure" | "mark") {
+  recordMetric(name: string, value: number, type: "measure" | "mark") {
     this.metrics.push({
       name,
       value,

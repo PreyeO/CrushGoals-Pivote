@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/hooks/useCurrency';
-import { usePaystack } from '@/hooks/usePaystack';
+import { useFlutterwave } from '@/hooks/useFlutterwave';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +27,7 @@ export function TrialExpiredOverlay({
 }: TrialExpiredOverlayProps) {
   const { stats } = useAuth();
   const { getPricing } = useCurrency();
-  const { initializePayment, isLoading: paystackLoading } = usePaystack();
+  const { initializePayment, isLoading } = useFlutterwave();
   const { refreshSubscription } = useSubscription();
 
   const pricing = getPricing();
@@ -131,7 +131,7 @@ export function TrialExpiredOverlay({
           {/* Yearly - Best Value */}
           <button
             onClick={() => handleUpgrade('annual')}
-            disabled={paystackLoading}
+            disabled={isLoading}
             className={cn(
               "w-full p-4 rounded-xl border-2 border-primary bg-primary/5 text-left transition-all",
               "hover:bg-primary/10 hover:border-primary",
@@ -160,7 +160,7 @@ export function TrialExpiredOverlay({
           {/* Monthly */}
           <button
             onClick={() => handleUpgrade('monthly')}
-            disabled={paystackLoading}
+            disabled={isLoading}
             className={cn(
               "w-full p-4 rounded-xl border border-border bg-secondary/50 text-left transition-all",
               "hover:bg-secondary hover:border-primary/50"
@@ -180,7 +180,7 @@ export function TrialExpiredOverlay({
           </button>
 
           {/* Loading state */}
-          {paystackLoading && (
+          {isLoading && (
             <div className="text-center py-2">
               <p className="text-xs text-muted-foreground">Processing...</p>
             </div>

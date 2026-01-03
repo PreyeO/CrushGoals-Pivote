@@ -91,16 +91,16 @@ export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
       };
     }
     
-    if (hoursLeft > 24 && hoursLeft <= 48) {
+    if (hoursLeft > 24 && hoursLeft <= 72) {
       return {
-        title: `🎉 2 days left in your free trial`,
+        title: `🎉 ${Math.ceil(hoursLeft / 24)} days left in your free trial`,
         subtitle: "Explore all premium features!",
       };
     }
     
-    if (hoursLeft > 48) {
+    if (hoursLeft > 72) {
       return {
-        title: `🎉 ${Math.min(2, Math.ceil(hoursLeft / 24))} days left in your free trial`,
+        title: `🎉 ${Math.ceil(hoursLeft / 24)} days left in your free trial`,
         subtitle: "Explore all premium features!",
       };
     }
@@ -164,7 +164,7 @@ export function TrialBanner({ onUpgradeClick }: TrialBannerProps) {
               urgency === 'critical' ? "bg-destructive" :
               urgency === 'warning' ? "bg-warning" : "bg-primary"
             )}
-            style={{ width: `${Math.max(0, Math.min(100, (hoursLeft / 48) * 100))}%` }}
+            style={{ width: `${Math.max(0, Math.min(100, (hoursLeft / 168) * 100))}%` }}
           />
         </div>
       )}
