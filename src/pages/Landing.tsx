@@ -206,10 +206,16 @@ export default function Landing() {
 
           {/* Desktop Menu */}
           <div className="hidden sm:flex items-center gap-4">
-            <Button variant="ghost" onClick={() => setAuthOpen(true)}>
+            <Button variant="ghost" onClick={() => {
+              setAuthDefaultTab("signin");
+              setAuthOpen(true);
+            }}>
               Sign In
             </Button>
-            <Button variant="hero" onClick={() => setAuthOpen(true)}>
+            <Button variant="hero" onClick={() => {
+              setAuthDefaultTab("signup");
+              setAuthOpen(true);
+            }}>
               Start Free Trial
             </Button>
           </div>
@@ -234,6 +240,7 @@ export default function Landing() {
               <Button
                 variant="ghost"
                 onClick={() => {
+                  setAuthDefaultTab("signin");
                   setAuthOpen(true);
                   setMobileMenuOpen(false);
                 }}
@@ -243,6 +250,7 @@ export default function Landing() {
               <Button
                 variant="hero"
                 onClick={() => {
+                  setAuthDefaultTab("signup");
                   setAuthOpen(true);
                   setMobileMenuOpen(false);
                 }}
@@ -295,7 +303,10 @@ export default function Landing() {
               variant="hero"
               size="xl"
               className="animate-pulse-glow w-full sm:w-auto"
-              onClick={() => setAuthOpen(true)}
+              onClick={() => {
+                setAuthDefaultTab("signup");
+                setAuthOpen(true);
+              }}
             >
               Start Free Trial
               <Zap className="w-5 h-5 ml-1" />
@@ -481,7 +492,12 @@ export default function Landing() {
                   variant={plan.popular ? "hero" : "glass"}
                   size="lg"
                   className="w-full"
-                  onClick={() => !plan.comingSoon && setAuthOpen(true)}
+                  onClick={() => {
+                    if (!plan.comingSoon) {
+                      setAuthDefaultTab("signup");
+                      setAuthOpen(true);
+                    }
+                  }}
                   disabled={plan.comingSoon}
                 >
                   {plan.comingSoon ? "Coming Soon" : "Start 7-Day Free Trial"}
@@ -509,7 +525,10 @@ export default function Landing() {
             variant="hero"
             size="xl"
             className="animate-pulse-glow w-full sm:w-auto"
-            onClick={() => setAuthOpen(true)}
+            onClick={() => {
+              setAuthDefaultTab("signup");
+              setAuthOpen(true);
+            }}
           >
             Start Your Free Trial Today
             <Zap className="w-5 h-5 ml-1" />

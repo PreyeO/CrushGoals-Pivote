@@ -44,14 +44,37 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
   const [showOnLeaderboard, setShowOnLeaderboard] = useState(true); // Default to ON
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [signupStep, setSignupStep] = useState<1 | 2 | 3>(1); // Track signup form step
   const { checkRateLimit, recordAttempt } = useRateLimiter();
   const { sendWelcomeEmail } = useResendEmail();
 
   useEffect(() => {
-    if (open && defaultTab) {
+    // Update tab when defaultTab prop changes (even if modal is already open)
+    if (defaultTab) {
       setTab(defaultTab);
     }
-  }, [open, defaultTab]);
+  }, [defaultTab]);
+
+  useEffect(() => {
+    // Reset signup step when modal opens
+    if (open) {
+      setSignupStep(1);
+    }
+  }, [open]);
+
+  // Auto-advance signup steps based on field completion
+  useEffect(() => {
+    if (tab === "signup") {
+      // Step 1 -> Step 2: When name and username are filled
+      if (signupStep === 1 && name.trim().length > 0 && username.trim().length >= 3 && !errors.username) {
+        setSignupStep(2);
+      }
+      // Step 2 -> Step 3: When email and password are filled
+      if (signupStep === 2 && email.trim().length > 0 && password.length >= 6) {
+        setSignupStep(3);
+      }
+    }
+  }, [name, username, email, password, signupStep, tab, errors.username]);
   const checkUsernameAvailability = async (value: string) => {
     if (value.length < 3) return;
     
@@ -191,6 +214,7 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
           setPassword("");
           setAgreed(false);
           setShowOnLeaderboard(true);
+          setSignupStep(1);
         }
         setIsLoading(false);
       } else {
@@ -261,7 +285,10 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
           {/* Tab Switcher */}
           <div className="flex bg-secondary rounded-lg p-1 mb-6">
             <button
-              onClick={() => setTab("signin")}
+              onClick={() => {
+                setTab("signin");
+                setSignupStep(1);
+              }}
               className={cn(
                 "flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200",
                 tab === "signin"
@@ -272,7 +299,10 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
               Sign In
             </button>
             <button
-              onClick={() => setTab("signup")}
+              onClick={() => {
+                setTab("signup");
+                setSignupStep(1);
+              }}
               className={cn(
                 "flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200",
                 tab === "signup"
@@ -289,143 +319,199 @@ export function AuthModal({ open, defaultTab, onOpenChange, onSuccess }: AuthMod
           <form onSubmit={handleSubmit} className="space-y-4">
             {tab === "signup" && (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-foreground-secondary">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Your name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="bg-secondary border-border focus:border-primary h-12 pl-10"
-                      disabled={isLoading}
-                    />
+                {/* Step 1: Name and Username */}
+                <div className={cn(
+                  "space-y-4 transition-all duration-300",
+                  signupStep >= 1 ? "opacity-100 max-h-[500px]" : "opacity-0 max-h-0 overflow-hidden"
+                )}>
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-foreground-secondary">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Your name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="bg-secondary border-border focus:border-primary h-12 pl-10"
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
                   </div>
-                  {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="username" className="text-foreground-secondary">Username</Label>
+                    <div className="relative">
+                      <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder="FitWarrior23"
+                        value={username}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
+                          setUsername(value);
+                          if (value.length >= 3) {
+                            checkUsernameAvailability(value);
+                          }
+                        }}
+                        className="bg-secondary border-border focus:border-primary h-12 pl-10"
+                        disabled={isLoading}
+                      />
+                      {checkingUsername && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">This is your public display name on leaderboards</p>
+                    {errors.username && <p className="text-xs text-destructive">{errors.username}</p>}
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="text-foreground-secondary">Username</Label>
-                  <div className="relative">
-                    <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                {/* Step 2: Email and Password */}
+                <div className={cn(
+                  "space-y-4 transition-all duration-300",
+                  signupStep >= 2 ? "opacity-100 max-h-[500px]" : "opacity-0 max-h-0 overflow-hidden"
+                )}>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-foreground-secondary">Email</Label>
                     <Input
-                      id="username"
-                      type="text"
-                      placeholder="FitWarrior23"
-                      value={username}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
-                        setUsername(value);
-                        if (value.length >= 3) {
-                          checkUsernameAvailability(value);
-                        }
-                      }}
-                      className="bg-secondary border-border focus:border-primary h-12 pl-10"
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="bg-secondary border-border focus:border-primary h-12"
                       disabled={isLoading}
                     />
-                    {checkingUsername && (
-                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
-                    )}
+                    {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
                   </div>
-                  <p className="text-xs text-muted-foreground">This is your public display name on leaderboards</p>
-                  {errors.username && <p className="text-xs text-destructive">{errors.username}</p>}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-foreground-secondary">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="bg-secondary border-border focus:border-primary h-12 pr-10"
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {password && password.length < 6 && (
+                      <p className="text-xs text-warning">Password must be at least 6 characters</p>
+                    )}
+                    {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+                  </div>
+                </div>
+
+                {/* Step 3: Leaderboard and Terms */}
+                <div className={cn(
+                  "space-y-4 transition-all duration-300",
+                  signupStep >= 3 ? "opacity-100 max-h-[500px]" : "opacity-0 max-h-0 overflow-hidden"
+                )}>
+                  {/* Leaderboard Opt-in */}
+                  <div className="p-4 rounded-xl bg-secondary/50 border border-border">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-premium/20 flex items-center justify-center flex-shrink-0">
+                        <Trophy className="w-5 h-5 text-premium" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="leaderboard" className="text-sm font-medium cursor-pointer">
+                            Compete on Global Leaderboard
+                          </Label>
+                          <Switch
+                            id="leaderboard"
+                            checked={showOnLeaderboard}
+                            onCheckedChange={setShowOnLeaderboard}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Your username will be visible to other users. You can change this anytime in settings.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="terms"
+                      checked={agreed}
+                      onCheckedChange={(checked) => setAgreed(checked === true)}
+                      className="mt-0.5"
+                      disabled={isLoading}
+                    />
+                    <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed">
+                      I agree to the{" "}
+                      <button type="button" className="text-primary hover:underline">Terms of Service</button>
+                      {" "}and{" "}
+                      <button type="button" className="text-primary hover:underline">Privacy Policy</button>
+                    </Label>
+                  </div>
                 </div>
               </>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground-secondary">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-secondary border-border focus:border-primary h-12"
-                disabled={isLoading}
-              />
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-foreground-secondary">Password</Label>
-                {tab === "signin" && (
-                  <button 
-                    type="button" 
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => setShowForgotPassword(true)}
-                  >
-                    Forgot password?
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-secondary border-border focus:border-primary h-12 pr-10"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {password && password.length < 6 && (
-                <p className="text-xs text-warning">Password must be at least 6 characters</p>
-              )}
-              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-            </div>
-
-            {tab === "signup" && (
+            {tab === "signin" && (
               <>
-                {/* Leaderboard Opt-in */}
-                <div className="p-4 rounded-xl bg-secondary/50 border border-border">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-premium/20 flex items-center justify-center flex-shrink-0">
-                      <Trophy className="w-5 h-5 text-premium" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <Label htmlFor="leaderboard" className="text-sm font-medium cursor-pointer">
-                          Compete on Global Leaderboard
-                        </Label>
-                        <Switch
-                          id="leaderboard"
-                          checked={showOnLeaderboard}
-                          onCheckedChange={setShowOnLeaderboard}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Your username will be visible to other users. You can change this anytime in settings.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="terms"
-                    checked={agreed}
-                    onCheckedChange={(checked) => setAgreed(checked === true)}
-                    className="mt-0.5"
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-foreground-secondary">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-secondary border-border focus:border-primary h-12"
                     disabled={isLoading}
                   />
-                  <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed">
-                    I agree to the{" "}
-                    <button type="button" className="text-primary hover:underline">Terms of Service</button>
-                    {" "}and{" "}
-                    <button type="button" className="text-primary hover:underline">Privacy Policy</button>
-                  </Label>
+                  {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-foreground-secondary">Password</Label>
+                    <button 
+                      type="button" 
+                      className="text-xs text-primary hover:underline"
+                      onClick={() => setShowForgotPassword(true)}
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="bg-secondary border-border focus:border-primary h-12 pr-10"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {password && password.length < 6 && (
+                    <p className="text-xs text-warning">Password must be at least 6 characters</p>
+                  )}
+                  {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
                 </div>
               </>
             )}
