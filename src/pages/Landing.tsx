@@ -428,7 +428,7 @@ export default function Landing() {
               Pricing
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground mb-4">
-              Start with a 7-day free trial. No credit card required.
+              Start with a 14-day free trial. No credit card required.
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <span>Prices shown in {currentCurrency.name}</span>
@@ -500,14 +500,14 @@ export default function Landing() {
                   }}
                   disabled={plan.comingSoon}
                 >
-                  {plan.comingSoon ? "Coming Soon" : "Start 7-Day Free Trial"}
+                  {plan.comingSoon ? "Coming Soon" : "Start 14-Day Free Trial"}
                 </Button>
               </Card>
             ))}
           </div>
 
           <p className="text-center text-xs sm:text-sm text-muted-foreground mt-6 sm:mt-8">
-            🔒 Secure payment • Cancel anytime • 7-day free trial
+            🔒 Secure payment • Cancel anytime • 14-day free trial
           </p>
         </div>
       </section>
