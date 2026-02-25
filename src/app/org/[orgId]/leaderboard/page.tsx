@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { Sidebar } from "@/components/sidebar";
+import { Sidebar } from "@/components/layout/sidebar";
 import { getOrganization, getOrgLeaderboard } from "@/lib/mock-data";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

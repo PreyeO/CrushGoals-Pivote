@@ -8,10 +8,13 @@ import {
     ChevronLeft, ChevronRight, Menu, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { getOrganizations, getOrganization, currentUser } from "@/lib/mock-data";
+import { useState, useEffect } from "react";
+import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { currentUser } from "@/lib/mock-data";
+import type { Organization } from "@/types";
 
 interface SidebarProps {
     currentOrgId?: string;
@@ -28,9 +31,19 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
-    const orgs = getOrganizations();
-    const currentOrg = currentOrgId ? getOrganization(currentOrgId) : null;
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const orgs = useStore(useShallow((state) => state.organizations));
+    const currentOrg = useStore((state) =>
+        state.organizations.find((o: Organization) => o.id === currentOrgId)
+    );
     const orgNavItems = currentOrgId ? getOrgNavItems(currentOrgId) : [];
+
+    if (!mounted) return null;
 
     const NavItem = ({ href, icon: Icon, label, isActive }: { href: string; icon: React.ElementType; label: string; isActive: boolean }) => (
         <Link
