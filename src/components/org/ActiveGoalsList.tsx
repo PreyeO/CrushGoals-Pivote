@@ -58,8 +58,8 @@ export function ActiveGoalsList({ orgId, goals, members, blockedCount }: ActiveG
                                 </Badge>
                             </div>
                             <div className="flex items-center gap-2.5 mt-2.5">
-                                <Progress value={goal.progress} className="flex-1 h-[6px]" />
-                                <span className="text-[11px] font-bold w-8 text-right text-primary">{goal.progress}%</span>
+                                <Progress value={goal.currentValue} className="flex-1 h-[6px]" />
+                                <span className="text-[11px] font-bold w-8 text-right text-primary">{goal.currentValue}%</span>
                             </div>
                             <div className="flex items-center justify-between mt-2.5">
                                 <div className="flex -space-x-1.5">

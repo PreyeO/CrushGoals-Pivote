@@ -3,16 +3,22 @@ import { Organization, OrgGoal, OrgMember, LeaderboardEntry, TeamHealthScore } f
 export function getOrgLeaderboard(orgId: string, members: OrgMember[]): LeaderboardEntry[] {
     const orgMembers = members.filter(m => m.orgId === orgId);
     return orgMembers
-        .map((m, index) => ({
-            rank: index + 1,
-            memberId: m.id,
-            name: m.name,
-            avatarUrl: m.avatarUrl,
-            goalsCompleted: m.goalsCompleted,
-            completionRate: m.completionRate,
-            currentStreak: m.currentStreak,
-            totalPoints: m.goalsCompleted * 100 + m.completionRate * 2 + m.currentStreak * 10,
-        }))
+        .map((m, index) => {
+            const goalsCompleted = m.goalsCompleted || 0;
+            const completionRate = m.completionRate || 0;
+            const currentStreak = m.currentStreak || 0;
+
+            return {
+                rank: index + 1,
+                memberId: m.id,
+                name: m.name || 'Unknown User',
+                avatarUrl: m.avatarUrl || null,
+                goalsCompleted,
+                completionRate,
+                currentStreak,
+                totalPoints: goalsCompleted * 100 + completionRate * 2 + currentStreak * 10,
+            };
+        })
         .sort((a, b) => b.totalPoints - a.totalPoints)
         .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
@@ -21,9 +27,9 @@ export function getTeamHealthScore(orgId: string, goals: OrgGoal[], members: Org
     const orgGoals = goals.filter(g => g.orgId === orgId);
     const orgMembers = members.filter(m => m.orgId === orgId);
 
-    const avgProgress = orgGoals.length > 0 ? orgGoals.reduce((sum, g) => sum + g.progress, 0) / orgGoals.length : 0;
-    const avgCompletion = orgMembers.length > 0 ? orgMembers.reduce((sum, m) => sum + m.completionRate, 0) / orgMembers.length : 0;
-    const onTimeGoals = orgGoals.filter((g) => g.status !== "blocked" && g.progress >= 50).length;
+    const avgProgress = orgGoals.length > 0 ? orgGoals.reduce((sum, g) => sum + g.currentValue, 0) / orgGoals.length : 0;
+    const avgCompletion = orgMembers.length > 0 ? orgMembers.reduce((sum, m) => sum + (m.completionRate || 0), 0) / orgMembers.length : 0;
+    const onTimeGoals = orgGoals.filter((g) => g.status !== "blocked" && (g.currentValue >= 50)).length;
     const onTimeRate = orgGoals.length > 0 ? (onTimeGoals / orgGoals.length) * 100 : 0;
 
     const overall = Math.round((avgProgress * 0.4 + avgCompletion * 0.35 + onTimeRate * 0.25));
@@ -35,4 +41,8 @@ export function getTeamHealthScore(orgId: string, goals: OrgGoal[], members: Org
         onTimeCompletion: Math.round(onTimeRate),
         trend: overall > 60 ? "up" : overall > 40 ? "stable" : "down",
     };
+}
+
+export function getGoalAssignees(goal: OrgGoal, members: OrgMember[]): OrgMember[] {
+    return goal.assignedTo.map((id) => members.find((m) => m.id === id)).filter(Boolean) as OrgMember[];
 }

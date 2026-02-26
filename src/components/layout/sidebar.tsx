@@ -5,15 +5,16 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
     LayoutDashboard, Target, Users, Trophy, Building2,
-    ChevronLeft, ChevronRight, Menu, X,
+    ChevronLeft, ChevronRight, Menu, X, BarChart3
 } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { currentUser } from "@/lib/mock-data";
+import { LogOut } from "lucide-react";
 import type { Organization } from "@/types";
 
 interface SidebarProps {
@@ -23,8 +24,10 @@ interface SidebarProps {
 const getOrgNavItems = (orgId: string) => [
     { icon: LayoutDashboard, label: "Dashboard", path: `/org/${orgId}` },
     { icon: Target, label: "Goals", path: `/org/${orgId}/goals` },
+    { icon: BarChart3, label: "Reports", path: `/org/${orgId}/reports` },
     { icon: Users, label: "Members", path: `/org/${orgId}/members` },
     { icon: Trophy, label: "Leaderboard", path: `/org/${orgId}/leaderboard` },
+    { icon: Building2, label: "Settings", path: `/org/${orgId}/settings` },
 ];
 
 export function Sidebar({ currentOrgId }: SidebarProps) {
@@ -38,10 +41,17 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
     }, []);
 
     const orgs = useStore(useShallow((state) => state.organizations));
-    const currentOrg = useStore((state) =>
-        state.organizations.find((o: Organization) => o.id === currentOrgId)
-    );
-    const orgNavItems = currentOrgId ? getOrgNavItems(currentOrgId) : [];
+    const members = useStore(useShallow((state) => state.members));
+    const user = useStore(useShallow((state) => state.user));
+    const signOut = useStore((state) => state.signOut);
+
+    const currentOrg = orgs.find((o: Organization) => o.id === currentOrgId);
+    const myMember = members.find(m => m.userId === user?.id && m.orgId === currentOrgId);
+    const isMemberOnly = myMember?.role === "member";
+
+    const orgNavItems = currentOrgId
+        ? getOrgNavItems(currentOrgId).filter(item => !(isMemberOnly && item.label === "Settings"))
+        : [];
 
     if (!mounted) return null;
 
@@ -91,13 +101,8 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
                 )}
             >
                 {/* Logo */}
-                <div className="flex items-center gap-2.5 px-5 h-16 flex-shrink-0">
-                    <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center glow-primary-sm flex-shrink-0">
-                        <Target className="w-4 h-4 text-white" />
-                    </div>
-                    {!collapsed && (
-                        <span className="font-bold text-[15px] tracking-tight text-gradient-primary">CrushGoals</span>
-                    )}
+                <div className="px-5 h-16 flex items-center flex-shrink-0">
+                    <Logo iconOnly={collapsed} size="sm" href="/" />
                 </div>
 
                 {/* Org Switcher */}
@@ -146,17 +151,28 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
                 {/* Bottom user + collapse */}
                 <div className="flex-shrink-0 p-3 space-y-2">
                     <Separator className="opacity-15" />
-                    {!collapsed && (
-                        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-accent/30">
-                            <Avatar className="w-8 h-8">
-                                <AvatarFallback className="bg-primary/15 text-primary text-[11px] font-bold">
-                                    {currentUser.name.split(" ").map((n) => n[0]).join("")}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-[13px] font-medium truncate">{currentUser.name}</p>
-                                <p className="text-[10px] text-muted-foreground truncate">{currentUser.email}</p>
+                    {!collapsed && user && (
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-accent/30">
+                                <Avatar className="w-8 h-8">
+                                    <AvatarFallback className="bg-primary/15 text-primary text-[11px] font-bold">
+                                        {user.name.split(" ").map((n) => n[0]).join("")}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[13px] font-medium truncate">{user.name}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+                                </div>
                             </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 px-3 gap-2 text-[12px]"
+                                onClick={() => signOut()}
+                            >
+                                <LogOut className="w-3.5 h-3.5" />
+                                <span>Sign Out</span>
+                            </Button>
                         </div>
                     )}
                     <Button

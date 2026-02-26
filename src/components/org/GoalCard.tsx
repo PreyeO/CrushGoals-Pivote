@@ -5,9 +5,11 @@ import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Clock, TrendingUp, AlertCircle, CheckCircle, ChevronDown, Calendar, MessageSquare, Milestone, Edit3, X, Check } from "lucide-react";
-import { getGoalAssignees } from "@/lib/mock-data";
+import { Clock, TrendingUp, AlertCircle, CheckCircle, ChevronDown, Calendar, MessageSquare, Edit3, X, Check, Ban, AlertTriangle } from "lucide-react";
+import { getGoalAssignees, getOrgLeaderboard } from "@/lib/store-utils";
 import type { GoalStatus, GoalPriority, OrgGoal, OrgMember } from "@/types";
 
 const statusStyles: Record<GoalStatus, { label: string; dotColor: string; badgeClass: string; icon: React.ElementType }> = {
@@ -24,38 +26,58 @@ const priorityStyles: Record<GoalPriority, { label: string; class: string }> = {
 };
 
 export function GoalCard({ goal }: { goal: OrgGoal }) {
+    const isCompleted = goal.currentValue === 100 || goal.status === "completed";
+    const deadline = new Date(goal.deadline);
+    const isOverdue = !isCompleted && deadline < new Date();
+
     const [expanded, setExpanded] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
-    const [newProgress, setNewProgress] = useState(goal.progress);
+    const [newProgress, setNewProgress] = useState(goal.currentValue);
+    const [updateNote, setUpdateNote] = useState("");
 
     const updateGoalProgress = useStore((state) => state.updateGoalProgress);
-    const toggleMilestone = useStore((state) => state.toggleMilestone);
 
-    const handleUpdateProgress = () => {
-        updateGoalProgress(goal.id, newProgress);
-        setIsUpdating(false);
+    const handleUpdateProgress = async () => {
+        try {
+            await updateGoalProgress(goal.id, newProgress, updateNote.trim());
+            setIsUpdating(false);
+            setUpdateNote("");
+        } catch (error) {
+            console.error("Failed to update progress:", error);
+        }
     };
 
     const s = statusStyles[goal.status];
     const p = priorityStyles[goal.priority];
-    const assignees = getGoalAssignees(goal);
-    const completedMs = goal.milestones.filter((m) => m.completed).length;
+    const members = useStore((state) => state.members);
+    const assignees = getGoalAssignees(goal, members);
 
     return (
-        <div className="glass-card p-5 transition-all hover:border-primary/20 animate-fade-in-up">
+        <div className={cn(
+            "glass-card p-5 transition-all animate-fade-in-up group/card relative overflow-hidden",
+            isCompleted ? "border-emerald-500/30 bg-emerald-500/[0.02]" : "hover:border-primary/20",
+            isOverdue && "border-destructive/50 bg-destructive/[0.03] shadow-[0_0_20px_-10px_rgba(239,68,68,0.5)]"
+        )}>
+            {isCompleted && (
+                <div className="absolute -right-8 -top-8 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl animate-pulse" />
+            )}
+
+            {isOverdue && (
+                <div className="absolute top-0 right-0 px-3 py-1 bg-destructive text-white text-[10px] font-bold uppercase tracking-widest rounded-bl-lg shadow-lg z-10 flex items-center gap-1.5 animate-pulse">
+                    <AlertTriangle className="w-3 h-3" /> Overdue
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2.5 min-w-0">
                     <span className="text-xl flex-shrink-0">{goal.emoji}</span>
                     <div className="min-w-0">
-                        <h3 className="font-semibold text-[14px] truncate">{goal.title}</h3>
+                        <h3 className={cn("font-bold text-[15px] truncate", isOverdue && "text-destructive")}>{goal.title}</h3>
                         <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2">
                             <span>{goal.category}</span>
-                            {goal.framework !== "simple" && (
-                                <Badge className="bg-primary/10 text-primary text-[9px] px-1.5 py-0 uppercase tracking-wider">
-                                    {goal.framework}
-                                </Badge>
-                            )}
+                            <span className="w-1 h-1 rounded-full bg-border" />
+                            <span className="text-primary font-medium">{goal.targetValue}</span>
                         </p>
                     </div>
                 </div>
@@ -67,33 +89,46 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
                 </div>
             </div>
 
-            <p className="text-[12px] text-muted-foreground leading-relaxed mb-3">{goal.description}</p>
+            <p className="text-[12px] text-muted-foreground leading-relaxed mb-4 line-clamp-2">{goal.description}</p>
 
-            {/* Progress */}
-            <div className="mb-4">
-                <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Progress</span>
+            {/* Status Section (Now before Progress) */}
+            {goal.status === "blocked" && (
+                <div className="mb-4 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
+                    <p className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                        <Ban className="w-3 h-3" /> Blocked
+                    </p>
+                    <p className="text-[11px] text-destructive/80 italic">
+                        {goal.comments.find(c => c.content.startsWith("🚩 BLOCKED:"))?.content.replace("🚩 BLOCKED:", "") || "Waiting on resolution"}
+                    </p>
+                </div>
+            )}
+
+            {/* Progress Section */}
+            <div className="mb-5">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-[0.1em]">Current Progress</span>
                     {!isUpdating ? (
                         <button
                             onClick={() => setIsUpdating(true)}
-                            className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                            className="text-[10px] font-bold text-primary hover:bg-primary/10 px-2 py-1 rounded transition-colors flex items-center gap-1.5 border border-primary/20 cursor-pointer"
                         >
-                            <Edit3 className="w-2.5 h-2.5" /> Update
+                            <Edit3 className="w-3 h-3" /> Update
                         </button>
                     ) : (
                         <div className="flex items-center gap-2">
-                            <button onClick={handleUpdateProgress} className="text-[10px] font-bold text-[oklch(0.70_0.18_155)] hover:underline flex items-center gap-0.5">
-                                <Check className="w-2.5 h-2.5" /> Save
+                            <button onClick={handleUpdateProgress} className="text-[10px] font-bold text-[oklch(0.70_0.18_155)] hover:bg-[oklch(0.55_0.18_155_/_0.1)] px-2 py-1 rounded transition-colors flex items-center gap-1 cursor-pointer">
+                                <Check className="w-3 h-3" /> Finish
                             </button>
-                            <button onClick={() => { setIsUpdating(false); setNewProgress(goal.progress); }} className="text-[10px] font-bold text-destructive hover:underline flex items-center gap-0.5">
-                                <X className="w-2.5 h-2.5" /> Cancel
+                            <button onClick={() => { setIsUpdating(false); setNewProgress(goal.currentValue); setUpdateNote(""); }} className="text-[10px] font-bold text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-colors flex items-center gap-1 cursor-pointer">
+                                <X className="w-3 h-3" /> Cancel
                             </button>
                         </div>
                     )}
                 </div>
-                <div className="flex items-center gap-3">
+
+                <div className="flex items-center gap-4">
                     <div className="relative flex-1">
-                        <Progress value={isUpdating ? newProgress : goal.progress} className="h-2" />
+                        <Progress value={isUpdating ? newProgress : goal.currentValue} className={cn("h-3 rounded-full", isOverdue && !isUpdating ? "bg-destructive/20" : "")} />
                         {isUpdating && (
                             <input
                                 type="range"
@@ -104,124 +139,80 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
                             />
                         )}
                     </div>
-                    <span className="text-sm font-extrabold text-primary w-10 text-right">
-                        {isUpdating ? newProgress : goal.progress}%
+                    <span className={cn("text-lg font-black w-12 text-right tracking-tighter", isOverdue ? "text-destructive" : "text-primary")}>
+                        {isUpdating ? newProgress : goal.currentValue}%
                     </span>
                 </div>
+
+                {isUpdating && (
+                    <div className="mt-4 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Add a quick note (e.g. what's the latest?)</Label>
+                        <Textarea
+                            placeholder="Hit 80 sign-ups, waiting on landing page fix..."
+                            value={updateNote}
+                            onChange={(e) => setUpdateNote(e.target.value)}
+                            className="text-xs bg-background/50 min-h-[60px]"
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Meta row */}
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="flex -space-x-1.5">
-                        {assignees.slice(0, 4).map((m: OrgMember) => (
-                            <Avatar key={m.id} className="w-6 h-6 border-[1.5px] border-background">
-                                <AvatarFallback className="bg-primary/15 text-primary text-[8px] font-bold">{m.name.charAt(0)}</AvatarFallback>
+                <div className="flex items-center gap-4">
+                    <div className="flex -space-x-2">
+                        {assignees.map((m: OrgMember) => (
+                            <Avatar key={m.id} className="w-7 h-7 border-2 border-background shadow-sm">
+                                <AvatarFallback className="bg-primary/20 text-primary text-[9px] font-black">{m.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                             </Avatar>
                         ))}
-                        {assignees.length > 4 && (
-                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-[1.5px] border-background">+{assignees.length - 4}</div>
-                        )}
                     </div>
-                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(goal.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    <span className={cn(
+                        "text-[11px] font-bold flex items-center gap-1.5 px-2 py-1 rounded-md",
+                        isOverdue ? "bg-destructive/10 text-destructive" : "text-muted-foreground bg-accent/30"
+                    )}>
+                        <Calendar className="w-3.5 h-3.5" />
+                        {new Date(goal.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </span>
-                    {goal.milestones.length > 0 && (
-                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                            <Milestone className="w-3 h-3" />
-                            {completedMs}/{goal.milestones.length}
-                        </span>
-                    )}
-                    {goal.comments.length > 0 && (
-                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                            <MessageSquare className="w-3 h-3" />
-                            {goal.comments.length}
-                        </span>
-                    )}
                 </div>
                 <button
                     onClick={() => setExpanded(!expanded)}
-                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                    className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors uppercase tracking-wider cursor-pointer"
                 >
-                    {expanded ? "Less" : "More"}
+                    {expanded ? "Less" : "Feed"}
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
                 </button>
             </div>
 
-            {/* Expanded */}
+            {/* Expanded Feed */}
             {expanded && (
-                <div className="mt-4 pt-4 border-t border-border/30 space-y-4 animate-fade-in-up">
-                    {/* Key Results */}
-                    {goal.keyResults && goal.keyResults.length > 0 && (
-                        <div>
-                            <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-[0.15em] mb-2">Key Results</p>
-                            <div className="space-y-2">
-                                {goal.keyResults.map((kr) => (
-                                    <div key={kr.id} className="p-3 rounded-xl bg-accent/30">
-                                        <div className="flex items-center justify-between text-[12px] mb-1.5">
-                                            <span className="font-medium">{kr.title}</span>
-                                            <span className="text-[11px] font-bold text-primary">{kr.currentValue}/{kr.targetValue} {kr.unit}</span>
-                                        </div>
-                                        <Progress value={(kr.currentValue / kr.targetValue) * 100} className="h-[5px]" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Milestones */}
-                    {goal.milestones.length > 0 && (
-                        <div>
-                            <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-[0.15em] mb-2">
-                                Milestones
-                            </p>
-                            <div className="space-y-1.5">
-                                {goal.milestones.map((ms) => (
-                                    <div
-                                        key={ms.id}
-                                        className="flex items-center gap-2.5 text-[12px] py-1.5 cursor-pointer group/ms"
-                                        onClick={() => toggleMilestone(goal.id, ms.id)}
-                                    >
-                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${ms.completed ? "bg-[oklch(0.55_0.18_155_/_0.2)]" : "bg-muted/60 group-hover/ms:bg-primary/20"}`}>
-                                            {ms.completed ? <CheckCircle className="w-3 h-3 text-[oklch(0.70_0.18_155)]" /> : <Clock className="w-3 h-3 text-muted-foreground group-hover/ms:text-primary" />}
-                                        </div>
-                                        <span className={cn(ms.completed && "line-through text-muted-foreground")}>{ms.title}</span>
-                                        <span className="text-[9px] text-muted-foreground ml-auto flex-shrink-0">
-                                            {ms.completedAt
-                                                ? `✓ ${new Date(ms.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                                                : `Due ${new Date(ms.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Comments */}
-                    {goal.comments.length > 0 && (
-                        <div>
-                            <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-[0.15em] mb-2">
-                                Comments
-                            </p>
-                            <div className="space-y-2">
-                                {goal.comments.map((c) => (
-                                    <div key={c.id} className="flex items-start gap-2 p-3 rounded-xl bg-accent/20">
-                                        <Avatar className="w-5 h-5 mt-0.5">
-                                            <AvatarFallback className="bg-primary/15 text-primary text-[8px] font-bold">{c.userName.charAt(0)}</AvatarFallback>
+                <div className="mt-5 pt-5 border-t border-border/30 space-y-5 animate-in fade-in slide-in-from-top-3">
+                    {/* Simplified human-centric comments */}
+                    <div>
+                        <p className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-[0.2em] mb-3">Goal Updates</p>
+                        <div className="space-y-3">
+                            {goal.comments.length > 0 ? (
+                                goal.comments.map((c) => (
+                                    <div key={c.id} className="flex gap-3 items-start group/comment">
+                                        <Avatar className="w-6 h-6 border border-background flex-shrink-0">
+                                            <AvatarFallback className="bg-primary/10 text-primary text-[8px] font-bold">{c.userName.charAt(0)}</AvatarFallback>
                                         </Avatar>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[11px] font-semibold">{c.userName}</span>
+                                        <div className="flex-1 bg-accent/20 rounded-2xl p-3 border border-border/10 group-hover/comment:border-primary/20 transition-colors">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[11px] font-bold">{c.userName}</span>
                                                 <span className="text-[9px] text-muted-foreground">{new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                                             </div>
-                                            <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">{c.content}</p>
+                                            <p className="text-[12px] text-muted-foreground leading-snug">{c.content}</p>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
+                                ))
+                            ) : (
+                                <p className="text-[11px] text-muted-foreground italic text-center py-4 bg-accent/10 rounded-xl border border-dashed border-border/40">
+                                    No updates yet. Encourage the team to share their progress!
+                                </p>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             )}
         </div>

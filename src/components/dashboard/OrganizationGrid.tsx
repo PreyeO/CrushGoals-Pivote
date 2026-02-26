@@ -24,9 +24,6 @@ export function OrganizationGrid({ organizations }: OrganizationGridProps) {
                                 <div className="w-12 h-12 rounded-2xl bg-accent/50 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                                     {org.emoji}
                                 </div>
-                                <span className="text-[10px] px-2.5 py-1 rounded-full bg-primary/10 text-primary font-semibold uppercase tracking-wider">
-                                    {org.plan}
-                                </span>
                             </div>
                             <h3 className="font-bold text-base mb-1 group-hover:text-primary transition-colors">{org.name}</h3>
                             <p className="text-xs text-muted-foreground mb-4 line-clamp-2 leading-relaxed">

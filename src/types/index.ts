@@ -11,20 +11,20 @@ export interface Organization {
   plan: "free" | "team" | "enterprise";
 }
 
-export type OrgRole = "owner" | "admin" | "member";
+export type OrgRole = "owner" | "member";
 export type GoalStatus = "not_started" | "in_progress" | "blocked" | "completed";
 export type GoalPriority = "high" | "medium" | "low";
-export type GoalFramework = "okr" | "smart" | "simple";
 
 export interface OrgMember {
   id: string;
   orgId: string;
   userId: string;
-  name: string;
-  email: string;
-  avatarUrl: string | null;
   role: OrgRole;
   joinedAt: string;
+  // Join fields from 'profiles'
+  name: string;
+  avatarUrl: string | null;
+  // Computed/Aggregated fields
   goalsAssigned: number;
   goalsCompleted: number;
   completionRate: number;
@@ -38,37 +38,16 @@ export interface OrgGoal {
   description: string;
   category: string;
   emoji: string;
-  framework: GoalFramework;
   status: GoalStatus;
   priority: GoalPriority;
-  progress: number;
   targetValue: string;
-  currentValue: string;
-  startDate: string;
+  currentValue: number;
   deadline: string;
   createdBy: string;
   assignedTo: string[]; // member IDs
-  milestones: Milestone[];
-  keyResults?: KeyResult[];
   comments: GoalComment[];
   createdAt: string;
   updatedAt: string;
-}
-
-export interface Milestone {
-  id: string;
-  title: string;
-  completed: boolean;
-  dueDate: string;
-  completedAt?: string;
-}
-
-export interface KeyResult {
-  id: string;
-  title: string;
-  targetValue: number;
-  currentValue: number;
-  unit: string;
 }
 
 export interface GoalComment {
@@ -97,7 +76,7 @@ export interface ActivityItem {
   userId: string;
   userName: string;
   userAvatar: string | null;
-  type: "goal_created" | "goal_completed" | "milestone_hit" | "member_joined" | "comment" | "status_change" | "goal_assigned";
+  type: "goal_created" | "goal_completed" | "member_joined" | "comment" | "status_change" | "goal_assigned";
   message: string;
   metadata?: Record<string, string>;
   createdAt: string;
@@ -120,4 +99,13 @@ export interface TeamHealthScore {
   memberEngagement: number;
   onTimeCompletion: number;
   trend: "up" | "down" | "stable";
+}
+
+export interface GoalTemplate {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  emoji: string;
+  priority: GoalPriority;
 }

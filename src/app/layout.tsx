@@ -9,8 +9,15 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "CrushGoals — Team Goal Management",
-  description: "Align your team. Crush every goal. The lightweight goal management platform for teams who want clarity and accountability without heavy software.",
-  keywords: ["team goals", "OKR", "goal tracking", "team management", "accountability"],
+  description:
+    "Align your team. Crush every goal. The lightweight goal management platform for teams who want clarity and accountability without heavy software.",
+  keywords: [
+    "team goals",
+    "OKR",
+    "goal tracking",
+    "team management",
+    "accountability",
+  ],
 };
 
 export default function RootLayout({
@@ -21,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
+        <main>{children}</main>
       </body>
     </html>
   );

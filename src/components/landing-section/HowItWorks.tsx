@@ -1,9 +1,9 @@
 "use client";
 
 const howItWorks = [
-    { step: "01", title: "Create Your Org", desc: "Set up your team in 30 seconds. Give it a name, invite members by email." },
-    { step: "02", title: "Set & Assign Goals", desc: "Create OKRs or simple goals with deadlines. Assign to team members with clear ownership." },
-    { step: "03", title: "Track & Celebrate", desc: "Watch progress in real-time. Spot blockers early. Celebrate wins on the leaderboard." },
+    { step: "01", title: "Launch Your Team", desc: "Set up your workspace in seconds. Give it a name and start defining what winning looks like." },
+    { step: "02", title: "Ship Your First Goal", desc: "Use simple templates to set a target and deadline. No complex frameworks — just direct action." },
+    { step: "03", title: "Compete & Sync", desc: "Watch the team leaderboard update in real-time. Share context with progress notes to stay aligned." },
 ];
 
 export function HowItWorks() {
@@ -19,11 +19,11 @@ export function HowItWorks() {
                 <div className="grid md:grid-cols-3 gap-10 stagger">
                     {howItWorks.map((item) => (
                         <div key={item.step} className="text-center animate-fade-in-up group">
-                            <div className="w-16 h-16 rounded-2xl gradient-primary mx-auto mb-5 flex items-center justify-center glow-primary group-hover:scale-105 transition-transform">
-                                <span className="text-xl font-bold text-white">{item.step}</span>
+                            <div className="w-16 h-16 rounded-2xl bg-primary/10 mx-auto mb-5 flex items-center justify-center border border-primary/20 group-hover:scale-105 transition-transform group-hover:bg-primary group-hover:text-white group-hover:border-0 group-hover:shadow-[0_0_20px_-5px_var(--primary)] text-primary">
+                                <span className="text-xl font-bold">{item.step}</span>
                             </div>
                             <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                            <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed italic">{item.desc}</p>
                         </div>
                     ))}
                 </div>

@@ -1,12 +1,7 @@
 "use client";
 
 import { Star } from "lucide-react";
-
-export const testimonials = [
-    { name: "Adeola K.", role: "Startup Founder", text: "We replaced 3 tools with CrushGoals. Our team finally has one place to see all our quarterly targets and who owns what. Game changer.", rating: 5 },
-    { name: "Michael T.", role: "School Principal", text: "We use this for teacher development goals. The leaderboard creates healthy competition, and the simplicity means everyone actually uses it.", rating: 5 },
-    { name: "Grace O.", role: "Ministry Coordinator", text: "Perfect for our church outreach groups. We track goals, assign volunteers, and see real-time progress. Zero learning curve.", rating: 5 },
-];
+import { testimonialsData } from "@/data/landing.data";
 
 export function Testimonials() {
     return (
@@ -19,7 +14,7 @@ export function Testimonials() {
                     </h2>
                 </div>
                 <div className="grid md:grid-cols-3 gap-5 stagger">
-                    {testimonials.map((t) => (
+                    {testimonialsData.map((t) => (
                         <div key={t.name} className="glass-card p-6 animate-fade-in-up">
                             <div className="flex gap-0.5 mb-4">
                                 {Array.from({ length: t.rating }).map((_, i) => (

@@ -2,20 +2,27 @@
 
 import { use, useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
-import { getOrganization, getOrgLeaderboard } from "@/lib/mock-data";
+import { getOrgLeaderboard } from "@/lib/store-utils";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Flame, Target, Star } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
+
 export default function OrgLeaderboardPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params);
     const [period, setPeriod] = useState("all");
-    const org = getOrganization(orgId);
+
+    const orgs = useStore(useShallow((state) => state.organizations));
+    const members = useStore(useShallow((state) => state.members));
+
+    const org = orgs.find(o => o.id === orgId);
     if (!org) return notFound();
 
-    const leaderboard = getOrgLeaderboard(orgId);
+    const leaderboard = getOrgLeaderboard(orgId, members);
     const top3 = leaderboard.slice(0, 3);
 
     return (

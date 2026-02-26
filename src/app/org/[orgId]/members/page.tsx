@@ -2,7 +2,6 @@
 
 import { use } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
-import { getOrganization, getOrgMembers, getOrgInvites } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,9 @@ import { Progress } from "@/components/ui/progress";
 import { Users, Plus, Mail, Shield, ShieldCheck, Crown, Clock, Target, Flame } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { OrgRole } from "@/types";
+import { InviteMemberModal } from "@/components/invite-member-modal";
+import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 
 const roleStyles: Record<OrgRole, { label: string; class: string; icon: React.ElementType }> = {
     owner: { label: "Owner", class: "bg-[oklch(0.60_0.16_80_/_0.15)] text-[oklch(0.78_0.14_80)]", icon: Crown },
@@ -19,11 +21,18 @@ const roleStyles: Record<OrgRole, { label: string; class: string; icon: React.El
 
 export default function OrgMembersPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params);
-    const org = getOrganization(orgId);
+    const orgs = useStore(useShallow((state) => state.organizations));
+    const members = useStore(useShallow((state) => state.members));
+    const user = useStore(useShallow((state) => state.user));
+
+    const org = orgs.find(o => o.id === orgId);
     if (!org) return notFound();
 
-    const membersList = getOrgMembers(orgId);
-    const pendingInvites = getOrgInvites(orgId);
+    const membersList = members.filter(m => m.orgId === orgId);
+    const myMember = membersList.find(m => m.userId === user?.id);
+    const isMemberOnly = myMember?.role === "member";
+
+    const pendingInvites = []; // TODO: Implement real invites fetch if needed
 
     return (
         <div className="min-h-screen bg-background">
@@ -41,9 +50,13 @@ export default function OrgMembersPage({ params }: { params: Promise<{ orgId: st
                                 {membersList.length} members · {pendingInvites.length} pending invite{pendingInvites.length !== 1 ? "s" : ""}
                             </p>
                         </div>
-                        <Button className="gradient-primary text-white border-0 hover:opacity-90 gap-2 h-9 text-[13px] font-semibold self-start">
-                            <Plus className="w-4 h-4" /> Invite Member
-                        </Button>
+                        {!isMemberOnly && (
+                            <InviteMemberModal orgId={orgId}>
+                                <Button className="gradient-primary text-white border-0 hover:opacity-90 gap-2 h-9 text-[13px] font-semibold self-start">
+                                    <Plus className="w-4 h-4" /> Invite Member
+                                </Button>
+                            </InviteMemberModal>
+                        )}
                     </div>
 
                     {/* Pending Invites */}

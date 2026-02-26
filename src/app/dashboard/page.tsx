@@ -8,17 +8,19 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { OrganizationGrid } from "@/components/dashboard/OrganizationGrid";
 import { QuickActions } from "@/components/dashboard/QuickActions";
+import { DashboardGoals } from "@/components/dashboard/DashboardGoals";
 import type { Organization } from "@/types";
 
 export default function DashboardPage() {
     const [mounted, setMounted] = useState(false);
+    const { organizations: orgs, fetchInitialData, isLoading } = useStore();
+
     useEffect(() => {
         setMounted(true);
-    }, []);
+        fetchInitialData();
+    }, [fetchInitialData]);
 
-    const orgs = useStore(useShallow((state) => state.organizations));
-
-    if (!mounted) return null;
+    if (!mounted || isLoading) return null;
 
     const totalGoals = orgs.reduce((s: number, o: Organization) => s + (o.goalCount || 0), 0);
     const totalMembers = orgs.reduce((s: number, o: Organization) => s + (o.memberCount || 0), 0);
@@ -29,7 +31,7 @@ export default function DashboardPage() {
             <main className="lg:pl-[260px] transition-all duration-300">
                 <div className="p-5 pt-16 lg:pt-8 lg:p-8 max-w-6xl mx-auto">
                     <DashboardHeader
-                        orgCount={orgs.length}
+                        organizations={orgs}
                         memberCount={totalMembers}
                         goalCount={totalGoals}
                     />
@@ -39,6 +41,8 @@ export default function DashboardPage() {
                         memberCount={totalMembers}
                         goalCount={totalGoals}
                     />
+
+                    <DashboardGoals />
 
                     <OrganizationGrid organizations={orgs} />
 
