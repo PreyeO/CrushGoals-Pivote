@@ -8,8 +8,7 @@ export const goalService = {
         const { data, error } = await supabase
             .from('goals')
             .select('*')
-            .eq('org_id', orgId)
-            .order('created_at', { ascending: false });
+            .eq('org_id', orgId);
 
         if (error) throw error;
         return data;
@@ -33,7 +32,13 @@ export const goalService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error("Goal creation error:", error);
+            if (error.code === '42501') {
+                throw new Error("Permission denied. You don't have permission to create goals in this organization.");
+            }
+            throw error;
+        }
         return data;
     },
 
@@ -44,7 +49,13 @@ export const goalService = {
             .update({ current_value: progress, updated_at: new Date().toISOString() })
             .eq('id', goalId);
 
-        if (goalError) throw goalError;
+        if (goalError) {
+            console.error("Goal progress update error:", goalError);
+            if (goalError.code === '42501') {
+                throw new Error("Permission denied. You don't have permission to update this goal's progress.");
+            }
+            throw goalError;
+        }
 
         // If a note is provided, add it to progress_updates
         if (note) {

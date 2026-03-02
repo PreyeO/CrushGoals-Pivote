@@ -15,14 +15,15 @@ import { useShallow } from "zustand/react/shallow";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { LogOut } from "lucide-react";
-import type { Organization } from "@/types";
+import type { Organization, Team } from "@/types";
+import { CreateTeamModal } from "@/components/create-team-modal";
 
 interface SidebarProps {
     currentOrgId?: string;
 }
 
 const getOrgNavItems = (orgId: string) => [
-    { icon: LayoutDashboard, label: "Dashboard", path: `/org/${orgId}` },
+    { icon: Building2, label: "Overview", path: `/org/${orgId}` },
     { icon: Target, label: "Goals", path: `/org/${orgId}/goals` },
     { icon: BarChart3, label: "Reports", path: `/org/${orgId}/reports` },
     { icon: Users, label: "Members", path: `/org/${orgId}/members` },
@@ -37,20 +38,25 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
+        const timer = setTimeout(() => {
+            setMounted(true);
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
 
     const orgs = useStore(useShallow((state) => state.organizations));
+    const teams = useStore(useShallow((state) => state.teams));
     const members = useStore(useShallow((state) => state.members));
     const user = useStore(useShallow((state) => state.user));
     const signOut = useStore((state) => state.signOut);
 
-    const currentOrg = orgs.find((o: Organization) => o.id === currentOrgId);
-    const myMember = members.find(m => m.userId === user?.id && m.orgId === currentOrgId);
+    const resolvedOrgId = currentOrgId || orgs[0]?.id;
+    const currentOrg = orgs.find((o: Organization) => o.id === resolvedOrgId);
+    const myMember = members.find(m => m.userId === user?.id && m.orgId === resolvedOrgId);
     const isMemberOnly = myMember?.role === "member";
 
-    const orgNavItems = currentOrgId
-        ? getOrgNavItems(currentOrgId).filter(item => !(isMemberOnly && item.label === "Settings"))
+    const orgNavItems = resolvedOrgId
+        ? getOrgNavItems(resolvedOrgId).filter(item => !(isMemberOnly && item.label === "Settings"))
         : [];
 
     if (!mounted) return null;
@@ -126,13 +132,44 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
                     </div>
                 )}
 
+                {/* Team Switcher (within current org) */}
+                {!collapsed && resolvedOrgId && (
+                    <div className="px-3 mb-1 mt-4">
+                        <div className="flex items-center justify-between px-3 mb-2">
+                            <p className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.15em]">
+                                Teams
+                            </p>
+                            {!isMemberOnly && resolvedOrgId && <CreateTeamModal orgId={resolvedOrgId} />}
+                        </div>
+                        <div className="space-y-0.5">
+                            {teams.length === 0 ? (
+                                <p className="px-3 py-2 text-[11px] text-muted-foreground italic opacity-50">No teams yet</p>
+                            ) : (
+                                teams.map((team) => (
+                                    <Link key={team.id} href={`/org/${resolvedOrgId}/team/${team.id}`} onClick={() => setMobileOpen(false)}>
+                                        <div className={cn(
+                                            "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all cursor-pointer",
+                                            pathname.includes(`/team/${team.id}`)
+                                                ? "bg-primary/10 text-primary font-bold"
+                                                : "text-muted-foreground/70 hover:bg-accent/40 hover:text-foreground"
+                                        )}>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
+                                            <span className="truncate text-[12px]">{team.name}</span>
+                                        </div>
+                                    </Link>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <Separator className="mx-4 w-auto opacity-20 my-2" />
 
                 {/* Navigation */}
                 <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-thin py-1">
-                    <NavItem href="/dashboard" icon={Building2} label="My Organizations" isActive={pathname === "/dashboard"} />
+                    <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" isActive={pathname === "/dashboard"} />
 
-                    {currentOrgId && orgNavItems.length > 0 && (
+                    {resolvedOrgId && orgNavItems.length > 0 && (
                         <>
                             <div className="pt-3 pb-1">
                                 {!collapsed && (

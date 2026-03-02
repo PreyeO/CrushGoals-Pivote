@@ -8,9 +8,10 @@ import { CreateOrgModal } from "@/components/create-org-modal";
 
 interface OrganizationGridProps {
     organizations: Organization[];
+    showCreateCard?: boolean;
 }
 
-export function OrganizationGrid({ organizations }: OrganizationGridProps) {
+export function OrganizationGrid({ organizations, showCreateCard = true }: OrganizationGridProps) {
     return (
         <>
             <div className="mb-4">
@@ -48,17 +49,19 @@ export function OrganizationGrid({ organizations }: OrganizationGridProps) {
                     </Link>
                 ))}
 
-                <CreateOrgModal>
-                    <div className="glass-card border-dashed !border-2 !border-border/40 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:!border-primary/30 transition-all animate-fade-in-up group h-full">
-                        <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors group-hover:scale-105 transition-transform">
-                            <Plus className="w-6 h-6 text-primary" />
+                {showCreateCard && (
+                    <CreateOrgModal>
+                        <div className="glass-card border-dashed !border-2 !border-border/40 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:!border-primary/30 transition-all animate-fade-in-up group h-full">
+                            <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors group-hover:scale-105 transition-transform">
+                                <Plus className="w-6 h-6 text-primary" />
+                            </div>
+                            <h3 className="font-semibold text-sm mb-1">Create Organization</h3>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                Set up a new team and start tracking goals together.
+                            </p>
                         </div>
-                        <h3 className="font-semibold text-sm mb-1">Create Organization</h3>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                            Set up a new team and start tracking goals together.
-                        </p>
-                    </div>
-                </CreateOrgModal>
+                    </CreateOrgModal>
+                )}
             </div>
         </>
     );

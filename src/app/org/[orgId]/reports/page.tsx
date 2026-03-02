@@ -39,7 +39,7 @@ export default function OrgReportsPage({ params }: { params: Promise<{ orgId: st
     const completedGoals = goals.filter(g => g.status === 'completed').length;
     const blockedGoals = goals.filter(g => g.status === 'blocked').length;
     const avgProgress = goals.length > 0
-        ? Math.round(goals.reduce((acc, curr) => acc + curr.progress, 0) / goals.length)
+        ? Math.round(goals.reduce((acc, curr) => acc + (curr.progress || 0), 0) / goals.length)
         : 0;
 
     const StatCard = ({ title, value, icon: Icon, trend, trendValue }: any) => (

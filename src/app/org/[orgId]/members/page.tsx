@@ -23,6 +23,7 @@ export default function OrgMembersPage({ params }: { params: Promise<{ orgId: st
     const { orgId } = use(params);
     const orgs = useStore(useShallow((state) => state.organizations));
     const members = useStore(useShallow((state) => state.members));
+    const invitations = useStore(useShallow((state) => state.invitations));
     const user = useStore(useShallow((state) => state.user));
 
     const org = orgs.find(o => o.id === orgId);
@@ -32,7 +33,7 @@ export default function OrgMembersPage({ params }: { params: Promise<{ orgId: st
     const myMember = membersList.find(m => m.userId === user?.id);
     const isMemberOnly = myMember?.role === "member";
 
-    const pendingInvites = []; // TODO: Implement real invites fetch if needed
+    const pendingInvites = invitations.filter(i => i.orgId === orgId && i.status === 'pending');
 
     return (
         <div className="min-h-screen bg-background">
@@ -104,7 +105,7 @@ export default function OrgMembersPage({ params }: { params: Promise<{ orgId: st
                                             </Avatar>
                                             <div className="min-w-0 flex-1">
                                                 <p className="font-semibold text-[13px] truncate">{member.name}</p>
-                                                <p className="text-[10px] text-muted-foreground truncate">{member.email}</p>
+                                                <p className="text-[10px] text-muted-foreground truncate">{member.email || "No email"}</p>
                                             </div>
                                         </div>
 

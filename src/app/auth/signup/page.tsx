@@ -3,6 +3,7 @@
 import { AuthLayout } from "@/components/authentication/AuthLayout";
 import { SignUpForm } from "@/components/authentication/SignUpForm";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export default function SignUpPage() {
     return (
@@ -10,7 +11,9 @@ export default function SignUpPage() {
             title="Join the Team"
             subtitle="Start tracking your team's progress for free."
         >
-            <SignUpForm />
+            <Suspense fallback={<div className="h-48 flex items-center justify-center font-black animate-pulse opacity-20 uppercase tracking-widest text-[10px]">Preparing Workspace...</div>}>
+                <SignUpForm />
+            </Suspense>
             <div className="relative py-4">
                 <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-border/40"></span>

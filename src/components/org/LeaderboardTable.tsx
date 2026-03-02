@@ -4,6 +4,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Medal, Star, TrendingUp, UserPlus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useStore, type AppState } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import type { LeaderboardEntry } from "@/types";
 
 interface LeaderboardTableProps {
@@ -11,7 +13,13 @@ interface LeaderboardTableProps {
 }
 
 export function LeaderboardTable({ leaderboard }: LeaderboardTableProps) {
-    const isLonely = leaderboard.length === 1;
+    const user = useStore((state: AppState) => state.user);
+    // Only show members with actual activity to avoid "empty cards"
+    const activeCompetitors = leaderboard.filter(entry =>
+        entry.goalsCompleted > 0 ||
+        entry.totalPoints > 0
+    );
+    const isLonely = activeCompetitors.length <= 1;
 
     return (
         <div className="space-y-6">
@@ -28,14 +36,17 @@ export function LeaderboardTable({ leaderboard }: LeaderboardTableProps) {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/20">
-                            {leaderboard.map((entry, index) => (
-                                <tr key={entry.memberId} className="hover:bg-primary/[0.02] transition-colors group cursor-pointer">
+                            {activeCompetitors.sort((a, b) => b.totalPoints - a.totalPoints).map((entry, index) => (
+                                <tr key={entry.memberId} className={cn(
+                                    "hover:bg-primary/[0.02] transition-colors group cursor-pointer",
+                                    entry.memberId === user?.id && "bg-primary/[0.03]"
+                                )}>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent/20 group-hover:bg-primary/10 transition-colors">
                                             {index === 0 ? <Trophy className="w-4 h-4 text-yellow-500" /> :
                                                 index === 1 ? <Medal className="w-4 h-4 text-slate-400" /> :
                                                     index === 2 ? <Medal className="w-4 h-4 text-amber-600" /> :
-                                                        <span className="text-xs font-bold text-muted-foreground">{entry.rank}</span>}
+                                                        <span className="text-xs font-bold text-muted-foreground">{index + 1}</span>}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -77,9 +88,9 @@ export function LeaderboardTable({ leaderboard }: LeaderboardTableProps) {
                     </table>
                 </div>
 
-                {leaderboard.length === 0 && (
+                {activeCompetitors.length === 0 && (
                     <div className="p-12 text-center">
-                        <p className="text-muted-foreground italic text-sm">No data available for the leaderboard yet.</p>
+                        <p className="text-muted-foreground italic text-sm">No active leaderboard stats yet. Complete goals to start climbing!</p>
                     </div>
                 )}
             </div>

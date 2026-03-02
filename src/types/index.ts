@@ -11,7 +11,16 @@ export interface Organization {
   plan: "free" | "team" | "enterprise";
 }
 
-export type OrgRole = "owner" | "member";
+export interface Team {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string;
+  emoji?: string;
+  createdAt: string;
+}
+
+export type OrgRole = "owner" | "admin" | "member";
 export type GoalStatus = "not_started" | "in_progress" | "blocked" | "completed";
 export type GoalPriority = "high" | "medium" | "low";
 
@@ -20,10 +29,12 @@ export interface OrgMember {
   orgId: string;
   userId: string;
   role: OrgRole;
+  teamId?: string; // Link to a team
   joinedAt: string;
   // Join fields from 'profiles'
   name: string;
   avatarUrl: string | null;
+  email?: string;
   // Computed/Aggregated fields
   goalsAssigned: number;
   goalsCompleted: number;
@@ -34,6 +45,7 @@ export interface OrgMember {
 export interface OrgGoal {
   id: string;
   orgId: string;
+  teamId?: string; // Link to a team
   title: string;
   description: string;
   category: string;
@@ -45,6 +57,7 @@ export interface OrgGoal {
   deadline: string;
   createdBy: string;
   assignedTo: string[]; // member IDs
+  progress: number; // For backward compatibility/consistency
   comments: GoalComment[];
   createdAt: string;
   updatedAt: string;
@@ -66,6 +79,7 @@ export interface OrgInvite {
   email: string;
   role: OrgRole;
   status: "pending" | "accepted" | "declined";
+  token: string;
   invitedBy: string;
   createdAt: string;
 }

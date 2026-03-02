@@ -5,6 +5,20 @@ const supabase = createClient();
 
 export const orgService = {
     async getOrganizations() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return [];
+
+        // Fetch organizations where the user is a member
+        const { data: membershipData, error: membershipError } = await supabase
+            .from('org_members')
+            .select('org_id')
+            .eq('user_id', user.id);
+
+        if (membershipError) throw membershipError;
+        if (!membershipData || membershipData.length === 0) return [];
+
+        const orgIds = membershipData.map(m => m.org_id);
+
         // Fetch orgs with member and goal counts
         const { data, error } = await supabase
             .from('organizations')
@@ -13,7 +27,7 @@ export const orgService = {
                 memberCount:org_members(count),
                 goalCount:goals(count)
             `)
-            .order('created_at', { ascending: false });
+            .in('id', orgIds);
 
         if (error) throw error;
 
@@ -23,20 +37,49 @@ export const orgService = {
             goalCount: org.goalCount?.[0]?.count || 0,
             completionRate: 0, // We'll calculate this if needed
             ownerId: org.owner_id,
-            createdAt: org.created_at
+            createdAt: org.created_at || new Date().toISOString()
         }));
     },
 
-    async createOrganization(name: string) {
+    async createOrganization(data: { name: string; description: string; emoji: string }) {
+        const { name, description, emoji } = data;
+        console.log("Creating organization with data:", { name, description, emoji });
+
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Not authenticated");
 
-        // 1. Create the organization
-        const { data: org, error: orgError } = await supabase
-            .from('organizations')
-            .insert([{ name, owner_id: user.id }])
-            .select()
-            .single();
+        // 1. Create the organization (Defensively)
+        let org, orgError;
+        try {
+            const { data: result, error } = await supabase
+                .from('organizations')
+                .insert([{
+                    name: String(name),
+                    description: String(description),
+                    emoji: String(emoji),
+                    owner_id: user.id
+                }])
+                .select()
+                .single();
+            org = result;
+            orgError = error;
+        } catch (err: any) {
+            // If column doesn't exist (PGRST204), retry with basic fields
+            if (err.code === '42703' || err.message?.includes('description') || err.message?.includes('emoji')) {
+                const { data: result, error } = await supabase
+                    .from('organizations')
+                    .insert([{
+                        name: String(name),
+                        owner_id: user.id
+                    }])
+                    .select()
+                    .single();
+                org = result;
+                orgError = error;
+            } else {
+                throw err;
+            }
+        }
 
         if (orgError) throw orgError;
 
@@ -51,13 +94,20 @@ export const orgService = {
 
         if (memberError) throw memberError;
 
-        return org;
+        return {
+            ...org,
+            memberCount: 1,
+            goalCount: 0,
+            completionRate: 0,
+            ownerId: org.owner_id,
+            createdAt: org.created_at || new Date().toISOString()
+        };
     },
 
     async getMembers(orgId: string) {
         const { data, error } = await supabase
             .from('org_members')
-            .select('*, profiles(full_name, avatar_url)')
+            .select('*, profiles(full_name, avatar_url, email)')
             .eq('org_id', orgId);
 
         if (error) throw error;

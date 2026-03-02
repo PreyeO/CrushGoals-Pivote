@@ -1,18 +1,28 @@
 import { create } from 'zustand';
 import {
     Organization,
+    Team,
     OrgGoal,
     OrgMember,
+    OrgRole,
+    OrgInvite,
     ActivityItem,
     GoalStatus,
 } from '@/types';
 import { goalService } from './services/goals';
 import { orgService } from './services/orgs';
+import { teamService } from './services/teams';
+import { inviteService } from './services/invites';
+import { createClient } from './supabase';
 
-interface AppState {
+const supabase = createClient();
+
+export interface AppState {
     organizations: Organization[];
     goals: OrgGoal[];
     members: OrgMember[];
+    teams: Team[];
+    invitations: OrgInvite[];
     activities: ActivityItem[];
     user: { id: string; name: string; email: string; avatarUrl: string | null } | null;
     isLoading: boolean;
@@ -21,7 +31,10 @@ interface AppState {
     // Actions
     fetchInitialData: (orgId?: string) => Promise<void>;
     signOut: () => Promise<void>;
-    addOrganization: (name: string) => Promise<void>;
+    addOrganization: (data: { name: string; description: string; emoji: string }) => Promise<string>;
+    addTeam: (orgId: string, name: string, description: string) => Promise<void>;
+    sendInvitation: (orgId: string, email: string, role: OrgRole) => Promise<string>;
+    cancelInvitation: (inviteId: string) => Promise<void>;
     addGoal: (goal: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'progress' | 'comments'>) => Promise<void>;
     updateGoalProgress: (goalId: string, progress: number, note?: string) => Promise<void>;
     updateGoalStatus: (goalId: string, status: GoalStatus) => Promise<void>;
@@ -29,10 +42,31 @@ interface AppState {
 
 import { authService } from './services/auth';
 
+const cleanOrgData = (org: any) => {
+    let name = org.name;
+    let description = org.description;
+    let emoji = org.emoji;
+
+    // Handle data corrupted by the previous JSON stringification bug
+    if (typeof name === 'string' && name.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(name);
+            name = parsed.name || name;
+            description = parsed.description || description;
+            emoji = parsed.emoji || emoji;
+        } catch (e) {
+            console.warn("Failed to parse corrupted org name:", name);
+        }
+    }
+    return { ...org, name, description, emoji };
+};
+
 export const useStore = create<AppState>((set, get) => ({
     organizations: [],
     goals: [],
     members: [],
+    teams: [],
+    invitations: [],
     activities: [],
     user: null,
     isLoading: false,
@@ -58,9 +92,25 @@ export const useStore = create<AppState>((set, get) => ({
             const orgs = await orgService.getOrganizations();
             let goals: OrgGoal[] = [];
             let members: OrgMember[] = [];
+            let teams: Team[] = [];
+            let invitations: OrgInvite[] = [];
 
             if (orgId) {
+                // ... (existing org-specific fetch)
                 goals = await goalService.getGoals(orgId);
+                teams = await teamService.getTeams(orgId);
+                const rawInvites = await inviteService.getInvitations(orgId);
+                invitations = rawInvites.map((i: any) => ({
+                    id: i.id,
+                    orgId: i.org_id,
+                    email: i.email,
+                    role: i.role,
+                    status: i.status,
+                    invitedBy: i.invited_by,
+                    createdAt: i.created_at,
+                    token: i.token
+                } as any));
+
                 const rawMembers = await orgService.getMembers(orgId);
                 members = rawMembers.map((m: any) => {
                     const memberGoals = goals.filter(g => g.assignedTo.includes(m.id));
@@ -78,18 +128,39 @@ export const useStore = create<AppState>((set, get) => ({
                         joinedAt: m.joined_at,
                         name: m.profiles?.full_name || 'Unknown User',
                         avatarUrl: m.profiles?.avatar_url,
+                        email: m.profiles?.email,
                         goalsAssigned: memberGoals.length,
                         goalsCompleted: completed,
                         completionRate,
-                        currentStreak: 0 // TODO: Implement streak logic
+                        currentStreak: 0
                     };
                 }) as any;
+            } else if (authUser) {
+                // Dashboard view: Fetch user's own memberships to determine roles
+                const { data: userMemberships } = await supabase
+                    .from('org_members')
+                    .select('*')
+                    .eq('user_id', authUser.id);
+
+                if (userMemberships) {
+                    members = userMemberships.map((m: any) => ({
+                        id: m.id,
+                        orgId: m.org_id,
+                        userId: m.user_id,
+                        role: m.role,
+                        joinedAt: m.joined_at,
+                        name: get().user?.name || 'User',
+                        email: get().user?.email || '',
+                    } as any));
+                }
             }
 
             set({
-                organizations: orgs as any,
-                goals: goals as any,
+                organizations: orgs.map(cleanOrgData) as any,
+                goals: goals.map(g => ({ ...g, progress: g.currentValue || 0 })) as any,
                 members: members as any,
+                teams: teams as any,
+                invitations: invitations as any,
                 isLoading: false
             });
         } catch (err: any) {
@@ -97,16 +168,68 @@ export const useStore = create<AppState>((set, get) => ({
         }
     },
 
-    addOrganization: async (name) => {
+    addOrganization: async (data) => {
+        set({ isLoading: true, error: null });
+        try {
+            const newOrg = await orgService.createOrganization(data);
+            const cleanedOrg = cleanOrgData(newOrg);
+            set((state) => ({
+                organizations: [cleanedOrg as any, ...state.organizations],
+                isLoading: false
+            }));
+            return cleanedOrg.id;
+        } catch (err: any) {
+            set({ error: err.message, isLoading: false });
+            throw err;
+        }
+    },
+
+    addTeam: async (orgId, name, description) => {
         set({ isLoading: true });
         try {
-            const newOrg = await orgService.createOrganization(name);
+            const newTeam = await teamService.createTeam(orgId, name, description);
             set((state) => ({
-                organizations: [newOrg as any, ...state.organizations],
+                teams: [...state.teams, newTeam as any],
                 isLoading: false
             }));
         } catch (err: any) {
             set({ error: err.message, isLoading: false });
+        }
+    },
+
+    sendInvitation: async (orgId, email, role) => {
+        set({ isLoading: true });
+        try {
+            const inviteResp = await inviteService.createInvitation(orgId, email, role);
+            const newInvite: OrgInvite = {
+                id: inviteResp.id,
+                orgId: inviteResp.org_id,
+                email: inviteResp.email,
+                role: inviteResp.role as any,
+                status: inviteResp.status,
+                token: inviteResp.token,
+                invitedBy: inviteResp.invited_by,
+                createdAt: inviteResp.created_at,
+            };
+            set((state) => ({
+                invitations: [newInvite, ...state.invitations],
+                isLoading: false
+            }));
+            return inviteResp.inviteLink;
+        } catch (err: any) {
+            set({ error: err.message, isLoading: false });
+            throw err;
+        }
+    },
+
+    cancelInvitation: async (inviteId) => {
+        try {
+            await inviteService.cancelInvitation(inviteId);
+            set((state) => ({
+                invitations: state.invitations.filter(i => i.id !== inviteId)
+            }));
+        } catch (err: any) {
+            set({ error: err.message });
         }
     },
 

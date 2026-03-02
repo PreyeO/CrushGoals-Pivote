@@ -3,6 +3,7 @@
 import { AuthLayout } from "@/components/authentication/AuthLayout";
 import { LoginForm } from "@/components/authentication/LoginForm";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export default function LoginPage() {
     return (
@@ -10,7 +11,9 @@ export default function LoginPage() {
             title="Welcome Back"
             subtitle="Ready to crush some goals today?"
         >
-            <LoginForm />
+            <Suspense fallback={<div className="h-48 flex items-center justify-center font-black animate-pulse opacity-20 uppercase tracking-widest text-[10px]">Scanning Identity...</div>}>
+                <LoginForm />
+            </Suspense>
             <div className="relative py-4">
                 <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-border/40"></span>

@@ -43,44 +43,58 @@ export function ActiveGoalsList({ orgId, goals, members, blockedCount }: ActiveG
                 </div>
             </div>
             <div className="space-y-3">
-                {goals.map((goal) => {
-                    const config = statusStyles[goal.status];
-                    return (
-                        <div key={goal.id} className="p-3.5 rounded-xl bg-accent/30 hover:bg-accent/50 transition-colors">
-                            <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-base">{goal.emoji}</span>
-                                    <h3 className="font-medium text-[13px] truncate">{goal.title}</h3>
-                                </div>
-                                <Badge className={`${config.class} text-[9px] flex-shrink-0 gap-1 ml-2`}>
-                                    <config.icon className="w-2.5 h-2.5" />
-                                    {config.label}
-                                </Badge>
-                            </div>
-                            <div className="flex items-center gap-2.5 mt-2.5">
-                                <Progress value={goal.currentValue} className="flex-1 h-[6px]" />
-                                <span className="text-[11px] font-bold w-8 text-right text-primary">{goal.currentValue}%</span>
-                            </div>
-                            <div className="flex items-center justify-between mt-2.5">
-                                <div className="flex -space-x-1.5">
-                                    {goal.assignedTo.slice(0, 3).map((mId) => {
-                                        const member = members.find((m) => m.id === mId);
-                                        return (
-                                            <Avatar key={mId} className="w-5 h-5 border border-background">
-                                                <AvatarFallback className="bg-primary/15 text-primary text-[8px] font-bold">
-                                                    {member?.name?.charAt(0) || "?"}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                        );
-                                    })}
-                                </div>
-                                <span className="text-[10px] text-muted-foreground">
-                                    Due {new Date(goal.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                </span>
-                            </div>
+                {goals.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-3 bg-accent/10 rounded-2xl border border-dashed border-border/40">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Target className="w-5 h-5 text-primary opacity-50" />
                         </div>
-                    );
-                })}
+                        <div>
+                            <p className="text-[13px] font-bold">No active goals found</p>
+                            <p className="text-[11px] text-muted-foreground max-w-[200px]">
+                                Break the ice! Create the first goal for this organization.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    goals.map((goal) => {
+                        const config = statusStyles[goal.status];
+                        return (
+                            <div key={goal.id} className="p-3.5 rounded-xl bg-accent/30 hover:bg-accent/50 transition-colors">
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-base">{goal.emoji}</span>
+                                        <h3 className="font-medium text-[13px] truncate">{goal.title}</h3>
+                                    </div>
+                                    <Badge className={`${config.class} text-[9px] flex-shrink-0 gap-1 ml-2`}>
+                                        <config.icon className="w-2.5 h-2.5" />
+                                        {config.label}
+                                    </Badge>
+                                </div>
+                                <div className="flex items-center gap-2.5 mt-2.5">
+                                    <Progress value={goal.currentValue} className="flex-1 h-[6px]" />
+                                    <span className="text-[11px] font-bold w-8 text-right text-primary">{goal.currentValue}%</span>
+                                </div>
+                                <div className="flex items-center justify-between mt-2.5">
+                                    <div className="flex -space-x-1.5">
+                                        {goal.assignedTo.slice(0, 3).map((mId) => {
+                                            const member = members.find((m) => m.id === mId);
+                                            return (
+                                                <Avatar key={mId} className="w-5 h-5 border border-background">
+                                                    <AvatarFallback className="bg-primary/15 text-primary text-[8px] font-bold">
+                                                        {member?.name?.charAt(0) || "?"}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                            );
+                                        })}
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground">
+                                        Due {new Date(goal.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
             </div>
         </div>
     );
