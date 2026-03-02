@@ -167,7 +167,10 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
 
                 {/* Navigation */}
                 <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-thin py-1">
-                    <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" isActive={pathname === "/dashboard"} />
+                    {/* Only show Dashboard to Owners/Admins */}
+                    {members.some(m => m.userId === user?.id && (m.role === 'owner' || m.role === 'admin')) && (
+                        <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" isActive={pathname === "/dashboard"} />
+                    )}
 
                     {resolvedOrgId && orgNavItems.length > 0 && (
                         <>

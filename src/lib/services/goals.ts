@@ -27,7 +27,9 @@ export const goalService = {
                 deadline: goal.deadline,
                 category: goal.category,
                 status: 'not_started',
-                priority: goal.priority
+                priority: goal.priority,
+                assigned_to: goal.assignedTo,
+                created_by: goal.createdBy
             }])
             .select()
             .single();
