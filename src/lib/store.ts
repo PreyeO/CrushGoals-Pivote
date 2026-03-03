@@ -15,7 +15,9 @@ import { teamService } from './services/teams';
 import { inviteService } from './services/invites';
 import { createClient } from './supabase';
 
-const supabase = createClient();
+// We don't initialize supabase at the top level to avoid build-time errors
+// when environment variables are missing.
+const getSupabase = () => createClient();
 
 export interface AppState {
     organizations: Organization[];
@@ -207,7 +209,7 @@ export const useStore = create<AppState>((set, get) => ({
                 }) as any;
             } else if (authUser) {
                 // Dashboard view: Fetch all goals and user's own memberships to determine roles
-                const { data: userMemberships } = await supabase
+                const { data: userMemberships } = await getSupabase()
                     .from('org_members')
                     .select('*')
                     .eq('user_id', authUser.id);
@@ -229,7 +231,7 @@ export const useStore = create<AppState>((set, get) => ({
                 goals = rawGoals.map(cleanGoalData);
 
                 // Fetch invitations for the user (to handle empty dashboard redirection)
-                const { data: rawInvites } = await supabase
+                const { data: rawInvites } = await getSupabase()
                     .from('invitations')
                     .select('*')
                     .eq('email', authUser.email)
