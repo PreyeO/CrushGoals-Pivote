@@ -1,6 +1,6 @@
 import { getResendClient } from '../resend';
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+const FROM_EMAIL = process.env.EMAIL_FROM || 'team@hello.crushgoals.app';
 
 export const emailService = {
     async sendInvitationEmail({
