@@ -47,9 +47,9 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           </div>
           <blockquote className="space-y-4">
             <p className="text-2xl font-medium leading-tight">
-              &ldquo;This tool changed how our team works. No more complex OKR
-              academic talk — just simple, actionable goals and
-              accountability.&rdquo;
+              CrushGoals transformed how our team executes. No more guessing or
+              endless meetings — just clear goals, ownership, and real
+              accountability.
             </p>
             <footer className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center font-bold text-white shadow-lg">

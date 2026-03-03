@@ -17,8 +17,7 @@ export function FinalCTA() {
           as a Team?
         </h2>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Join teams using CrushGoals to stay aligned, accountable, and
-          motivated — for free.
+          Stay aligned, accountable, and motivated
         </p>
         <Link href="/dashboard">
           <Button

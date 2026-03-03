@@ -11,31 +11,34 @@ export const pricingPlans = [
     period: "",
     description: "For small teams getting started",
     features: [
-      "Up to 5 team members",
-      "3 active goals per team",
-      "Basic progress tracking",
+      "1 organization",
+      "Up to 10 members",
+      "5 active goals",
+      "progress tracking",
       "Team leaderboard",
-      "Email invites",
+      "Invite via email or shareable URL",
     ],
     popular: false,
     cta: "Start Free",
   },
   {
     name: "Team",
-    price: "$12",
+    price: "$20", // USD; convert to NGN dynamically for Nigerian users
     period: "/month",
     description: "For growing teams who need more",
     features: [
-      "Up to 25 members",
+      "Up to 25 members per team",
       "Unlimited goals",
-      "Progress reports & analytics",
-      "Priority tracking",
+      "Progress reports & advanced analytics",
+      "Team health score & insights",
       "Goal comments & updates",
-      "Team health score",
-      "Export to PDF / CSV",
+      "Export progress to PDF / CSV",
+      "3 organizations",
+      "5 teams per organization",
+      "Invite via email or shareable URL",
     ],
     popular: true,
-    cta: "Start 14-Day Trial",
+    cta: "Start Now",
   },
   {
     name: "Enterprise",
@@ -43,7 +46,7 @@ export const pricingPlans = [
     period: "",
     description: "For organizations at scale",
     features: [
-      "Unlimited members",
+      "Unlimited members, teams, and organizations",
       "Everything in Team",
       "SSO & advanced security",
       "API access",
@@ -64,11 +67,11 @@ export function Pricing() {
             Pricing
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-            Simple, <span className="text-gradient-primary">Transparent</span>{" "}
-            Pricing
+            Pricing That <span className="text-gradient-primary"> Scales</span>{" "}
+            With Your Team
           </h2>
           <p className="text-muted-foreground">
-            Start free. Upgrade when you need more power.
+            Start free. Upgrade only when your team grows.
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-5 items-start">

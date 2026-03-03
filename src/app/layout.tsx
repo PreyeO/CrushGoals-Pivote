@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next"
 
 export default function RootLayout({
   children,
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <main>{children}</main>
         <Toaster richColors position="top-right" />
+        <Analytics />
       </body>
     </html>
   );
