@@ -1,24 +1,30 @@
 "use client";
+
+import { useState } from "react";
+
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
 import { Calendar } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore, AppState } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
+import { cn } from "@/lib/utils";
+import { OrgGoal, OrgMember } from "@/types";
 
 export function DashboardGoals() {
-  const goals = useStore(useShallow((state) => state.goals));
-  const members = useStore(useShallow((state) => state.members));
-
-  const user = useStore(useShallow((state) => state.user));
+  const [now] = useState(() => Date.now());
+  const goals = useStore(useShallow((state: AppState) => state.goals));
+  const members = useStore(useShallow((state: AppState) => state.members));
+  const user = useStore(useShallow((state: AppState) => state.user));
 
   // Find all member IDs for the current user across all orgs
   const myMemberIds = members
-    .filter((m) => m.userId === user?.id)
-    .map((m) => m.id);
+    .filter((m: OrgMember) => m.userId === user?.id)
+    .map((m: OrgMember) => m.id);
 
   // Filter for goals assigned to any of these member IDs
   const myGoals = goals
-    .filter((g) => g.assignedTo.some((id) => myMemberIds.includes(id)))
+    .filter((g: OrgGoal) => g.assignedTo.some((id) => myMemberIds.includes(id)))
     .slice(0, 3);
 
   if (myGoals.length === 0) return null;
@@ -64,20 +70,69 @@ export function DashboardGoals() {
 
             <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between text-[11px] mb-1.5">
-                  <span className="text-muted-foreground">Progress</span>
-                  <span className="font-bold text-primary">
-                    {goal.currentValue}%
+                <div className="flex items-center justify-between text-[11px] mb-1.5 font-bold uppercase tracking-tight">
+                  <span className="text-muted-foreground">Momentum</span>
+                  <span className="text-primary flex items-center gap-1.5">
+                    {goal.targetNumber ? (
+                      <span className="text-[10px] text-muted-foreground mr-1">
+                        {goal.currentValue} / {goal.targetNumber} {goal.unit}
+                      </span>
+                    ) : null}
+                    {goal.progress}%
                   </span>
                 </div>
-                <Progress value={goal.currentValue} className="h-1.5" />
+                <Progress value={goal.progress} className="h-1.5" />
+
+                {/* Pacing Badge */}
+                {(() => {
+                  const start = new Date(
+                    goal.startDate || goal.createdAt,
+                  ).getTime();
+                  const end = new Date(goal.deadline).getTime();
+                  const expected =
+                    end - start > 0
+                      ? Math.min(
+                          100,
+                          Math.max(
+                            0,
+                            Math.round(((now - start) / (end - start)) * 100),
+                          ),
+                        )
+                      : 0;
+                  const isBehind = goal.progress < expected - 15;
+                  const isAhead = goal.progress > expected + 15;
+
+                  return (
+                    <div className="mt-2 flex items-center justify-between">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[8px] font-black uppercase tracking-widest px-1.5 h-4 border-0",
+                          isBehind
+                            ? "bg-destructive/10 text-destructive"
+                            : isAhead
+                              ? "bg-emerald-500/10 text-emerald-500"
+                              : "bg-primary/10 text-primary",
+                        )}
+                      >
+                        {isBehind ? "Behind" : isAhead ? "Ahead" : "On Track"}
+                      </Badge>
+                      <span className="text-[9px] text-muted-foreground font-medium">
+                        Expected: {expected}%
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-border/20">
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />{" "}
-                    {new Date(goal.deadline).toLocaleDateString()}
+                    {new Date(goal.deadline).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </span>
                 </div>
                 <GoalCheckInModal goal={goal} />
@@ -89,5 +144,3 @@ export function DashboardGoals() {
     </div>
   );
 }
-
-import { cn } from "@/lib/utils";

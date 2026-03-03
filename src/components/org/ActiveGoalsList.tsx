@@ -1,101 +1,191 @@
 "use client";
 
-import Link from "next/link";
-import { Target, ArrowRight, AlertCircle, Clock, TrendingUp, CheckCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CreateGoalModal } from "@/components/create-goal-modal";
-import { OrgGoal, OrgMember, GoalStatus } from "@/types";
+import { useState } from "react";
 
-const statusStyles: Record<GoalStatus, { label: string; class: string; icon: React.ElementType }> = {
-    not_started: { label: "Not Started", class: "bg-muted/60 text-muted-foreground", icon: Clock },
-    in_progress: { label: "In Progress", class: "bg-[oklch(0.55_0.20_250_/_0.15)] text-[oklch(0.70_0.18_250)]", icon: TrendingUp },
-    blocked: { label: "Blocked", class: "bg-[oklch(0.55_0.20_25_/_0.15)] text-[oklch(0.70_0.20_25)]", icon: AlertCircle },
-    completed: { label: "Completed", class: "bg-[oklch(0.55_0.18_155_/_0.15)] text-[oklch(0.70_0.18_155)]", icon: CheckCircle },
-};
+import Link from "next/link";
+import { Target, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CreateGoalModal } from "@/components/create-goal-modal";
+import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
+import { OrgGoal, OrgMember } from "@/types";
+import { useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { getVisibleGoals } from "@/lib/store-utils";
+import { useShallow } from "zustand/react/shallow";
 
 interface ActiveGoalsListProps {
-    orgId: string;
-    goals: OrgGoal[];
-    members: OrgMember[];
-    blockedCount: number;
+  orgId: string;
+  limit?: number;
+  goals?: OrgGoal[];
+  members?: OrgMember[];
 }
 
-export function ActiveGoalsList({ orgId, goals, members, blockedCount }: ActiveGoalsListProps) {
+export function ActiveGoalsList({
+  orgId,
+  limit,
+  goals: propGoals,
+  members: propMembers,
+}: ActiveGoalsListProps) {
+  const storeGoals = useStore(
+    useShallow((state) => state.goals.filter((g) => g.orgId === orgId)),
+  );
+  const storeMembers = useStore(useShallow((state) => state.members));
+  const user = useStore(useShallow((state) => state.user));
+
+  const goals = propGoals || storeGoals;
+  const members = propMembers || storeMembers;
+
+  const myMember = members.find(
+    (m) => m.orgId === orgId && m.userId === user?.id,
+  );
+  const visibleGoals = getVisibleGoals(goals, myMember);
+
+  const [now] = useState(() => Date.now());
+  const displayedGoals = limit ? visibleGoals.slice(0, limit) : visibleGoals;
+
+  if (goals.length === 0) {
     return (
-        <div className="glass-card p-5 animate-fade-in-up">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold flex items-center gap-2 text-sm">
-                    <Target className="w-4 h-4 text-primary" />
-                    Active Goals
-                    {blockedCount > 0 && (
-                        <Badge className="bg-[oklch(0.55_0.20_25_/_0.15)] text-[oklch(0.70_0.20_25)] text-[10px] gap-1">
-                            <AlertCircle className="w-2.5 h-2.5" /> {blockedCount} blocked
-                        </Badge>
-                    )}
-                </h2>
-                <div className="flex items-center gap-3">
-                    <CreateGoalModal orgId={orgId} />
-                    <Link href={`/org/${orgId}/goals`} className="text-xs text-primary hover:underline flex items-center gap-1">
-                        View all <ArrowRight className="w-3 h-3" />
-                    </Link>
-                </div>
-            </div>
-            <div className="space-y-3">
-                {goals.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-3 bg-accent/10 rounded-2xl border border-dashed border-border/40">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Target className="w-5 h-5 text-primary opacity-50" />
-                        </div>
-                        <div>
-                            <p className="text-[13px] font-bold">No active goals found</p>
-                            <p className="text-[11px] text-muted-foreground max-w-[200px]">
-                                Break the ice! Create the first goal for this organization.
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                    goals.map((goal) => {
-                        const config = statusStyles[goal.status];
-                        return (
-                            <div key={goal.id} className="p-3.5 rounded-xl bg-accent/30 hover:bg-accent/50 transition-colors">
-                                <div className="flex items-start justify-between mb-2">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <span className="text-base">{goal.emoji}</span>
-                                        <h3 className="font-medium text-[13px] truncate">{goal.title}</h3>
-                                    </div>
-                                    <Badge className={`${config.class} text-[9px] flex-shrink-0 gap-1 ml-2`}>
-                                        <config.icon className="w-2.5 h-2.5" />
-                                        {config.label}
-                                    </Badge>
-                                </div>
-                                <div className="flex items-center gap-2.5 mt-2.5">
-                                    <Progress value={goal.currentValue} className="flex-1 h-[6px]" />
-                                    <span className="text-[11px] font-bold w-8 text-right text-primary">{goal.currentValue}%</span>
-                                </div>
-                                <div className="flex items-center justify-between mt-2.5">
-                                    <div className="flex -space-x-1.5">
-                                        {goal.assignedTo.slice(0, 3).map((mId) => {
-                                            const member = members.find((m) => m.id === mId);
-                                            return (
-                                                <Avatar key={mId} className="w-5 h-5 border border-background">
-                                                    <AvatarFallback className="bg-primary/15 text-primary text-[8px] font-bold">
-                                                        {member?.name?.charAt(0) || "?"}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                            );
-                                        })}
-                                    </div>
-                                    <span className="text-[10px] text-muted-foreground">
-                                        Due {new Date(goal.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })
-                )}
-            </div>
+      <div className="flex flex-col items-center justify-center py-12 px-4 glass-card border-dashed border-2 border-border/40 rounded-2xl">
+        <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center mb-4">
+          <Target className="w-8 h-8 text-muted-foreground/40" />
         </div>
+        <h3 className="text-sm font-bold text-foreground">
+          No active goals yet
+        </h3>
+        <p className="text-xs text-muted-foreground mt-1 mb-6 text-center max-w-50">
+          Every big achievement starts with a single goal.
+        </p>
+        <CreateGoalModal orgId={orgId} />
+      </div>
     );
+  }
+
+  return (
+    <div className="space-y-4">
+      {displayedGoals.map((goal) => {
+        const goalAssignees = members.filter((m) =>
+          goal.assignedTo.includes(m.id),
+        );
+        const blockedCount = goal.status === "blocked" ? 1 : 0;
+
+        const start = new Date(goal.startDate || goal.createdAt).getTime();
+        const end = new Date(goal.deadline).getTime();
+        const expectedProgress =
+          end - start > 0
+            ? Math.min(
+                100,
+                Math.max(0, Math.round(((now - start) / (end - start)) * 100)),
+              )
+            : 0;
+        const isBehind = goal.progress < expectedProgress - 15;
+        const isAhead = goal.progress > expectedProgress + 15;
+
+        return (
+          <div
+            key={goal.id}
+            className="glass-card border-border/40 hover:border-primary/30 transition-all p-5 group flex flex-col sm:flex-row gap-5"
+          >
+            <div className="flex-1 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl group-hover:scale-110 transition-transform">
+                      {goal.emoji}
+                    </span>
+                    <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                      {goal.title}
+                    </h4>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[9px] font-bold uppercase tracking-wider px-1.5 h-4",
+                        isBehind
+                          ? "bg-destructive/10 text-destructive border-destructive/20"
+                          : isAhead
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            : "bg-primary/10 text-primary border-primary/20",
+                      )}
+                    >
+                      {isBehind ? "Behind" : isAhead ? "Ahead" : "On Track"}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground line-clamp-1">
+                    {goal.description}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    {goal.targetNumber
+                      ? `${goal.currentValue} / ${goal.targetNumber} ${goal.unit}`
+                      : goal.targetValue}
+                  </span>
+                  {blockedCount > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="h-5 text-[9px] font-black px-1.5 animate-pulse bg-destructive shadow-[0_0_10px_-2px_var(--destructive)]"
+                    >
+                      STUCK
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[10px] font-bold">
+                  <span className="text-muted-foreground">
+                    Overall Momentum
+                  </span>
+                  <span className="text-primary tabular-nums tracking-tight">
+                    {goal.progress}%
+                  </span>
+                </div>
+                <div className="h-2 w-full bg-accent/30 rounded-full overflow-hidden border border-border/10">
+                  <div
+                    className={cn(
+                      "h-full transition-all duration-1000 ease-out shadow-[0_0_10px_-2px_rgba(var(--primary),0.5)]",
+                      goal.status === "blocked"
+                        ? "bg-destructive"
+                        : "bg-primary",
+                    )}
+                    style={{ width: `${goal.progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex sm:flex-col items-center justify-between sm:justify-center gap-4 sm:pl-6 sm:border-l border-border/20">
+              <div className="flex -space-x-2">
+                {goalAssignees.map((member) => (
+                  <Avatar
+                    key={member.id}
+                    className="w-7 h-7 border-2 border-background ring-2 ring-transparent group-hover:ring-primary/10 transition-all"
+                  >
+                    <AvatarImage src={member.avatarUrl || ""} />
+                    <AvatarFallback className="text-[8px] font-bold bg-primary/10 text-primary">
+                      {member.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              <GoalCheckInModal goal={goal} />
+            </div>
+          </div>
+        );
+      })}
+
+      {limit && goals.length > limit && (
+        <Link
+          href={`/org/${orgId}/goals`}
+          className="flex items-center justify-center gap-2 py-3 w-full text-xs font-bold text-muted-foreground hover:text-primary transition-colors glass-card border-border/40 group mt-2"
+        >
+          View All Active Goals
+          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+        </Link>
+      )}
+    </div>
+  );
 }

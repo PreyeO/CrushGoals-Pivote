@@ -53,7 +53,9 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
     const resolvedOrgId = currentOrgId || orgs[0]?.id;
     const currentOrg = orgs.find((o: Organization) => o.id === resolvedOrgId);
     const myMember = members.find(m => m.userId === user?.id && m.orgId === resolvedOrgId);
-    const isMemberOnly = myMember?.role === "member";
+
+    // Permission Fix: Default to member-only if myMember isn't loaded yet to prevent flashes of restricted UI
+    const isMemberOnly = !myMember || myMember.role === "member";
 
     const orgNavItems = resolvedOrgId
         ? getOrgNavItems(resolvedOrgId).filter(item => !(isMemberOnly && item.label === "Settings"))

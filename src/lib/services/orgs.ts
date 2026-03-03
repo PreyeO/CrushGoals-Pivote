@@ -107,7 +107,7 @@ export const orgService = {
     async getMembers(orgId: string) {
         const { data, error } = await supabase
             .from('org_members')
-            .select('*, profiles(full_name, avatar_url, email)')
+            .select('*, profiles(full_name, avatar_url)')
             .eq('org_id', orgId);
 
         if (error) throw error;

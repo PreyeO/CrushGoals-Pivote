@@ -44,15 +44,14 @@ export function DashboardHeader({
         <p className="text-sm text-muted-foreground">
           {showCreateOrg
             ? `You're managing ${organizations.length} organizations with ${memberCount} members and ${goalCount} active goals.`
-            : `You're a member of ${organizations.length} organizations with ${goalCount} active goals across them.`
-          }
+            : `You're a member of ${organizations.length} organizations with ${goalCount} active goals across them.`}
         </p>
       </div>
 
       <div className="flex items-center gap-3">
         {organizations.length > 1 && (
           <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
-            <SelectTrigger className="w-[180px] bg-accent/30 border-border/40 h-10 text-xs">
+            <SelectTrigger className="w-45 bg-accent/30 border-border/40 h-10 text-xs">
               <SelectValue placeholder="Select Organization" />
             </SelectTrigger>
             <SelectContent className="glass-card border-border/40">

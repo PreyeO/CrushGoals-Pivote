@@ -52,12 +52,15 @@ export interface OrgGoal {
   emoji: string;
   status: GoalStatus;
   priority: GoalPriority;
-  targetValue: string;
-  currentValue: number;
+  targetValue: string; // The display label (e.g., "100 sign-ups")
+  targetNumber?: number; // The numeric target for tracking (e.g., 100)
+  unit?: string; // The unit of measurement (e.g., "sign-ups", "chapters", "$")
+  currentValue: number; // For metric goals, this is the actual value. For milestones, it's 0-100.
+  startDate: string; // The start date of the goal (ISO format)
   deadline: string;
   createdBy: string;
   assignedTo: string[]; // member IDs
-  progress: number; // For backward compatibility/consistency
+  progress: number; // Computed 0-100 progress
   comments: GoalComment[];
   createdAt: string;
   updatedAt: string;
@@ -122,4 +125,6 @@ export interface GoalTemplate {
   category: string;
   emoji: string;
   priority: GoalPriority;
+  targetNumber?: number;
+  unit?: string;
 }

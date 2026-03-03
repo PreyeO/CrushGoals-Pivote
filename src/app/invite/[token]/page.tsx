@@ -20,7 +20,12 @@ export default function InvitationPage({ params }: { params: Promise<{ token: st
     const [isAccepting, setIsAccepting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const fetchInitialData = useStore((state) => state.fetchInitialData);
+
     useEffect(() => {
+        // Fetch user session first to ensure UI reflects auth state
+        fetchInitialData();
+
         const fetchInvite = async () => {
             try {
                 const data = await inviteService.getInvitationByToken(token);
@@ -47,6 +52,10 @@ export default function InvitationPage({ params }: { params: Promise<{ token: st
         try {
             const orgId = await inviteService.acceptInvitation(token);
             toast.success("Welcome aboard! You've successfully joined.");
+
+            // Refresh store with the new organization data before redirecting
+            await fetchInitialData(orgId);
+
             router.push(`/org/${orgId}`);
         } catch (err: any) {
             console.error("Accept invite error:", err);

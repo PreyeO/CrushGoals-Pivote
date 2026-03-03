@@ -10,7 +10,7 @@ export const authService = {
 
         const { data: profile } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, full_name, avatar_url')
             .eq('id', user.id)
             .maybeSingle();
 

@@ -46,3 +46,17 @@ export function getTeamHealthScore(orgId: string, goals: OrgGoal[], members: Org
 export function getGoalAssignees(goal: OrgGoal, members: OrgMember[]): OrgMember[] {
     return goal.assignedTo.map((id) => members.find((m) => m.id === id)).filter(Boolean) as OrgMember[];
 }
+
+/**
+ * Filter goals based on user role and assignment.
+ * - Owners/Admins see all goals in the org.
+ * - Members see only goals they are assigned to.
+ */
+export function getVisibleGoals(goals: OrgGoal[], myMember: OrgMember | undefined): OrgGoal[] {
+    if (!myMember) return [];
+    if (myMember.role === 'owner' || myMember.role === 'admin') {
+        return goals;
+    }
+    // Standard members only see goals they are explicitly assigned to
+    return goals.filter(g => g.assignedTo.includes(myMember.id));
+}
