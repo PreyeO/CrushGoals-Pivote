@@ -1,14 +1,12 @@
-import { createClient } from '@/lib/supabase';
-
-const supabase = createClient();
+import { getSupabase } from '@/lib/supabase';
 
 export const authService = {
     async getCurrentUser() {
-        const { data: { user }, error } = await supabase.auth.getUser();
+        const { data: { user }, error } = await getSupabase().auth.getUser();
         if (error) return null;
         if (!user) return null;
 
-        const { data: profile } = await supabase
+        const { data: profile } = await getSupabase()
             .from('profiles')
             .select('id, full_name, avatar_url')
             .eq('id', user.id)
@@ -21,6 +19,6 @@ export const authService = {
     },
 
     async signOut() {
-        await supabase.auth.signOut();
+        await getSupabase().auth.signOut();
     }
 };

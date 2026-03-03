@@ -13,11 +13,7 @@ import { goalService } from './services/goals';
 import { orgService } from './services/orgs';
 import { teamService } from './services/teams';
 import { inviteService } from './services/invites';
-import { createClient } from './supabase';
-
-// We don't initialize supabase at the top level to avoid build-time errors
-// when environment variables are missing.
-const getSupabase = () => createClient();
+import { getSupabase } from './supabase';
 
 export interface AppState {
     organizations: Organization[];

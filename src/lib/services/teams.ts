@@ -1,10 +1,8 @@
-import { createClient } from '@/lib/supabase';
-
-const supabase = createClient();
+import { getSupabase } from '@/lib/supabase';
 
 export const teamService = {
     async getTeams(orgId: string) {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('teams')
             .select('*')
             .eq('org_id', orgId);
@@ -14,7 +12,7 @@ export const teamService = {
     },
 
     async createTeam(orgId: string, name: string, description: string) {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('teams')
             .insert([{
                 org_id: orgId,
@@ -35,7 +33,7 @@ export const teamService = {
     },
 
     async updateMemberTeam(memberId: string, teamId: string | null) {
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('org_members')
             .update({ team_id: teamId })
             .eq('id', memberId);

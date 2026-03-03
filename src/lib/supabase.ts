@@ -14,3 +14,6 @@ export function createClient() {
 
     return createBrowserClient(url, key)
 }
+
+// Lazy loader to prevent build-time crashes
+export const getSupabase = () => createClient();

@@ -1,16 +1,16 @@
-import { createClient } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { sendInvitationEmailAction } from '@/app/actions/email';
 
-const supabase = createClient();
+
 
 export const inviteService = {
     async createInvitation(orgId: string, email: string, role: string = 'member') {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabase().auth.getUser();
         if (!user) throw new Error("Not authenticated");
 
         const token = uuidv4();
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('invitations')
             .insert([{
                 org_id: orgId,
@@ -38,14 +38,14 @@ export const inviteService = {
         // Send email via Server Action (to keep secrets on the server)
         try {
             // Fetch organization details for the email context
-            const { data: orgData } = await supabase
+            const { data: orgData } = await getSupabase()
                 .from('organizations')
                 .select('name')
                 .eq('id', orgId)
                 .single();
 
             // Fetch inviter's profile for the host name
-            const { data: userData } = await supabase
+            const { data: userData } = await getSupabase()
                 .from('profiles')
                 .select('full_name, name')
                 .eq('id', user.id)
@@ -68,7 +68,7 @@ export const inviteService = {
     },
 
     async getInvitations(orgId: string) {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('invitations')
             .select('*')
             .eq('org_id', orgId)
@@ -79,7 +79,7 @@ export const inviteService = {
     },
 
     async cancelInvitation(inviteId: string) {
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('invitations')
             .update({ status: 'canceled' })
             .eq('id', inviteId);
@@ -88,7 +88,7 @@ export const inviteService = {
     },
 
     async getInvitationByToken(token: string) {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('invitations')
             .select('*, organizations(*)')
             .eq('token', token)
@@ -100,7 +100,7 @@ export const inviteService = {
     },
 
     async acceptInvitation(token: string) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabase().auth.getUser();
         if (!user) throw new Error("Not authenticated");
 
         // 1. Get invitation
@@ -108,7 +108,7 @@ export const inviteService = {
         if (!invite) throw new Error("Invalid or expired invitation");
 
         // 2. Add as member
-        const { error: memberError } = await supabase
+        const { error: memberError } = await getSupabase()
             .from('org_members')
             .insert([{
                 org_id: invite.org_id,
@@ -128,7 +128,7 @@ export const inviteService = {
         }
 
         // 3. Update invite status
-        const { error: inviteError } = await supabase
+        const { error: inviteError } = await getSupabase()
             .from('invitations')
             .update({ status: 'accepted' })
             .eq('token', token);

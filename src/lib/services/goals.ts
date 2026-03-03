@@ -1,11 +1,9 @@
-import { createClient } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { OrgGoal, GoalStatus } from '@/types';
-
-const supabase = createClient();
 
 export const goalService = {
     async getGoals(orgIdOrIds: string | string[]) {
-        let query = supabase.from('goals').select('*');
+        let query = getSupabase().from('goals').select('*');
 
         if (Array.isArray(orgIdOrIds)) {
             query = query.in('org_id', orgIdOrIds);
@@ -19,11 +17,11 @@ export const goalService = {
     },
 
     async getGoalsForUser() {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabase().auth.getUser();
         if (!user) return [];
 
         // First find orgs user is in
-        const { data: memberOf } = await supabase
+        const { data: memberOf } = await getSupabase()
             .from('org_members')
             .select('org_id')
             .eq('user_id', user.id);
@@ -35,7 +33,7 @@ export const goalService = {
     },
 
     async createGoal(goal: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'progress' | 'comments'>) {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('goals')
             .insert([{
                 org_id: goal.orgId,
@@ -69,7 +67,7 @@ export const goalService = {
 
     async updateProgress(goalId: string, progress: number, note?: string) {
         // Update goal progress
-        const { error: goalError } = await supabase
+        const { error: goalError } = await getSupabase()
             .from('goals')
             .update({ current_value: progress, updated_at: new Date().toISOString() })
             .eq('id', goalId);
@@ -84,9 +82,9 @@ export const goalService = {
 
         // If a note is provided, add it to progress_updates
         if (note) {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await getSupabase().auth.getUser();
             if (user) {
-                await supabase.from('progress_updates').insert([{
+                await getSupabase().from('progress_updates').insert([{
                     goal_id: goalId,
                     user_id: user.id,
                     content: note,
@@ -97,7 +95,7 @@ export const goalService = {
     },
 
     async updateStatus(goalId: string, status: GoalStatus) {
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('goals')
             .update({ status, updated_at: new Date().toISOString() })
             .eq('id', goalId);
@@ -105,11 +103,11 @@ export const goalService = {
     },
 
     async deleteGoal(goalId: string, orgId: string) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabase().auth.getUser();
         console.log("Delete attempt by:", user?.id, "for goal:", goalId, "in org:", orgId);
 
         // Verify membership role first
-        const { data: member } = await supabase
+        const { data: member } = await getSupabase()
             .from('org_members')
             .select('role')
             .eq('org_id', orgId)
@@ -119,7 +117,7 @@ export const goalService = {
         console.log("Member role in DB:", member?.role);
 
         // 1. Delete associated progress updates first
-        const { error: updatesError } = await supabase
+        const { error: updatesError } = await getSupabase()
             .from('progress_updates')
             .delete()
             .eq('goal_id', goalId);
@@ -129,7 +127,7 @@ export const goalService = {
         }
 
         // 2. Delete the goal itself
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('goals')
             .delete()
             .eq('id', goalId)
@@ -142,7 +140,7 @@ export const goalService = {
 
         if (!data || data.length === 0) {
             // Check if goal exists but was just blocked by RLS
-            const { data: exists } = await supabase.from('goals').select('id').eq('id', goalId).single();
+            const { data: exists } = await getSupabase().from('goals').select('id').eq('id', goalId).single();
             if (exists) {
                 throw new Error(`Permission denied. You are a ${member?.role || 'unknown'} in this org, but the database RLS policy is blocking this deletion. This usually means only the goal creator can delete it.`);
             } else {
