@@ -27,7 +27,7 @@ export const goalService = {
             .eq('user_id', user.id);
 
         if (!memberOf || memberOf.length === 0) return [];
-        const orgIds = memberOf.map(m => m.org_id);
+        const orgIds = memberOf.map((m: any) => m.org_id);
 
         return this.getGoals(orgIds);
     },

@@ -15,7 +15,7 @@ export const orgService = {
         if (membershipError) throw membershipError;
         if (!membershipData || membershipData.length === 0) return [];
 
-        const orgIds = membershipData.map(m => m.org_id);
+        const orgIds = membershipData.map((m: any) => m.org_id);
 
         // Fetch orgs with member and goal counts
         const { data, error } = await getSupabase()

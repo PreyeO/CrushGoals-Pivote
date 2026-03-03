@@ -247,7 +247,7 @@ export const useStore = create<AppState>((set, get) => ({
             }
 
             // Sync goalCount for organizations based on actual goals fetched
-            const finalOrgs = orgs.map(cleanOrgData).map(org => {
+            const finalOrgs = orgs.map(cleanOrgData).map((org: any) => {
                 // If we have goals for this org, use that count as it's more reliable than the aggregate
                 const orgGoals = goals.filter(g => g.orgId === org.id);
                 if (orgGoals.length > 0 || (orgId && org.id === orgId)) {
