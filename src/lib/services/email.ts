@@ -21,6 +21,7 @@ export const emailService = {
         }
 
         try {
+            console.log(`Attempting to send invitation email to ${to} from ${FROM_EMAIL}`);
             const { data, error } = await resend.emails.send({
                 from: `CrushGoals <${FROM_EMAIL}>`,
                 to: [to],
@@ -42,14 +43,15 @@ export const emailService = {
             });
 
             if (error) {
-                console.error('Resend email error:', error);
-                return { success: false, error };
+                console.error('Resend email API error:', JSON.stringify(error, null, 2));
+                return { success: false, error: error.message || 'Unknown Resend error' };
             }
 
+            console.log('Invitation email sent successfully:', data?.id);
             return { success: true, data };
-        } catch (error) {
-            console.error('Failed to send invitation email:', error);
-            return { success: false, error };
+        } catch (error: any) {
+            console.error('Critical failure in email service:', error);
+            return { success: false, error: error.message || 'Critical email service failure' };
         }
     },
 };

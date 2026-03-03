@@ -53,15 +53,21 @@ export const inviteService = {
 
             const hostName = userData?.full_name || userData?.name || 'A team member';
 
-            await sendInvitationEmailAction({
+            const result = await sendInvitationEmailAction({
                 to: email,
                 orgName: orgData?.name || 'your organization',
                 inviteLink,
                 hostName,
             });
-        } catch (emailErr) {
-            console.error("Failed to send invitation email but invitation was created:", emailErr);
-            // We don't throw here so the UI still shows the invite was created
+
+            if (!result.success) {
+                console.error("Invitation email failed to send:", result.error);
+                // Return descriptive error for user
+                return { ...data, inviteLink, emailError: result.error };
+            }
+        } catch (emailErr: any) {
+            console.error("Failed to execute invitation email action:", emailErr);
+            return { ...data, inviteLink, emailError: emailErr.message || "Email service unavailable" };
         }
 
         return { ...data, inviteLink };

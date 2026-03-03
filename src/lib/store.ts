@@ -31,7 +31,7 @@ export interface AppState {
     signOut: () => Promise<void>;
     addOrganization: (data: { name: string; description: string; emoji: string }) => Promise<string>;
     addTeam: (orgId: string, name: string, description: string) => Promise<void>;
-    sendInvitation: (orgId: string, email: string, role: OrgRole) => Promise<string>;
+    sendInvitation: (orgId: string, email: string, role: OrgRole) => Promise<{ link: string; emailError?: string }>;
     cancelInvitation: (inviteId: string) => Promise<void>;
     addGoal: (goal: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'progress' | 'comments'>) => Promise<void>;
     updateGoalProgress: (goalId: string, progress: number, note?: string) => Promise<void>;
@@ -317,7 +317,10 @@ export const useStore = create<AppState>((set, get) => ({
                 invitations: [newInvite, ...state.invitations],
                 isLoading: false
             }));
-            return inviteResp.inviteLink;
+            return {
+                link: inviteResp.inviteLink,
+                emailError: inviteResp.emailError
+            };
         } catch (err: any) {
             set({ error: err.message, isLoading: false });
             throw err;

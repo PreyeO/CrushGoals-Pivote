@@ -62,9 +62,14 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
 
     const onSubmit = async (data: FormValues) => {
         try {
-            const link = await sendInvitation(orgId, data.email, data.role as OrgRole);
+            const { link, emailError } = await sendInvitation(orgId, data.email, data.role as OrgRole);
             setInviteLink(link);
-            toast.success("Invitation created!");
+
+            if (emailError) {
+                toast.warning("Member added, but invitation email failed: " + emailError);
+            } else {
+                toast.success("Invitation created and email sent!");
+            }
         } catch (error: any) {
             console.error("Failed to invite member:", error);
             toast.error(error.message || "Failed to send invitation");
