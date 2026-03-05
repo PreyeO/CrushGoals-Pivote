@@ -10,7 +10,7 @@ import { QuickActions } from "./QuickActions";
 import { DashboardGoals } from "./DashboardGoals";
 import { Organization, OrgInvite, OrgMember } from "@/types";
 import { useRouter } from "next/navigation";
-import { Mail, ArrowRight } from "lucide-react";
+import { Mail, ArrowRight, Zap, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function DashboardMain() {
@@ -18,9 +18,14 @@ export function DashboardMain() {
     const organizations = useStore(useShallow((state: AppState) => state.organizations));
     const members = useStore(useShallow((state: AppState) => state.members));
     const invitations = useStore(useShallow((state: AppState) => state.invitations));
+    const memberGoalStatuses = useStore(useShallow((state: AppState) => state.memberGoalStatuses));
     const user = useStore(useShallow((state: AppState) => state.user));
     const isLoading = useStore((state: AppState) => state.isLoading);
     const fetchInitialData = useStore((state: AppState) => state.fetchInitialData);
+
+    const STALE_MS = 5 * 24 * 60 * 60 * 1000;
+    const blockedCount = memberGoalStatuses.filter(s => s.status === 'blocked').length;
+    const staleCount = memberGoalStatuses.filter(s => Date.now() - new Date(s.updatedAt).getTime() > STALE_MS).length;
 
     useEffect(() => {
         fetchInitialData();
@@ -108,6 +113,27 @@ export function DashboardMain() {
                     </div>
                 </div>
             )}
+
+            {/* Team Pulse — visible to owners/admins when any member statuses are loaded */}
+            {isOwnerOrAdmin && organizations.length > 0 && (blockedCount > 0 || staleCount > 0) && (
+                <div className="mb-6 p-4 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-yellow-500/15 flex items-center justify-center shrink-0">
+                        <Zap className="w-5 h-5 text-yellow-400" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                            <ShieldAlert className="w-4 h-4 text-yellow-400" /> Team Pulse
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            {blockedCount > 0 && <span className="text-destructive font-semibold">{blockedCount} member{blockedCount > 1 ? "s" : ""} blocked</span>}
+                            {blockedCount > 0 && staleCount > 0 && " · "}
+                            {staleCount > 0 && <span className="text-yellow-400 font-semibold">{staleCount} member{staleCount > 1 ? "s" : ""} with stale updates</span>}
+                            {" — expand a goal card to see details."}
+                        </p>
+                    </div>
+                </div>
+            )}
+
 
             <DashboardStats
                 orgCount={organizations.length}

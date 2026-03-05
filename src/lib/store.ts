@@ -8,6 +8,8 @@ import {
     OrgInvite,
     ActivityItem,
     GoalStatus,
+    MemberGoalStatus,
+    MemberGoalStatusValue,
 } from '@/types';
 import { goalService } from './services/goals';
 import { orgService } from './services/orgs';
@@ -22,6 +24,7 @@ export interface AppState {
     teams: Team[];
     invitations: OrgInvite[];
     activities: ActivityItem[];
+    memberGoalStatuses: MemberGoalStatus[];
     user: { id: string; name: string; email: string; avatarUrl: string | null } | null;
     isLoading: boolean;
     error: string | null;
@@ -37,6 +40,8 @@ export interface AppState {
     updateGoalProgress: (goalId: string, progress: number, note?: string) => Promise<void>;
     updateGoalStatus: (goalId: string, status: GoalStatus) => Promise<void>;
     deleteGoal: (goalId: string, orgId: string) => Promise<void>;
+    fetchMemberStatuses: (goalId: string) => Promise<void>;
+    upsertMemberStatus: (goalId: string, orgId: string, status: MemberGoalStatusValue, note: string, contribution?: number) => Promise<void>;
 }
 
 import { authService } from './services/auth';
@@ -131,6 +136,7 @@ export const useStore = create<AppState>((set, get) => ({
     teams: [],
     invitations: [],
     activities: [],
+    memberGoalStatuses: [],
     user: null,
     isLoading: false,
     error: null,
@@ -420,6 +426,27 @@ export const useStore = create<AppState>((set, get) => ({
 
     signOut: async () => {
         await authService.signOut();
-        set({ user: null, organizations: [], goals: [], members: [] });
-    }
+        set({ user: null, organizations: [], goals: [], members: [], memberGoalStatuses: [] });
+    },
+
+    fetchMemberStatuses: async (goalId) => {
+        try {
+            const statuses = await goalService.getMemberStatuses(goalId);
+            set((state) => ({
+                // Replace statuses for this goal, keep others
+                memberGoalStatuses: [
+                    ...state.memberGoalStatuses.filter(s => s.goalId !== goalId),
+                    ...statuses,
+                ],
+            }));
+        } catch (err: any) {
+            console.error('fetchMemberStatuses error:', err.message);
+        }
+    },
+
+    upsertMemberStatus: async (goalId, orgId, status, note, contribution) => {
+        await goalService.upsertMemberStatus(goalId, orgId, status, note, contribution);
+        // Refresh statuses for this goal so the UI updates immediately
+        await get().fetchMemberStatuses(goalId);
+    },
 }));

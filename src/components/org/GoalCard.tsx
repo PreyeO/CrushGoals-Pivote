@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Clock, TrendingUp, AlertCircle, CheckCircle, ChevronDown, Calendar, Ban, AlertTriangle, Trash2 } from "lucide-react";
+import {
+    Clock, TrendingUp, AlertCircle, CheckCircle, ChevronDown,
+    Calendar, Ban, AlertTriangle, Trash2, Users,
+} from "lucide-react";
 import { getGoalAssignees } from "@/lib/store-utils";
 import { toast } from "sonner";
-import type { GoalStatus, GoalPriority, OrgGoal, OrgMember } from "@/types";
+import type { GoalStatus, GoalPriority, OrgGoal, OrgMember, MemberGoalStatusValue } from "@/types";
 import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
 
 const statusStyles: Record<GoalStatus, { label: string; dotColor: string; badgeClass: string; icon: React.ElementType }> = {
@@ -25,6 +29,15 @@ const priorityStyles: Record<GoalPriority, { label: string; class: string }> = {
     low: { label: "Low", class: "bg-[oklch(0.55_0.20_250_/_0.15)] text-[oklch(0.70_0.18_250)]" },
 };
 
+const memberStatusConfig: Record<MemberGoalStatusValue, { label: string; badgeClass: string; icon: React.ElementType }> = {
+    on_track: { label: "On Track", badgeClass: "bg-primary/10 text-primary", icon: TrendingUp },
+    behind: { label: "Behind", badgeClass: "bg-yellow-500/10 text-yellow-400", icon: Clock },
+    blocked: { label: "Blocked", badgeClass: "bg-destructive/10 text-destructive", icon: Ban },
+    completed: { label: "Completed", badgeClass: "bg-emerald-500/10 text-emerald-400", icon: CheckCircle },
+};
+
+const STALE_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
+
 export function GoalCard({ goal }: { goal: OrgGoal }) {
     const [now] = useState(() => Date.now());
     const isCompleted = goal.status === "completed";
@@ -35,7 +48,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
 
-    // Pacing Calculation
+    // Pacing
     const start = new Date(goal.startDate || goal.createdAt).getTime();
     const end = deadline.getTime();
     const totalTime = end - start;
@@ -46,13 +59,24 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
 
     const s = statusStyles[goal.status];
     const p = priorityStyles[goal.priority];
+
     const members = useStore((state) => state.members);
     const user = useStore((state) => state.user);
     const deleteGoal = useStore((state) => state.deleteGoal);
+    const fetchMemberStatuses = useStore((state) => state.fetchMemberStatuses);
+    const memberGoalStatuses = useStore(
+        useShallow((state) => state.memberGoalStatuses.filter((s) => s.goalId === goal.id))
+    );
 
     const assignees = getGoalAssignees(goal, members);
     const myMember = members.find(m => m.orgId === goal.orgId && m.userId === user?.id);
     const isAdmin = myMember?.role === "admin" || myMember?.role === "owner";
+
+    const handleToggleExpand = () => {
+        const next = !expanded;
+        setExpanded(next);
+        if (next) fetchMemberStatuses(goal.id);
+    };
 
     const handleDelete = async () => {
         setIsDeleting(true);
@@ -75,7 +99,6 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             {isCompleted && (
                 <div className="absolute -right-8 -top-8 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl animate-pulse" />
             )}
-
             {isOverdue && (
                 <div className="absolute top-0 right-0 px-3 py-1 bg-destructive text-white text-[10px] font-bold uppercase tracking-widest rounded-bl-lg shadow-lg z-10 flex items-center gap-1.5 animate-pulse">
                     <AlertTriangle className="w-3 h-3" /> Overdue
@@ -111,7 +134,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
 
             <p className="text-[12px] text-muted-foreground leading-relaxed mb-4 line-clamp-2">{goal.description}</p>
 
-            {/* Status Section */}
+            {/* Blocked notice */}
             {goal.status === "blocked" && (
                 <div className="mb-4 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
                     <p className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5 mb-1">
@@ -123,26 +146,17 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
                 </div>
             )}
 
-            {/* Progress Section */}
+            {/* Progress */}
             <div className="mb-5">
                 <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-[0.1em]">
-                        Current Progress
-                    </span>
+                    <span className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-[0.1em]">Overall Progress</span>
                     <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
                         {goal.targetNumber ? `${goal.currentValue} / ${goal.targetNumber} ${goal.unit}` : goal.targetValue}
                     </span>
                 </div>
-
                 <div className="flex items-center gap-4">
                     <div className="relative flex-1">
-                        <Progress
-                            value={goal.progress}
-                            className={cn(
-                                "h-3 rounded-full",
-                                isOverdue ? "bg-destructive/20" : ""
-                            )}
-                        />
+                        <Progress value={goal.progress} className={cn("h-3 rounded-full", isOverdue ? "bg-destructive/20" : "")} />
                     </div>
                     <span className={cn("text-lg font-black w-12 text-right tracking-tighter", isOverdue ? "text-destructive" : "text-primary")}>
                         {goal.progress}%
@@ -160,10 +174,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
                             </Avatar>
                         ))}
                     </div>
-                    <span className={cn(
-                        "text-[11px] font-bold flex items-center gap-1.5 px-2 py-1 rounded-md",
-                        isOverdue ? "bg-destructive/10 text-destructive" : "text-muted-foreground bg-accent/30"
-                    )}>
+                    <span className={cn("text-[11px] font-bold flex items-center gap-1.5 px-2 py-1 rounded-md", isOverdue ? "bg-destructive/10 text-destructive" : "text-muted-foreground bg-accent/30")}>
                         <Calendar className="w-3.5 h-3.5" />
                         {new Date(goal.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </span>
@@ -173,71 +184,92 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
                         <div className="relative">
                             {confirmDelete ? (
                                 <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
-                                    <button
-                                        disabled={isDeleting}
-                                        onClick={handleDelete}
-                                        className="text-[10px] font-bold bg-destructive text-white px-2 py-1 rounded hover:bg-destructive/90 transition-colors disabled:opacity-50"
-                                    >
+                                    <button disabled={isDeleting} onClick={handleDelete} className="text-[10px] font-bold bg-destructive text-white px-2 py-1 rounded hover:bg-destructive/90 transition-colors disabled:opacity-50">
                                         {isDeleting ? "..." : "Confirm"}
                                     </button>
-                                    <button
-                                        disabled={isDeleting}
-                                        onClick={() => setConfirmDelete(false)}
-                                        className="text-[10px] font-bold bg-accent/50 text-muted-foreground px-2 py-1 rounded hover:bg-accent transition-colors disabled:opacity-50"
-                                    >
+                                    <button disabled={isDeleting} onClick={() => setConfirmDelete(false)} className="text-[10px] font-bold bg-accent/50 text-muted-foreground px-2 py-1 rounded hover:bg-accent transition-colors disabled:opacity-50">
                                         No
                                     </button>
                                 </div>
                             ) : (
-                                <button
-                                    onClick={() => setConfirmDelete(true)}
-                                    className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer group/del"
-                                    title="Delete Goal"
-                                >
+                                <button onClick={() => setConfirmDelete(true)} className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer group/del" title="Delete Goal">
                                     <Trash2 className="w-3.5 h-3.5 group-hover/del:scale-110 transition-transform" />
                                 </button>
                             )}
                         </div>
                     )}
                     <button
-                        onClick={() => setExpanded(!expanded)}
+                        onClick={handleToggleExpand}
                         className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors uppercase tracking-wider cursor-pointer px-3 py-1.5 rounded-lg hover:bg-accent/50"
                     >
-                        {expanded ? "Hide" : "Feed"}
+                        <Users className="w-3.5 h-3.5" />
+                        {expanded ? "Hide" : "Team"}
                         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
                     </button>
                     <GoalCheckInModal goal={goal} />
                 </div>
             </div>
 
-            {/* Expanded Feed */}
+            {/* Team Progress Panel */}
             {expanded && (
-                <div className="mt-5 pt-5 border-t border-border/30 space-y-5 animate-in fade-in slide-in-from-top-3">
-                    <div>
-                        <p className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-[0.2em] mb-3">Goal Updates</p>
-                        <div className="space-y-3">
-                            {goal.comments.length > 0 ? (
-                                goal.comments.map((c) => (
-                                    <div key={c.id} className="flex gap-3 items-start group/comment">
-                                        <Avatar className="w-6 h-6 border border-background flex-shrink-0">
-                                            <AvatarFallback className="bg-primary/10 text-primary text-[8px] font-bold">{c.userName.charAt(0)}</AvatarFallback>
+                <div className="mt-5 pt-5 border-t border-border/30 space-y-3 animate-in fade-in slide-in-from-top-3">
+                    <p className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-[0.2em]">Team Progress</p>
+
+                    {assignees.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground italic text-center py-4 bg-accent/10 rounded-xl border border-dashed border-border/40">
+                            No members assigned to this goal yet.
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            {assignees.map((member: OrgMember) => {
+                                const ms = memberGoalStatuses.find(s => s.userId === member.userId);
+                                const stale = ms
+                                    ? Date.now() - new Date(ms.updatedAt).getTime() > STALE_MS
+                                    : true;
+                                const config = ms ? memberStatusConfig[ms.status as MemberGoalStatusValue] : null;
+                                const Icon = config?.icon;
+
+                                return (
+                                    <div key={member.id} className="flex items-start gap-3 p-3 rounded-xl bg-accent/20 border border-border/10 hover:border-primary/20 transition-colors">
+                                        <Avatar className="w-7 h-7 shrink-0 border border-background">
+                                            <AvatarFallback className="bg-primary/20 text-primary text-[9px] font-black">
+                                                {member.name.split(" ").map(n => n[0]).join("")}
+                                            </AvatarFallback>
                                         </Avatar>
-                                        <div className="flex-1 bg-accent/20 rounded-2xl p-3 border border-border/10 group-hover/comment:border-primary/20 transition-colors">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[11px] font-bold">{c.userName}</span>
-                                                <span className="text-[9px] text-muted-foreground">{new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="text-[12px] font-bold">{member.name}</span>
+                                                {config ? (
+                                                    <span className={cn("inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full", config.badgeClass)}>
+                                                        {Icon && <Icon className="w-2.5 h-2.5" />}
+                                                        {config.label}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted/40 text-muted-foreground">
+                                                        No update
+                                                    </span>
+                                                )}
+                                                {stale && (
+                                                    <span className="text-[9px] text-yellow-500 font-bold flex items-center gap-0.5">
+                                                        <AlertTriangle className="w-2.5 h-2.5" />
+                                                        {ms ? "Stale" : "Never updated"}
+                                                    </span>
+                                                )}
                                             </div>
-                                            <p className="text-[12px] text-muted-foreground leading-snug">{c.content}</p>
+                                            {ms?.note && (
+                                                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">"{ms.note}"</p>
+                                            )}
+                                            {ms && (
+                                                <p className="text-[9px] text-muted-foreground/50 mt-0.5">
+                                                    {new Date(ms.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
-                                ))
-                            ) : (
-                                <p className="text-[11px] text-muted-foreground italic text-center py-4 bg-accent/10 rounded-xl border border-dashed border-border/40">
-                                    No updates yet. Encourage the team to share their progress!
-                                </p>
-                            )}
+                                );
+                            })}
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
         </div>

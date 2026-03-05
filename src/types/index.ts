@@ -23,6 +23,21 @@ export interface Team {
 export type OrgRole = "owner" | "admin" | "member";
 export type GoalStatus = "not_started" | "in_progress" | "blocked" | "completed";
 export type GoalPriority = "high" | "medium" | "low";
+export type MemberGoalStatusValue = "on_track" | "behind" | "blocked" | "completed";
+
+export interface MemberGoalStatus {
+  id: string;
+  goalId: string;
+  userId: string;
+  orgId: string;
+  status: MemberGoalStatusValue;
+  note: string | null;
+  contribution: number;
+  updatedAt: string;
+  // joined from profiles
+  name: string;
+  avatarUrl: string | null;
+}
 
 export interface OrgMember {
   id: string;

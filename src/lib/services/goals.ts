@@ -147,5 +147,58 @@ export const goalService = {
                 throw new Error("Goal not found or already deleted.");
             }
         }
-    }
+    },
+
+    async getMemberStatuses(goalId: string) {
+        const { data, error } = await getSupabase()
+            .from('member_goal_status')
+            .select('*')
+            .eq('goal_id', goalId);
+
+        if (error) {
+            console.error('getMemberStatuses error:', error);
+            throw error;
+        }
+
+        console.log('getMemberStatuses raw data for goal', goalId, data);
+
+        return (data ?? []).map((row: any) => ({
+            id: row.id,
+            goalId: row.goal_id,
+            userId: row.user_id,
+            orgId: row.org_id,
+            status: row.status,
+            note: row.note,
+            contribution: row.contribution ?? 0,
+            updatedAt: row.updated_at,
+            // name/avatarUrl will be resolved in GoalCard from the store members
+            name: '',
+            avatarUrl: null,
+        }));
+    },
+
+    async upsertMemberStatus(
+        goalId: string,
+        orgId: string,
+        status: string,
+        note: string,
+        contribution?: number,
+    ) {
+        const { data: { user } } = await getSupabase().auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const { error } = await getSupabase()
+            .from('member_goal_status')
+            .upsert({
+                goal_id: goalId,
+                user_id: user.id,
+                org_id: orgId,
+                status,
+                note: note || null,
+                contribution: contribution ?? 0,
+                updated_at: new Date().toISOString(),
+            }, { onConflict: 'goal_id,user_id' });
+
+        if (error) throw error;
+    },
 };
