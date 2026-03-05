@@ -8,13 +8,16 @@ import { DashboardStats } from "./DashboardStats";
 import { OrganizationGrid } from "./OrganizationGrid";
 import { QuickActions } from "./QuickActions";
 import { DashboardGoals } from "./DashboardGoals";
-import { Organization, OrgMember } from "@/types";
+import { Organization, OrgInvite, OrgMember } from "@/types";
 import { useRouter } from "next/navigation";
+import { Mail, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function DashboardMain() {
     const router = useRouter();
     const organizations = useStore(useShallow((state: AppState) => state.organizations));
     const members = useStore(useShallow((state: AppState) => state.members));
+    const invitations = useStore(useShallow((state: AppState) => state.invitations));
     const user = useStore(useShallow((state: AppState) => state.user));
     const isLoading = useStore((state: AppState) => state.isLoading);
     const fetchInitialData = useStore((state: AppState) => state.fetchInitialData);
@@ -27,20 +30,16 @@ export function DashboardMain() {
         (m: OrgMember) => m.userId === user?.id && (m.role === "owner" || m.role === "admin"),
     );
 
-    // Handle redirection if user only belongs to one organization
-    // OR redirect to invitations if they have NO organizations
+    // Only redirect if user belongs to exactly one org and is not an owner/admin (member-only view)
     useEffect(() => {
         if (isLoading) return;
 
         if (organizations.length === 1 && !isOwnerOrAdmin) {
             router.push(`/org/${organizations[0].id}`);
-        } else if (organizations.length === 0) {
-            // Check for pending invitations in the store
-            const invitations = useStore.getState().invitations;
-            if (invitations.length > 0) {
-                router.push(`/invite/${invitations[0].token}`);
-            }
         }
+        // Removed: auto-redirect to /invite when orgs.length === 0
+        // Reason: users who sign up independently but were previously invited would
+        // get silently bounced to a confusing invite page. We now show an inline banner instead.
     }, [organizations, isOwnerOrAdmin, isLoading, router]);
 
     if (isLoading || (organizations.length === 1 && !isOwnerOrAdmin)) {
@@ -66,12 +65,49 @@ export function DashboardMain() {
 
     return (
         <div className="p-5 pt-16 lg:pt-8 lg:p-8 max-w-6xl mx-auto">
+            {/* any user can create their own org — gate on payment here later */}
             <DashboardHeader
                 organizations={organizations}
                 memberCount={totalMembers}
                 goalCount={totalGoals}
-                showCreateOrg={isOwnerOrAdmin}
+                showCreateOrg={true}
             />
+
+            {/* Pending invitation banner — always visible while invitations are pending */}
+            {invitations.length > 0 && (
+                <div className="mb-6 p-4 rounded-2xl border border-primary/30 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex items-center gap-3 flex-1">
+                        <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                            <Mail className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-foreground">
+                                You have {invitations.length} pending invitation{invitations.length > 1 ? "s" : ""}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                You&apos;ve been invited to join{" "}
+                                {invitations.length === 1
+                                    ? "an organization"
+                                    : `${invitations.length} organizations`}{" "}
+                                on CrushGoals.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0 w-full sm:w-auto">
+                        {invitations.map((inv: OrgInvite) => (
+                            <Button
+                                key={inv.id}
+                                size="sm"
+                                onClick={() => router.push(`/invite/${inv.token}`)}
+                                className="gap-1.5 rounded-xl gradient-primary text-white font-semibold shadow-md shadow-primary/20 hover:scale-[1.02] transition-all"
+                            >
+                                View Invite
+                                <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <DashboardStats
                 orgCount={organizations.length}
@@ -81,7 +117,7 @@ export function DashboardMain() {
 
             <DashboardGoals />
 
-            <OrganizationGrid organizations={organizations} showCreateCard={isOwnerOrAdmin} />
+            <OrganizationGrid organizations={organizations} showCreateCard={true} />
 
             <QuickActions organizations={organizations} />
         </div>
