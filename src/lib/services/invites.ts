@@ -142,5 +142,16 @@ export const inviteService = {
         if (inviteError) throw inviteError;
 
         return invite.org_id;
+    },
+
+    async getPendingForEmail(email: string) {
+        const { data, error } = await getSupabase()
+            .from('invitations')
+            .select('*')
+            .eq('email', email)
+            .eq('status', 'pending');
+
+        if (error) throw error;
+        return data ?? [];
     }
 };

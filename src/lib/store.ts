@@ -8,12 +8,14 @@ import {
     OrgInvite,
     ActivityItem,
     GoalStatus,
+    MemberGoalStatus,
+    MemberGoalStatusValue,
 } from '@/types';
 import { goalService } from './services/goals';
 import { orgService } from './services/orgs';
 import { teamService } from './services/teams';
 import { inviteService } from './services/invites';
-import { getSupabase } from './supabase';
+
 
 export interface AppState {
     organizations: Organization[];
@@ -22,6 +24,7 @@ export interface AppState {
     teams: Team[];
     invitations: OrgInvite[];
     activities: ActivityItem[];
+    memberGoalStatuses: MemberGoalStatus[];
     user: { id: string; name: string; email: string; avatarUrl: string | null } | null;
     isLoading: boolean;
     error: string | null;
@@ -37,6 +40,8 @@ export interface AppState {
     updateGoalProgress: (goalId: string, progress: number, note?: string) => Promise<void>;
     updateGoalStatus: (goalId: string, status: GoalStatus) => Promise<void>;
     deleteGoal: (goalId: string, orgId: string) => Promise<void>;
+    fetchMemberStatuses: (goalId: string) => Promise<void>;
+    upsertMemberStatus: (goalId: string, orgId: string, status: MemberGoalStatusValue, note: string, contribution?: number) => Promise<void>;
 }
 
 import { authService } from './services/auth';
@@ -131,6 +136,7 @@ export const useStore = create<AppState>((set, get) => ({
     teams: [],
     invitations: [],
     activities: [],
+    memberGoalStatuses: [],
     user: null,
     isLoading: false,
     error: null,
@@ -205,45 +211,32 @@ export const useStore = create<AppState>((set, get) => ({
                 }) as any;
             } else if (authUser) {
                 // Dashboard view: Fetch all goals and user's own memberships to determine roles
-                const { data: userMemberships } = await getSupabase()
-                    .from('org_members')
-                    .select('*')
-                    .eq('user_id', authUser.id);
-
-                if (userMemberships) {
-                    members = userMemberships.map((m: any) => ({
-                        id: m.id,
-                        orgId: m.org_id,
-                        userId: m.user_id,
-                        role: m.role,
-                        joinedAt: m.joined_at,
-                        name: get().user?.name || 'User',
-                        email: get().user?.email || '',
-                    } as any));
-                }
+                const userMemberships = await orgService.getMemberships(authUser.id);
+                members = userMemberships.map((m: any) => ({
+                    id: m.id,
+                    orgId: m.org_id,
+                    userId: m.user_id,
+                    role: m.role,
+                    joinedAt: m.joined_at,
+                    name: get().user?.name || 'User',
+                    email: get().user?.email || '',
+                } as any));
 
                 // Fetch ALL goals across user's organizations for the dashboard view
                 const rawGoals = await goalService.getGoalsForUser();
                 goals = rawGoals.map(cleanGoalData);
 
-                // Fetch invitations for the user (to handle empty dashboard redirection)
-                const { data: rawInvites } = await getSupabase()
-                    .from('invitations')
-                    .select('*')
-                    .eq('email', authUser.email)
-                    .eq('status', 'pending');
-
-                if (rawInvites) {
-                    invitations = rawInvites.map((i: any) => ({
-                        id: i.id,
-                        orgId: i.org_id,
-                        email: i.email,
-                        role: i.role,
-                        status: i.status,
-                        token: i.token,
-                        createdAt: i.created_at
-                    } as any));
-                }
+                // Fetch pending invitations for the user (to handle empty dashboard redirection)
+                const rawInvites = await inviteService.getPendingForEmail(authUser.email ?? '');
+                invitations = rawInvites.map((i: any) => ({
+                    id: i.id,
+                    orgId: i.org_id,
+                    email: i.email,
+                    role: i.role,
+                    status: i.status,
+                    token: i.token,
+                    createdAt: i.created_at
+                } as any));
             }
 
             // Sync goalCount for organizations based on actual goals fetched
@@ -433,6 +426,27 @@ export const useStore = create<AppState>((set, get) => ({
 
     signOut: async () => {
         await authService.signOut();
-        set({ user: null, organizations: [], goals: [], members: [] });
-    }
+        set({ user: null, organizations: [], goals: [], members: [], memberGoalStatuses: [] });
+    },
+
+    fetchMemberStatuses: async (goalId) => {
+        try {
+            const statuses = await goalService.getMemberStatuses(goalId);
+            set((state) => ({
+                // Replace statuses for this goal, keep others
+                memberGoalStatuses: [
+                    ...state.memberGoalStatuses.filter(s => s.goalId !== goalId),
+                    ...statuses,
+                ],
+            }));
+        } catch (err: any) {
+            console.error('fetchMemberStatuses error:', err.message);
+        }
+    },
+
+    upsertMemberStatus: async (goalId, orgId, status, note, contribution) => {
+        await goalService.upsertMemberStatus(goalId, orgId, status, note, contribution);
+        // Refresh statuses for this goal so the UI updates immediately
+        await get().fetchMemberStatuses(goalId);
+    },
 }));

@@ -110,5 +110,15 @@ export const orgService = {
 
         if (error) throw error;
         return data;
+    },
+
+    async getMemberships(userId: string) {
+        const { data, error } = await getSupabase()
+            .from('org_members')
+            .select('*')
+            .eq('user_id', userId);
+
+        if (error) throw error;
+        return data ?? [];
     }
 };
