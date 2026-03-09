@@ -1,452 +1,637 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 import {
-    Organization,
-    Team,
-    OrgGoal,
-    OrgMember,
-    OrgRole,
-    OrgInvite,
-    ActivityItem,
-    GoalStatus,
-    MemberGoalStatus,
-    MemberGoalStatusValue,
-} from '@/types';
-import { goalService } from './services/goals';
-import { orgService } from './services/orgs';
-import { teamService } from './services/teams';
-import { inviteService } from './services/invites';
-
+  Organization,
+  Team,
+  OrgGoal,
+  OrgMember,
+  OrgRole,
+  OrgInvite,
+  ActivityItem,
+  GoalStatus,
+  MemberGoalStatus,
+  MemberGoalStatusValue,
+  DailyCheckIn,
+} from "@/types";
+import { goalService } from "./services/goals";
+import { orgService } from "./services/orgs";
+import { teamService } from "./services/teams";
+import { inviteService } from "./services/invites";
 
 export interface AppState {
-    organizations: Organization[];
-    goals: OrgGoal[];
-    members: OrgMember[];
-    teams: Team[];
-    invitations: OrgInvite[];
-    activities: ActivityItem[];
-    memberGoalStatuses: MemberGoalStatus[];
-    user: { id: string; name: string; email: string; avatarUrl: string | null } | null;
-    isLoading: boolean;
-    error: string | null;
+  organizations: Organization[];
+  goals: OrgGoal[];
+  members: OrgMember[];
+  teams: Team[];
+  invitations: OrgInvite[];
+  // invitations the current user has received but not yet accepted (across orgs)
+  pendingInvitations: OrgInvite[];
+  activities: ActivityItem[];
+  memberGoalStatuses: MemberGoalStatus[];
+  dailyCheckins: DailyCheckIn[];
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+  } | null;
+  isLoading: boolean;
+  error: string | null;
 
-    // Actions
-    fetchInitialData: (orgId?: string) => Promise<void>;
-    signOut: () => Promise<void>;
-    addOrganization: (data: { name: string; description: string; emoji: string }) => Promise<string>;
-    addTeam: (orgId: string, name: string, description: string) => Promise<void>;
-    sendInvitation: (orgId: string, email: string, role: OrgRole) => Promise<{ link: string; emailError?: string }>;
-    cancelInvitation: (inviteId: string) => Promise<void>;
-    addGoal: (goal: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'progress' | 'comments'>) => Promise<void>;
-    updateGoalProgress: (goalId: string, progress: number, note?: string) => Promise<void>;
-    updateGoalStatus: (goalId: string, status: GoalStatus) => Promise<void>;
-    deleteGoal: (goalId: string, orgId: string) => Promise<void>;
-    fetchMemberStatuses: (goalId: string) => Promise<void>;
-    upsertMemberStatus: (goalId: string, orgId: string, status: MemberGoalStatusValue, note: string, contribution?: number) => Promise<void>;
+  // Actions
+  fetchInitialData: (orgId?: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  addOrganization: (data: {
+    name: string;
+    description: string;
+    emoji: string;
+  }) => Promise<string>;
+  addTeam: (orgId: string, name: string, description: string) => Promise<void>;
+  sendInvitation: (
+    orgId: string,
+    email: string,
+    role: OrgRole,
+  ) => Promise<{ link: string; emailError?: string }>;
+  cancelInvitation: (inviteId: string) => Promise<void>;
+  addGoal: (
+    goal: Omit<
+      OrgGoal,
+      "id" | "createdAt" | "updatedAt" | "progress" | "comments"
+    >,
+  ) => Promise<void>;
+  updateGoalProgress: (
+    goalId: string,
+    progress: number,
+    note?: string,
+  ) => Promise<void>;
+  updateGoalStatus: (goalId: string, status: GoalStatus) => Promise<void>;
+  deleteGoal: (goalId: string, orgId: string) => Promise<void>;
+  fetchMemberStatuses: (goalId: string) => Promise<void>;
+  upsertMemberStatus: (
+    goalId: string,
+    orgId: string,
+    status: MemberGoalStatusValue,
+    note: string,
+    contribution?: number,
+  ) => Promise<void>;
+  dailyCheckIn: (
+    goalId: string,
+    checkDate: string,
+    note?: string,
+  ) => Promise<void>;
+  undoDailyCheckIn: (goalId: string, checkDate: string) => Promise<void>;
+  fetchCheckIns: (goalId: string) => Promise<void>;
 }
 
-import { authService } from './services/auth';
+import { authService } from "./services/auth";
 
 const cleanOrgData = (org: any) => {
-    let name = org.name;
-    let description = org.description;
-    let emoji = org.emoji;
+  let name = org.name;
+  let description = org.description;
+  let emoji = org.emoji;
 
-    // Handle data corrupted by the previous JSON stringification bug
-    if (typeof name === 'string' && name.startsWith('{')) {
-        try {
-            const parsed = JSON.parse(name);
-            name = parsed.name || name;
-            description = parsed.description || description;
-            emoji = parsed.emoji || emoji;
-        } catch (e) {
-            console.warn("Failed to parse corrupted org name:", name);
-        }
+  // Handle data corrupted by the previous JSON stringification bug
+  if (typeof name === "string" && name.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(name);
+      name = parsed.name || name;
+      description = parsed.description || description;
+      emoji = parsed.emoji || emoji;
+    } catch (e) {
+      console.warn("Failed to parse corrupted org name:", name);
     }
-    return { ...org, name, description, emoji };
+  }
+  return { ...org, name, description, emoji };
 };
 
 const cleanGoalData = (goal: any): OrgGoal => {
-    const targetNumber = goal.target_number;
-    const currentValue = goal.current_value || 0;
+  const targetNumber = goal.target_number;
+  const currentValue = goal.current_value || 0;
 
-    // Calculate progress: if it's a metric goal with a target number, 
-    // calculate actual percentage. Otherwise use currentValue as percentage.
-    let progress = currentValue;
-    if (targetNumber && targetNumber > 0) {
-        progress = Math.min(100, Math.round((currentValue / targetNumber) * 100));
-    }
+  // Calculate progress: if it's a metric goal with a target number,
+  // calculate actual percentage. Otherwise use currentValue as percentage.
+  let progress = currentValue;
+  if (targetNumber && targetNumber > 0) {
+    progress = Math.min(100, Math.round((currentValue / targetNumber) * 100));
+  }
 
-    return {
-        id: goal.id,
-        orgId: goal.org_id,
-        teamId: goal.team_id,
-        title: goal.title,
-        description: goal.description,
-        category: goal.category,
-        emoji: goal.emoji,
-        status: goal.status,
-        priority: goal.priority,
-        targetValue: goal.target_value,
-        targetNumber: targetNumber,
-        unit: goal.unit,
-        currentValue: currentValue,
-        startDate: goal.start_date || goal.created_at,
-        deadline: goal.deadline,
-        createdBy: goal.created_by,
-        assignedTo: goal.assigned_to || [],
-        progress: progress,
-        comments: [],
-        createdAt: goal.created_at,
-        updatedAt: goal.updated_at,
-    };
+  return {
+    id: goal.id,
+    orgId: goal.org_id,
+    teamId: goal.team_id,
+    title: goal.title,
+    description: goal.description,
+    category: goal.category,
+    emoji: goal.emoji,
+    status: goal.status,
+    priority: goal.priority,
+    targetValue: goal.target_value,
+    targetNumber: targetNumber,
+    unit: goal.unit,
+    currentValue: currentValue,
+    startDate: goal.start_date || goal.created_at,
+    deadline: goal.deadline,
+    frequency: goal.frequency || "one_time",
+    createdBy: goal.created_by,
+    assignedTo: goal.assigned_to || [],
+    progress: progress,
+    comments: [],
+    createdAt: goal.created_at,
+    updatedAt: goal.updated_at,
+  };
 };
 
 const cleanTeamData = (team: any): Team => ({
-    id: team.id,
-    orgId: team.org_id,
-    name: team.name,
-    description: team.description,
-    emoji: team.emoji,
-    createdAt: team.created_at,
+  id: team.id,
+  orgId: team.org_id,
+  name: team.name,
+  description: team.description,
+  emoji: team.emoji,
+  createdAt: team.created_at,
 });
 
-const syncMemberStats = (goals: OrgGoal[], members: OrgMember[], orgId: string): OrgMember[] => {
-    return members.map(m => {
-        if (m.orgId !== orgId) return m;
+const syncMemberStats = (
+  goals: OrgGoal[],
+  members: OrgMember[],
+  orgId: string,
+): OrgMember[] => {
+  return members.map((m) => {
+    if (m.orgId !== orgId) return m;
 
-        const memberGoals = goals.filter(g => g.assignedTo.includes(m.id));
-        const completed = memberGoals.filter(g => g.status === 'completed').length;
-        const completionRate = memberGoals.length > 0
-            ? Math.round((completed / memberGoals.length) * 100)
-            : 0;
+    const memberGoals = goals.filter((g) => g.assignedTo.includes(m.id));
+    const completed = memberGoals.filter(
+      (g) => g.status === "completed",
+    ).length;
+    const completionRate =
+      memberGoals.length > 0
+        ? Math.round((completed / memberGoals.length) * 100)
+        : 0;
 
-        return {
-            ...m,
-            goalsAssigned: memberGoals.length,
-            goalsCompleted: completed,
-            completionRate
-        };
-    }) as OrgMember[];
+    return {
+      ...m,
+      goalsAssigned: memberGoals.length,
+      goalsCompleted: completed,
+      completionRate,
+    };
+  }) as OrgMember[];
 };
 
 export const useStore = create<AppState>((set, get) => ({
-    organizations: [],
-    goals: [],
-    members: [],
-    teams: [],
-    invitations: [],
-    activities: [],
-    memberGoalStatuses: [],
-    user: null,
-    isLoading: false,
-    error: null,
+  organizations: [],
+  goals: [],
+  members: [],
+  teams: [],
+  invitations: [], // org-specific invites (used by admins)
+  pendingInvitations: [], // personal invites across all orgs
+  activities: [],
+  memberGoalStatuses: [],
+  dailyCheckins: [],
+  user: null,
+  isLoading: false,
+  error: null,
 
-    fetchInitialData: async (orgId) => {
-        set({ isLoading: true, error: null });
-        try {
-            // 1. Fetch User
-            const authUser = await authService.getCurrentUser();
-            if (authUser) {
-                set({
-                    user: {
-                        id: authUser.id,
-                        email: authUser.email || '',
-                        name: authUser.profile?.full_name || authUser.email?.split('@')[0] || 'User',
-                        avatarUrl: authUser.profile?.avatar_url || null
-                    }
-                });
-            }
+  fetchInitialData: async (orgId) => {
+    set({ isLoading: true, error: null });
+    try {
+      // 1. Fetch User
+      const authUser = await authService.getCurrentUser();
+      if (authUser) {
+        set({
+          user: {
+            id: authUser.id,
+            email: authUser.email || "",
+            name:
+              authUser.profile?.full_name ||
+              authUser.email?.split("@")[0] ||
+              "User",
+            avatarUrl: authUser.profile?.avatar_url || null,
+          },
+        });
+      }
 
-            // 2. Fetch Data
-            const orgs = await orgService.getOrganizations();
-            let goals: OrgGoal[] = [];
-            let members: OrgMember[] = [];
-            let teams: Team[] = [];
-            let invitations: OrgInvite[] = [];
+      // 2. Fetch Data
+      const orgs = await orgService.getOrganizations();
+      let goals: OrgGoal[] = [];
+      let members: OrgMember[] = [];
+      let teams: Team[] = [];
+      let invitations: OrgInvite[] = [];
+      let pendingInvitations: OrgInvite[] = [];
 
-            if (orgId) {
-                // ... (existing org-specific fetch)
-                const [rawGoals, rawTeams, rawMembers, rawInvites] = await Promise.all([
-                    goalService.getGoals(orgId),
-                    teamService.getTeams(orgId),
-                    orgService.getMembers(orgId),
-                    inviteService.getInvitations(orgId)
-                ]);
+      if (orgId) {
+        // ... (existing org-specific fetch)
+        const [rawGoals, rawTeams, rawMembers, rawOrgInvites] =
+          await Promise.all([
+            goalService.getGoals(orgId),
+            teamService.getTeams(orgId),
+            orgService.getMembers(orgId),
+            inviteService.getInvitations(orgId),
+          ]);
 
-                goals = rawGoals.map(cleanGoalData);
-                teams = rawTeams.map(cleanTeamData);
-                invitations = rawInvites.map((i: any) => ({
-                    id: i.id,
-                    orgId: i.org_id,
-                    email: i.email,
-                    role: i.role,
-                    status: i.status,
-                    invitedBy: i.invited_by,
-                    createdAt: i.created_at,
-                    token: i.token
-                } as any));
+        goals = rawGoals.map(cleanGoalData);
+        teams = rawTeams.map(cleanTeamData);
+        invitations = rawOrgInvites.map(
+          (i: any) =>
+            ({
+              id: i.id,
+              orgId: i.org_id,
+              email: i.email,
+              role: i.role,
+              status: i.status,
+              invitedBy: i.invited_by,
+              createdAt: i.created_at,
+              token: i.token,
+            }) as any,
+        );
 
-                members = rawMembers.map((m: any) => {
-                    const memberGoals = goals.filter(g => g.assignedTo.includes(m.id));
-                    const completed = memberGoals.filter(g => g.status === 'completed').length;
-                    const completionRate = memberGoals.length > 0
-                        ? Math.round((completed / memberGoals.length) * 100)
-                        : 0;
-
-                    return {
-                        ...m,
-                        id: m.id,
-                        orgId: m.org_id,
-                        userId: m.user_id,
-                        role: m.role,
-                        joinedAt: m.joined_at,
-                        name: m.profiles?.full_name || 'Unknown User',
-                        avatarUrl: m.profiles?.avatar_url,
-                        email: m.email || '', // Email should come from org_members if available or be empty
-                        goalsAssigned: memberGoals.length,
-                        goalsCompleted: completed,
-                        completionRate,
-                        currentStreak: 0
-                    } as OrgMember;
-                }) as any;
-            } else if (authUser) {
-                // Dashboard view: Fetch all goals and user's own memberships to determine roles
-                const userMemberships = await orgService.getMemberships(authUser.id);
-                members = userMemberships.map((m: any) => ({
-                    id: m.id,
-                    orgId: m.org_id,
-                    userId: m.user_id,
-                    role: m.role,
-                    joinedAt: m.joined_at,
-                    name: get().user?.name || 'User',
-                    email: get().user?.email || '',
-                } as any));
-
-                // Fetch ALL goals across user's organizations for the dashboard view
-                const rawGoals = await goalService.getGoalsForUser();
-                goals = rawGoals.map(cleanGoalData);
-
-                // Fetch pending invitations for the user (to handle empty dashboard redirection)
-                const rawInvites = await inviteService.getPendingForEmail(authUser.email ?? '');
-                invitations = rawInvites.map((i: any) => ({
-                    id: i.id,
-                    orgId: i.org_id,
-                    email: i.email,
-                    role: i.role,
-                    status: i.status,
-                    token: i.token,
-                    createdAt: i.created_at
-                } as any));
-            }
-
-            // Sync goalCount for organizations based on actual goals fetched
-            const finalOrgs = orgs.map(cleanOrgData).map((org: any) => {
-                // If we have goals for this org, use that count as it's more reliable than the aggregate
-                const orgGoals = goals.filter(g => g.orgId === org.id);
-                if (orgGoals.length > 0 || (orgId && org.id === orgId)) {
-                    return { ...org, goalCount: orgGoals.length };
-                }
-                return org;
-            });
-
-            set({
-                organizations: finalOrgs as any,
-                goals: goals as any,
-                members: members as any,
-                teams: teams as any,
-                invitations: invitations as any,
-                isLoading: false
-            });
-        } catch (err: any) {
-            set({ error: err.message, isLoading: false });
+        // always fetch any pending invites for the current user too, even when scoping to a
+        // particular org so the banner/creation flow remains available from anywhere in the
+        // app
+        if (authUser) {
+          const rawUserInvites = await inviteService.getPendingForEmail(
+            authUser.email ?? "",
+          );
+          pendingInvitations = rawUserInvites.map(
+            (i: any) =>
+              ({
+                id: i.id,
+                orgId: i.org_id,
+                email: i.email,
+                role: i.role,
+                status: i.status,
+                token: i.token,
+                createdAt: i.created_at,
+              }) as any,
+          );
         }
-    },
 
-    addOrganization: async (data) => {
-        set({ isLoading: true, error: null });
-        try {
-            const newOrg = await orgService.createOrganization(data);
-            const cleanedOrg = cleanOrgData(newOrg);
-            set((state) => ({
-                organizations: [cleanedOrg as any, ...state.organizations],
-                isLoading: false
-            }));
-            return cleanedOrg.id;
-        } catch (err: any) {
-            set({ error: err.message, isLoading: false });
-            throw err;
+        members = rawMembers.map((m: any) => {
+          const memberGoals = goals.filter((g) => g.assignedTo.includes(m.id));
+          const completed = memberGoals.filter(
+            (g) => g.status === "completed",
+          ).length;
+          const completionRate =
+            memberGoals.length > 0
+              ? Math.round((completed / memberGoals.length) * 100)
+              : 0;
+
+          return {
+            ...m,
+            id: m.id,
+            orgId: m.org_id,
+            userId: m.user_id,
+            role: m.role,
+            joinedAt: m.joined_at,
+            name: m.profiles?.full_name || "Unknown User",
+            avatarUrl: m.profiles?.avatar_url,
+            email: m.email || "", // Email should come from org_members if available or be empty
+            goalsAssigned: memberGoals.length,
+            goalsCompleted: completed,
+            completionRate,
+            currentStreak: 0,
+          } as OrgMember;
+        }) as any;
+      } else if (authUser) {
+        // Dashboard view: Fetch all goals and user's own memberships to determine roles
+        const userMemberships = await orgService.getMemberships(authUser.id);
+        members = userMemberships.map(
+          (m: any) =>
+            ({
+              id: m.id,
+              orgId: m.org_id,
+              userId: m.user_id,
+              role: m.role,
+              joinedAt: m.joined_at,
+              name: get().user?.name || "User",
+              email: get().user?.email || "",
+            }) as any,
+        );
+
+        // Fetch ALL goals across user's organizations for the dashboard view
+        const rawGoals = await goalService.getGoalsForUser();
+        goals = rawGoals.map(cleanGoalData);
+
+        // Fetch pending invitations for the user (to show banner on dashboard)
+        const rawInvites = await inviteService.getPendingForEmail(
+          authUser.email ?? "",
+        );
+        pendingInvitations = rawInvites.map(
+          (i: any) =>
+            ({
+              id: i.id,
+              orgId: i.org_id,
+              email: i.email,
+              role: i.role,
+              status: i.status,
+              token: i.token,
+              createdAt: i.created_at,
+            }) as any,
+        );
+      }
+
+      // Sync goalCount for organizations based on actual goals fetched
+      const finalOrgs = orgs.map(cleanOrgData).map((org: any) => {
+        // If we have goals for this org, use that count as it's more reliable than the aggregate
+        const orgGoals = goals.filter((g) => g.orgId === org.id);
+        if (orgGoals.length > 0 || (orgId && org.id === orgId)) {
+          return { ...org, goalCount: orgGoals.length };
         }
-    },
+        return org;
+      });
 
-    addTeam: async (orgId, name, description) => {
-        set({ isLoading: true });
-        try {
-            const newTeam = await teamService.createTeam(orgId, name, description);
-            const cleanedTeam = cleanTeamData(newTeam);
-            set((state) => ({
-                teams: [...state.teams, cleanedTeam],
-                isLoading: false
-            }));
-        } catch (err: any) {
-            set({ error: err.message, isLoading: false });
-        }
-    },
+      set({
+        organizations: finalOrgs as any,
+        goals: goals as any,
+        members: members as any,
+        teams: teams as any,
+        invitations: invitations as any,
+        pendingInvitations: pendingInvitations as any,
+        isLoading: false,
+      });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
 
-    sendInvitation: async (orgId, email, role) => {
-        set({ isLoading: true });
-        try {
-            const inviteResp = await inviteService.createInvitation(orgId, email, role);
-            const newInvite: OrgInvite = {
-                id: inviteResp.id,
-                orgId: inviteResp.org_id,
-                email: inviteResp.email,
-                role: inviteResp.role as any,
-                status: inviteResp.status,
-                token: inviteResp.token,
-                invitedBy: inviteResp.invited_by,
-                createdAt: inviteResp.created_at,
-            };
-            set((state) => ({
-                invitations: [newInvite, ...state.invitations],
-                isLoading: false
-            }));
-            return {
-                link: inviteResp.inviteLink,
-                emailError: inviteResp.emailError
-            };
-        } catch (err: any) {
-            set({ error: err.message, isLoading: false });
-            throw err;
-        }
-    },
+  addOrganization: async (data) => {
+    set({ isLoading: true, error: null });
+    try {
+      const newOrg = await orgService.createOrganization(data);
+      const cleanedOrg = cleanOrgData(newOrg);
+      set((state) => ({
+        organizations: [cleanedOrg as any, ...state.organizations],
+        isLoading: false,
+      }));
+      return cleanedOrg.id;
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
 
-    cancelInvitation: async (inviteId) => {
-        try {
-            await inviteService.cancelInvitation(inviteId);
-            set((state) => ({
-                invitations: state.invitations.filter(i => i.id !== inviteId)
-            }));
-        } catch (err: any) {
-            set({ error: err.message });
-        }
-    },
+  addTeam: async (orgId, name, description) => {
+    set({ isLoading: true });
+    try {
+      const newTeam = await teamService.createTeam(orgId, name, description);
+      const cleanedTeam = cleanTeamData(newTeam);
+      set((state) => ({
+        teams: [...state.teams, cleanedTeam],
+        isLoading: false,
+      }));
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
 
-    addGoal: async (goalData) => {
-        set({ isLoading: true });
-        try {
-            const newGoal = await goalService.createGoal(goalData);
-            const cleanedGoal = cleanGoalData(newGoal);
-            set((state) => {
-                const newGoals = [cleanedGoal, ...state.goals];
-                return {
-                    goals: newGoals,
-                    members: syncMemberStats(newGoals, state.members, goalData.orgId),
-                    organizations: state.organizations.map(o =>
-                        o.id === goalData.orgId ? { ...o, goalCount: (o.goalCount || 0) + 1 } : o
-                    ),
-                    isLoading: false
-                };
-            });
-        } catch (err: any) {
-            set({ error: err.message, isLoading: false });
-        }
-    },
+  sendInvitation: async (orgId, email, role) => {
+    set({ isLoading: true });
+    try {
+      const inviteResp = await inviteService.createInvitation(
+        orgId,
+        email,
+        role,
+      );
+      const newInvite: OrgInvite = {
+        id: inviteResp.id,
+        orgId: inviteResp.org_id,
+        email: inviteResp.email,
+        role: inviteResp.role as any,
+        status: inviteResp.status,
+        token: inviteResp.token,
+        invitedBy: inviteResp.invited_by,
+        createdAt: inviteResp.created_at,
+      };
+      set((state) => ({
+        invitations: [newInvite, ...state.invitations],
+        isLoading: false,
+      }));
+      return {
+        link: inviteResp.inviteLink,
+        emailError: inviteResp.emailError,
+      };
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
 
-    updateGoalProgress: async (goalId, currentValue, note) => {
-        try {
-            await goalService.updateProgress(goalId, currentValue, note);
-            set((state) => {
-                const newGoals = state.goals.map((g) => {
-                    if (g.id !== goalId) return g;
+  cancelInvitation: async (inviteId) => {
+    try {
+      await inviteService.cancelInvitation(inviteId);
+      set((state) => ({
+        invitations: state.invitations.filter((i) => i.id !== inviteId),
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
 
-                    // Recalculate progress percentage
-                    let progress = currentValue;
-                    if (g.targetNumber && g.targetNumber > 0) {
-                        progress = Math.min(100, Math.round((currentValue / g.targetNumber) * 100));
-                    }
+  addGoal: async (goalData) => {
+    set({ isLoading: true });
+    try {
+      const newGoal = await goalService.createGoal(goalData);
+      const cleanedGoal = cleanGoalData(newGoal);
+      set((state) => {
+        const newGoals = [cleanedGoal, ...state.goals];
+        return {
+          goals: newGoals,
+          members: syncMemberStats(newGoals, state.members, goalData.orgId),
+          organizations: state.organizations.map((o) =>
+            o.id === goalData.orgId
+              ? { ...o, goalCount: (o.goalCount || 0) + 1 }
+              : o,
+          ),
+          isLoading: false,
+        };
+      });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
 
-                    return { ...g, currentValue, progress, updatedAt: new Date().toISOString() };
-                });
+  updateGoalProgress: async (goalId, currentValue, note) => {
+    try {
+      await goalService.updateProgress(goalId, currentValue, note);
+      set((state) => {
+        const newGoals = state.goals.map((g) => {
+          if (g.id !== goalId) return g;
 
-                const updatedGoal = newGoals.find(g => g.id === goalId);
-                if (!updatedGoal) return { goals: newGoals };
+          // Recalculate progress percentage
+          let progress = currentValue;
+          if (g.targetNumber && g.targetNumber > 0) {
+            progress = Math.min(
+              100,
+              Math.round((currentValue / g.targetNumber) * 100),
+            );
+          }
 
-                return {
-                    goals: newGoals,
-                    members: syncMemberStats(newGoals, state.members, updatedGoal.orgId)
-                };
-            });
-        } catch (err: any) {
-            set({ error: err.message });
-        }
-    },
+          return {
+            ...g,
+            currentValue,
+            progress,
+            updatedAt: new Date().toISOString(),
+          };
+        });
 
-    updateGoalStatus: async (goalId, status) => {
-        try {
-            await goalService.updateStatus(goalId, status);
-            set((state) => {
-                const newGoals = state.goals.map((g) =>
-                    g.id === goalId ? { ...g, status, updatedAt: new Date().toISOString() } : g
-                );
+        const updatedGoal = newGoals.find((g) => g.id === goalId);
+        if (!updatedGoal) return { goals: newGoals };
 
-                const updatedGoal = newGoals.find(g => g.id === goalId);
-                if (!updatedGoal) return { goals: newGoals };
+        return {
+          goals: newGoals,
+          members: syncMemberStats(newGoals, state.members, updatedGoal.orgId),
+        };
+      });
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
 
-                return {
-                    goals: newGoals,
-                    members: syncMemberStats(newGoals, state.members, updatedGoal.orgId)
-                };
-            });
-        } catch (err: any) {
-            set({ error: err.message });
-        }
-    },
+  updateGoalStatus: async (goalId, status) => {
+    try {
+      await goalService.updateStatus(goalId, status);
+      set((state) => {
+        const newGoals = state.goals.map((g) =>
+          g.id === goalId
+            ? { ...g, status, updatedAt: new Date().toISOString() }
+            : g,
+        );
 
-    deleteGoal: async (goalId, orgId) => {
-        const goalToDelete = get().goals.find(g => g.id === goalId);
-        if (!goalToDelete) return;
+        const updatedGoal = newGoals.find((g) => g.id === goalId);
+        if (!updatedGoal) return { goals: newGoals };
 
-        try {
-            await goalService.deleteGoal(goalId, orgId);
-            set((state) => {
-                const newGoals = state.goals.filter(g => g.id !== goalId);
-                return {
-                    goals: newGoals,
-                    members: syncMemberStats(newGoals, state.members, orgId),
-                    organizations: state.organizations.map(o =>
-                        o.id === orgId ? { ...o, goalCount: Math.max(0, (o.goalCount || 0) - 1) } : o
-                    )
-                };
-            });
-        } catch (err: any) {
-            set({ error: err.message });
-            throw err;
-        }
-    },
+        return {
+          goals: newGoals,
+          members: syncMemberStats(newGoals, state.members, updatedGoal.orgId),
+        };
+      });
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
 
-    signOut: async () => {
-        await authService.signOut();
-        set({ user: null, organizations: [], goals: [], members: [], memberGoalStatuses: [] });
-    },
+  deleteGoal: async (goalId, orgId) => {
+    const goalToDelete = get().goals.find((g) => g.id === goalId);
+    if (!goalToDelete) return;
 
-    fetchMemberStatuses: async (goalId) => {
-        try {
-            const statuses = await goalService.getMemberStatuses(goalId);
-            set((state) => ({
-                // Replace statuses for this goal, keep others
-                memberGoalStatuses: [
-                    ...state.memberGoalStatuses.filter(s => s.goalId !== goalId),
-                    ...statuses,
-                ],
-            }));
-        } catch (err: any) {
-            console.error('fetchMemberStatuses error:', err.message);
-        }
-    },
+    try {
+      await goalService.deleteGoal(goalId, orgId);
+      set((state) => {
+        const newGoals = state.goals.filter((g) => g.id !== goalId);
+        return {
+          goals: newGoals,
+          members: syncMemberStats(newGoals, state.members, orgId),
+          organizations: state.organizations.map((o) =>
+            o.id === orgId
+              ? { ...o, goalCount: Math.max(0, (o.goalCount || 0) - 1) }
+              : o,
+          ),
+        };
+      });
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    }
+  },
 
-    upsertMemberStatus: async (goalId, orgId, status, note, contribution) => {
-        await goalService.upsertMemberStatus(goalId, orgId, status, note, contribution);
-        // Refresh statuses for this goal so the UI updates immediately
-        await get().fetchMemberStatuses(goalId);
-    },
+  signOut: async () => {
+    await authService.signOut();
+    set({
+      user: null,
+      organizations: [],
+      goals: [],
+      members: [],
+      memberGoalStatuses: [],
+      dailyCheckins: [],
+    });
+  },
+
+  fetchMemberStatuses: async (goalId) => {
+    try {
+      const statuses = await goalService.getMemberStatuses(goalId);
+      set((state) => ({
+        // Replace statuses for this goal, keep others
+        memberGoalStatuses: [
+          ...state.memberGoalStatuses.filter((s) => s.goalId !== goalId),
+          ...statuses,
+        ],
+      }));
+    } catch (err: any) {
+      console.error("fetchMemberStatuses error:", err.message);
+    }
+  },
+
+  upsertMemberStatus: async (goalId, orgId, status, note, contribution) => {
+    await goalService.upsertMemberStatus(
+      goalId,
+      orgId,
+      status,
+      note,
+      contribution,
+    );
+    // Refresh statuses for this goal so the UI updates immediately
+    await get().fetchMemberStatuses(goalId);
+  },
+
+  dailyCheckIn: async (goalId, checkDate, note) => {
+    await goalService.dailyCheckIn(goalId, checkDate, note);
+    // Update local state optimistically
+    const {
+      data: { user },
+    } = await (await import("@/lib/supabase")).getSupabase().auth.getUser();
+    if (user) {
+      const newCheckIn: DailyCheckIn = {
+        id: crypto.randomUUID(),
+        goalId,
+        userId: user.id,
+        checkDate,
+        completed: true,
+        note: note || null,
+        createdAt: new Date().toISOString(),
+      };
+      set((state) => ({
+        dailyCheckins: [
+          ...state.dailyCheckins.filter(
+            (c) =>
+              !(
+                c.goalId === goalId &&
+                c.userId === user.id &&
+                c.checkDate === checkDate
+              ),
+          ),
+          newCheckIn,
+        ],
+      }));
+    }
+  },
+
+  undoDailyCheckIn: async (goalId, checkDate) => {
+    const {
+      data: { user },
+    } = await (await import("@/lib/supabase")).getSupabase().auth.getUser();
+    await goalService.undoDailyCheckIn(goalId, checkDate);
+    if (user) {
+      set((state) => ({
+        dailyCheckins: state.dailyCheckins.filter(
+          (c) =>
+            !(
+              c.goalId === goalId &&
+              c.userId === user.id &&
+              c.checkDate === checkDate
+            ),
+        ),
+      }));
+    }
+  },
+
+  fetchCheckIns: async (goalId) => {
+    try {
+      const checkins = await goalService.getCheckIns(goalId);
+      set((state) => ({
+        dailyCheckins: [
+          ...state.dailyCheckins.filter((c) => c.goalId !== goalId),
+          ...checkins,
+        ],
+      }));
+    } catch (err: any) {
+      console.error("fetchCheckIns error:", err.message);
+    }
+  },
 }));

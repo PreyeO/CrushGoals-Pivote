@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { OrgGoal, GoalStatus, GoalPriority } from "@/types";
+import { OrgGoal, GoalStatus, GoalPriority, GoalFrequency } from "@/types";
 import { useState, useMemo } from "react";
 import { GOAL_TEMPLATES } from "@/lib/templates";
 import { useStore } from "@/lib/store";
@@ -43,6 +43,7 @@ const formSchema = z.object({
     emoji: z.string().min(1),
     category: z.string().min(2),
     priority: z.enum(["low", "medium", "high"]),
+    frequency: z.enum(["one_time", "daily", "weekly", "monthly"]),
     startDate: z.string().min(1, "Start date is required"),
     deadline: z.string().min(1, "Deadline is required"),
     assigneeIds: z.array(z.string()).min(1, "Please assign this goal to at least one person"),
@@ -98,6 +99,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             emoji: "🎯",
             category: "General",
             priority: "medium" as GoalPriority,
+            frequency: "one_time" as GoalFrequency,
             startDate: new Date(now).toISOString().split('T')[0],
             deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             assigneeIds: myMemberId ? [myMemberId] : [],
@@ -110,6 +112,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
 
     const selectedAssignees = watch("assigneeIds") || [];
     const goalType = watch("goalType");
+    const frequency = watch("frequency");
 
     const toggleAssignee = (id: string) => {
         if (isMemberOnly) return; // Members can't change assignees
@@ -135,6 +138,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             await addGoal({
                 ...data,
                 orgId,
+                frequency: data.frequency,
                 status: "not_started" as GoalStatus,
                 assignedTo: isMemberOnly ? [myMemberId] : data.assigneeIds,
                 createdBy: user?.id || "unknown",
@@ -170,11 +174,12 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             emoji: template.emoji,
             category: template.category,
             priority: template.priority,
+            frequency: template.cadence || "one_time",
             startDate: new Date(now).toISOString().split('T')[0],
             deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             assigneeIds: myMemberId ? [myMemberId] : [],
             goalType: isMetric ? "metric" : "milestone",
-            targetValue: isMetric ? `${targetNumber} ${unit}` : "Launch Feature",
+            targetValue: isMetric ? `${targetNumber} ${unit}` : template.title,
             targetNumber: targetNumber,
             unit: unit,
         });
@@ -267,8 +272,22 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-xs font-semibold uppercase tracking-wider">Category</Label>
-                            <Input {...register("category")} placeholder="e.g. Sales, Product" className="bg-accent/30 border-border/40" />
+                            <Label className="text-xs font-semibold uppercase tracking-wider">Frequency</Label>
+                            <div className="flex p-1 bg-accent/20 rounded-lg border border-border/20">
+                                {(["one_time", "daily", "weekly", "monthly"] as const).map((f) => (
+                                    <button
+                                        key={f}
+                                        type="button"
+                                        onClick={() => setValue("frequency", f)}
+                                        className={cn(
+                                            "flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all",
+                                            frequency === f ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        {f === "one_time" ? "One-time" : f.charAt(0).toUpperCase() + f.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
@@ -283,7 +302,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                         </div>
                     </div>
 
-                    {goalType === "metric" ? (
+                    {goalType === "metric" && frequency === "one_time" ? (
                         <div className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10 animate-in zoom-in-95 duration-200">
                             <div className="space-y-2">
                                 <Label className="text-xs font-semibold uppercase tracking-wider">Target #</Label>
@@ -302,8 +321,18 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                                 <Input {...register("targetValue")} placeholder="e.g. 30 Chapters" className="bg-background border-border/40" />
                             </div>
                         </div>
+                    ) : frequency !== "one_time" ? (
+                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 animate-in fade-in duration-200">
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                🔥 <strong className="text-foreground">{frequency === "daily" ? "Daily" : frequency === "weekly" ? "Weekly" : "Monthly"}</strong> goals tracked via check-ins instead of percentages. Members mark completion each {frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}.
+                            </p>
+                            <div className="mt-2">
+                                <Label className="text-xs font-semibold uppercase tracking-wider">Target Milestone</Label>
+                                <Input {...register("targetValue")} placeholder={`e.g. ${frequency === "daily" ? "Daily standup" : frequency === "weekly" ? "Weekly report" : "Monthly review"}`} className="bg-background border-border/40 mt-1" />
+                            </div>
+                        </div>
                     ) : (
-                        <div className="space-y-2 animte-in fade-in duration-200">
+                        <div className="space-y-2 animate-in fade-in duration-200">
                             <Label className="text-xs font-semibold uppercase tracking-wider">Target Milestone</Label>
                             <Input {...register("targetValue")} placeholder="e.g. MVP Launch / Complete Goal" className="bg-accent/30 border-border/40" />
                         </div>

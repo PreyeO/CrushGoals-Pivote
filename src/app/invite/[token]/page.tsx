@@ -7,153 +7,187 @@ import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { UserPlus, Building2, ShieldCheck, Mail, ArrowRight } from "lucide-react";
+import {
+  UserPlus,
+  Building2,
+  ShieldCheck,
+  Mail,
+  ArrowRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
-export default function InvitationPage({ params }: { params: Promise<{ token: string }> }) {
-    const { token } = use(params);
-    const router = useRouter();
-    const user = useStore((state) => state.user);
-    const [invitation, setInvitation] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isAccepting, setIsAccepting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+export default function InvitationPage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = use(params);
+  const router = useRouter();
+  const user = useStore((state) => state.user);
+  const [invitation, setInvitation] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const fetchInitialData = useStore((state) => state.fetchInitialData);
+  const fetchInitialData = useStore((state) => state.fetchInitialData);
 
-    useEffect(() => {
-        // Fetch user session first to ensure UI reflects auth state
-        fetchInitialData();
+  useEffect(() => {
+    // Fetch user session first to ensure UI reflects auth state
+    fetchInitialData();
 
-        const fetchInvite = async () => {
-            try {
-                const data = await inviteService.getInvitationByToken(token);
-                setInvitation(data);
-            } catch (err: any) {
-                console.error("Fetch invite error:", err);
-                setError(err.message || "Invalid or expired invitation.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchInvite();
-    }, [token]);
-
-    const handleAccept = async () => {
-        if (!user) {
-            const emailParam = invitation?.email ? `&email=${encodeURIComponent(invitation.email)}` : "";
-            router.push(`/auth/signup?returnUrl=/invite/${token}${emailParam}`);
-            return;
-        }
-
-        setIsAccepting(true);
-        try {
-            const orgId = await inviteService.acceptInvitation(token);
-            toast.success("Welcome aboard! You've successfully joined.");
-
-            // Refresh store with the new organization data before redirecting
-            await fetchInitialData(orgId);
-
-            router.push(`/org/${orgId}`);
-        } catch (err: any) {
-            console.error("Accept invite error:", err);
-            toast.error(err.message || "Failed to accept invitation.");
-        } finally {
-            setIsAccepting(false);
-        }
+    const fetchInvite = async () => {
+      try {
+        const data = await inviteService.getInvitationByToken(token);
+        setInvitation(data);
+      } catch (err: any) {
+        console.error("Fetch invite error:", err);
+        setError(err.message || "Invalid or expired invitation.");
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    if (isLoading) return <LoadingState message="Verifying invitation..." />;
-    if (error) return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-            <ErrorState
-                title="Invitation Not Found"
-                message={error}
-                onRetry={() => window.location.reload()}
-            />
-        </div>
-    );
+    fetchInvite();
+  }, [token]);
 
-    const org = invitation?.organizations;
+  const handleAccept = async () => {
+    if (!user) {
+      const emailParam = invitation?.email
+        ? `&email=${encodeURIComponent(invitation.email)}`
+        : "";
+      router.push(`/auth/signup?returnUrl=/invite/${token}${emailParam}`);
+      return;
+    }
 
+    setIsAccepting(true);
+    try {
+      const orgId = await inviteService.acceptInvitation(token);
+      toast.success("Welcome aboard! You've successfully joined.");
+
+      // Refresh store with the new organization data before redirecting
+      await fetchInitialData(orgId);
+
+      // Go to dashboard so the user can see remaining pending invitations
+      // and/or create a new org.  The auto-redirect logic we used to have is
+      // gone, so /dashboard will always stay on the dashboard now.
+      router.push(`/dashboard`);
+    } catch (err: any) {
+      console.error("Accept invite error:", err);
+      toast.error(err.message || "Failed to accept invitation.");
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  if (isLoading) return <LoadingState message="Verifying invitation..." />;
+  if (error)
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background overflow-hidden relative">
-            {/* Background Decorations */}
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -mr-32 -mt-32" />
-            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[oklch(0.70_0.18_155)]/5 blur-[120px] rounded-full -ml-32 -mb-32" />
-
-            <div className="max-w-md w-full relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="glass-card p-8 lg:p-10 border-primary/20 bg-primary/[0.02] text-center shadow-2xl">
-                    <div className="mb-8 flex justify-center">
-                        <div className="relative">
-                            <div className="w-20 h-20 rounded-3xl bg-accent/30 flex items-center justify-center text-4xl shadow-inner border border-border/40">
-                                {org?.emoji || "🏢"}
-                            </div>
-                            <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white border-4 border-background shadow-lg animate-bounce">
-                                <UserPlus className="w-4 h-4" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <h1 className="text-3xl font-black tracking-tighter mb-4">
-                        You&apos;re Invited!
-                    </h1>
-
-                    <p className="text-muted-foreground leading-relaxed mb-8">
-                        Join <span className="text-foreground font-bold">{org?.name}</span> on CrushGoals.
-                        You&apos;ll be joining as a <span className="text-primary font-bold uppercase tracking-wider text-xs">{invitation.role}</span>.
-                    </p>
-
-                    <div className="space-y-4 mb-10">
-                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-accent/30 border border-border/40 text-left">
-                            <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-                            <div>
-                                <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Security</p>
-                                <p className="text-xs font-medium">Safe & secure invitation link</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-accent/30 border border-border/40 text-left">
-                            <Building2 className="w-5 h-5 text-[oklch(0.70_0.18_155)] shrink-0" />
-                            <div>
-                                <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Organization</p>
-                                <p className="text-xs font-medium">{org?.name} Workspace</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {!user ? (
-                        <div className="space-y-4">
-                            <Button
-                                onClick={handleAccept}
-                                className="w-full h-14 rounded-2xl gradient-primary text-white font-black tracking-tight text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all group"
-                            >
-                                Get Started
-                                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                            </Button>
-                            <p className="text-[11px] text-muted-foreground">
-                                Already have an account? <Link href={`/auth/login?returnUrl=/invite/${token}`} className="text-primary hover:underline">Log in here</Link>
-                            </p>
-                        </div>
-                    ) : (
-                        <Button
-                            onClick={handleAccept}
-                            disabled={isAccepting}
-                            className="w-full h-14 rounded-2xl gradient-primary text-white font-black tracking-tight text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all disabled:opacity-50 group"
-                        >
-                            {isAccepting ? "Joining..." : "Accept & Join"}
-                            {!isAccepting && <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />}
-                        </Button>
-                    )}
-                </div>
-
-                <div className="mt-8 text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black opacity-40">
-                        Crush milestones together.
-                    </p>
-                </div>
-            </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <ErrorState
+          title="Invitation Not Found"
+          message={error}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
     );
+
+  const org = invitation?.organizations;
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background overflow-hidden relative">
+      {/* Background Decorations */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -mr-32 -mt-32" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[oklch(0.70_0.18_155)]/5 blur-[120px] rounded-full -ml-32 -mb-32" />
+
+      <div className="max-w-md w-full relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="glass-card p-8 lg:p-10 border-primary/20 bg-primary/[0.02] text-center shadow-2xl">
+          <div className="mb-8 flex justify-center">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-3xl bg-accent/30 flex items-center justify-center text-4xl shadow-inner border border-border/40">
+                {org?.emoji || "🏢"}
+              </div>
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white border-4 border-background shadow-lg animate-bounce">
+                <UserPlus className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+
+          <h1 className="text-3xl font-black tracking-tighter mb-4">
+            You&apos;re Invited!
+          </h1>
+
+          <p className="text-muted-foreground leading-relaxed mb-8">
+            Join <span className="text-foreground font-bold">{org?.name}</span>{" "}
+            on CrushGoals. You&apos;ll be joining as a{" "}
+            <span className="text-primary font-bold uppercase tracking-wider text-xs">
+              {invitation.role}
+            </span>
+            .
+          </p>
+
+          <div className="space-y-4 mb-10">
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-accent/30 border border-border/40 text-left">
+              <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                  Security
+                </p>
+                <p className="text-xs font-medium">
+                  Safe & secure invitation link
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-accent/30 border border-border/40 text-left">
+              <Building2 className="w-5 h-5 text-[oklch(0.70_0.18_155)] shrink-0" />
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                  Organization
+                </p>
+                <p className="text-xs font-medium">{org?.name} Workspace</p>
+              </div>
+            </div>
+          </div>
+
+          {!user ? (
+            <div className="space-y-4">
+              <Button
+                onClick={handleAccept}
+                className="w-full h-14 rounded-2xl gradient-primary text-white font-black tracking-tight text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all group"
+              >
+                Get Started
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Already have an account?{" "}
+                <Link
+                  href={`/auth/login?returnUrl=/invite/${token}`}
+                  className="text-primary hover:underline"
+                >
+                  Log in here
+                </Link>
+              </p>
+            </div>
+          ) : (
+            <Button
+              onClick={handleAccept}
+              disabled={isAccepting}
+              className="w-full h-14 rounded-2xl gradient-primary text-white font-black tracking-tight text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all disabled:opacity-50 group"
+            >
+              {isAccepting ? "Joining..." : "Accept & Join"}
+              {!isAccepting && (
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              )}
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black opacity-40">
+            Crush milestones together.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }

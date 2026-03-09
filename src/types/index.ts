@@ -23,6 +23,7 @@ export interface Team {
 export type OrgRole = "owner" | "admin" | "member";
 export type GoalStatus = "not_started" | "in_progress" | "blocked" | "completed";
 export type GoalPriority = "high" | "medium" | "low";
+export type GoalFrequency = "one_time" | "daily" | "weekly" | "monthly";
 export type MemberGoalStatusValue = "on_track" | "behind" | "blocked" | "completed";
 
 export interface MemberGoalStatus {
@@ -61,6 +62,7 @@ export interface OrgGoal {
   id: string;
   orgId: string;
   teamId?: string; // Link to a team
+  frequency: GoalFrequency;
   title: string;
   description: string;
   category: string;
@@ -142,4 +144,15 @@ export interface GoalTemplate {
   priority: GoalPriority;
   targetNumber?: number;
   unit?: string;
+  cadence?: GoalFrequency;
+}
+
+export interface DailyCheckIn {
+  id: string;
+  goalId: string;
+  userId: string;
+  checkDate: string; // YYYY-MM-DD
+  completed: boolean;
+  note: string | null;
+  createdAt: string;
 }
