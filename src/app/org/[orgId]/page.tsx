@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import Link from "next/link";
@@ -9,7 +8,6 @@ import { OrgHeader } from "@/components/org/OrgHeader";
 import { OrgStats } from "@/components/org/OrgStats";
 import { ActiveGoalsList } from "@/components/org/ActiveGoalsList";
 import { LeaderboardTable } from "@/components/org/LeaderboardTable";
-import { MembersInvitesList } from "@/components/org/MembersInvitesList";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { notFound } from "next/navigation";
 import { getTeamHealthScore, getOrgLeaderboard } from "@/lib/store-utils";
@@ -19,20 +17,23 @@ import {
   Trophy,
   Target,
   Bell,
-  Users,
   AlertCircle,
   Ban,
   Clock,
   ChevronRight,
-  Flame,
   Mail,
-  ArrowRight,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { CreateOrgModal } from "@/components/create-org-modal";
 import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function OrgDashboardPage({
   params,
@@ -67,6 +68,7 @@ export default function OrgDashboardPage({
   const router = useRouter();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     fetchInitialData(orgId);
   }, [orgId, fetchInitialData]);
@@ -139,70 +141,134 @@ export default function OrgDashboardPage({
         <OrgHeader org={org} />
       </div>
 
-      {/* Pending invitation banner — show for users with pending invites */}
+      {/* Enhanced Welcome Section for invited members */}
       {pendingInvitations.length > 0 && (
-        <div className="mb-6 p-4 rounded-2xl border border-primary/30 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-              <Mail className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-foreground">
-                You have {pendingInvitations.length} pending invitation
-                {pendingInvitations.length > 1 ? "s" : ""}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                You&apos;ve been invited to join{" "}
-                {pendingInvitations.length === 1
-                  ? "an organization"
-                  : `${pendingInvitations.length} organizations`}{" "}
-                on CrushGoals.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2 shrink-0 w-full sm:w-auto">
-            {pendingInvitations.map((inv) => (
-              <Button
-                key={inv.id}
-                size="sm"
-                onClick={() => router.push(`/invite/${inv.token}`)}
-                className="gap-1.5 rounded-xl gradient-primary text-white font-semibold shadow-md shadow-primary/20 hover:scale-[1.02] transition-all"
-              >
-                View Invite
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
+        <div className="mb-8 p-6 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/3 to-accent/5 relative overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-16 -mt-16" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/10 rounded-full blur-xl -ml-12 -mb-12" />
 
-      {/* Create Org Banner for invited members */}
-      {pendingInvitations.length > 0 && (
-        <div className="mb-6 p-4 rounded-2xl border border-accent/30 bg-accent/5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
-              <Target className="w-5 h-5 text-accent-foreground" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center">
+                <Mail className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">
+                  Welcome to {org.name}!
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  You have {pendingInvitations.length} pending invitation
+                  {pendingInvitations.length > 1 ? "s" : ""} waiting
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold text-foreground">
-                Create Your Own Organization
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Start your own team and crush goals together. You can create
-                unlimited organizations.
-              </p>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Pending Invites Card */}
+              <div className="p-4 rounded-2xl bg-background/60 backdrop-blur-sm border border-primary/10">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Mail className="w-4 h-4 text-primary" />
+                  </div>
+                  <p className="font-semibold text-sm">Pending Invitations</p>
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  You&apos;ve been invited to join{" "}
+                  {pendingInvitations.length === 1
+                    ? "another organization"
+                    : `${pendingInvitations.length} other organizations`}{" "}
+                  on CrushGoals.
+                </p>
+                <div className="flex flex-col gap-2">
+                  {pendingInvitations.length === 1 ? (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        router.push(`/invite/${pendingInvitations[0].token}`)
+                      }
+                      className="w-full gap-2 gradient-primary text-white font-semibold shadow-md shadow-primary/20 hover:scale-[1.02] transition-all"
+                    >
+                      <Mail className="w-4 h-4" />
+                      View Invitation
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          router.push(`/invite/${pendingInvitations[0].token}`)
+                        }
+                        className="flex-1 gap-2 gradient-primary text-white font-semibold shadow-md shadow-primary/20 hover:scale-[1.02] transition-all"
+                      >
+                        <Mail className="w-4 h-4" />
+                        View First
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 border-primary/20 hover:bg-primary/5"
+                          >
+                            All {pendingInvitations.length}
+                            <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-64">
+                          {pendingInvitations.map((inv, index) => (
+                            <DropdownMenuItem
+                              key={inv.id}
+                              onClick={() =>
+                                router.push(`/invite/${inv.token}`)
+                              }
+                              className="gap-3"
+                            >
+                              <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-bold text-primary">
+                                  {index + 1}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">
+                                  Organization Invite
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Click to accept
+                                </p>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Create Org Card */}
+              <div className="p-4 rounded-2xl bg-background/60 backdrop-blur-sm border border-accent/10">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center">
+                    <Target className="w-4 h-4 text-accent-foreground" />
+                  </div>
+                  <p className="font-semibold text-sm">Create Your Own Team</p>
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Start your own organization and lead your team to crush goals
+                  together.
+                </p>
+                <CreateOrgModal>
+                  <Button
+                    size="sm"
+                    className="w-full gap-2 gradient-primary text-white font-semibold shadow-md shadow-primary/20 hover:scale-[1.02] transition-all"
+                  >
+                    <Target className="w-4 h-4" />
+                    Create Organization
+                  </Button>
+                </CreateOrgModal>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2 shrink-0 w-full sm:w-auto">
-            <CreateOrgModal>
-              <Button
-                size="sm"
-                className="gap-1.5 rounded-xl gradient-primary text-white font-semibold shadow-md shadow-primary/20 hover:scale-[1.02] transition-all"
-              >
-                Create Organization
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Button>
-            </CreateOrgModal>
           </div>
         </div>
       )}

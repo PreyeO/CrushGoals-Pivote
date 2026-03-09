@@ -46,7 +46,13 @@ function calculateStreak(checkedDates: Set<string>): number {
   return streak;
 }
 
-function DailyGoalListItem({ goal, members }: { goal: OrgGoal; members: OrgMember[] }) {
+function DailyGoalListItem({
+  goal,
+  members,
+}: {
+  goal: OrgGoal;
+  members: OrgMember[];
+}) {
   const dailyCheckIn = useStore((state) => state.dailyCheckIn);
   const undoDailyCheckIn = useStore((state) => state.undoDailyCheckIn);
   const fetchCheckIns = useStore((state) => state.fetchCheckIns);
@@ -82,8 +88,10 @@ function DailyGoalListItem({ goal, members }: { goal: OrgGoal; members: OrgMembe
         await dailyCheckIn(goal.id, todayStr);
         toast.success("Checked in! 🔥");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to check in");
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to check in";
+      toast.error(errorMessage);
     } finally {
       setIsCheckingIn(false);
     }
@@ -136,7 +144,10 @@ function DailyGoalListItem({ goal, members }: { goal: OrgGoal; members: OrgMembe
               { weekday: "narrow" },
             );
             return (
-              <div key={day} className="flex flex-col items-center gap-1 flex-1">
+              <div
+                key={day}
+                className="flex flex-col items-center gap-1 flex-1"
+              >
                 <span className="text-[7px] text-muted-foreground/50 font-bold">
                   {dayLabel}
                 </span>
@@ -256,7 +267,9 @@ export function ActiveGoalsList({
           goal.frequency === "monthly";
 
         if (isDaily) {
-          return <DailyGoalListItem key={goal.id} goal={goal} members={members} />;
+          return (
+            <DailyGoalListItem key={goal.id} goal={goal} members={members} />
+          );
         }
 
         const goalAssignees = members.filter((m) =>
@@ -269,9 +282,9 @@ export function ActiveGoalsList({
         const expectedProgress =
           end - start > 0
             ? Math.min(
-              100,
-              Math.max(0, Math.round(((now - start) / (end - start)) * 100)),
-            )
+                100,
+                Math.max(0, Math.round(((now - start) / (end - start)) * 100)),
+              )
             : 0;
         const isBehind = goal.progress < expectedProgress - 15;
         const isAhead = goal.progress > expectedProgress + 15;

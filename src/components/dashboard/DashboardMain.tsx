@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore, AppState } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { DashboardHeader } from "./DashboardHeader";
@@ -32,12 +32,17 @@ export function DashboardMain() {
   );
 
   const STALE_MS = 5 * 24 * 60 * 60 * 1000;
-  const blockedCount = memberGoalStatuses.filter(
-    (s) => s.status === "blocked",
-  ).length;
-  const staleCount = memberGoalStatuses.filter(
-    (s) => Date.now() - new Date(s.updatedAt).getTime() > STALE_MS,
-  ).length;
+  const [now] = useState(() => Date.now());
+
+  const { blockedCount, staleCount } = useMemo(() => {
+    const blocked = memberGoalStatuses.filter(
+      (s) => s.status === "blocked",
+    ).length;
+    const stale = memberGoalStatuses.filter(
+      (s) => now - new Date(s.updatedAt).getTime() > STALE_MS,
+    ).length;
+    return { blockedCount: blocked, staleCount: stale };
+  }, [memberGoalStatuses, now, STALE_MS]);
 
   useEffect(() => {
     fetchInitialData();
