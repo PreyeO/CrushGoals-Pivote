@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { telegramService } from "@/lib/services/telegram";
 import { goalService } from "@/lib/services/goals";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,7 +45,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      const { data: org, error } = await getSupabase()
+      const { data: org, error } = await supabaseAdmin
         .from("organizations")
         .select("*")
         .eq("connect_code", code)
@@ -49,7 +54,7 @@ export async function POST(req: NextRequest) {
       if (error || !org) {
         await telegramService.sendMessage(chatId, "❌ *Code Not Found* \n\nPlease double check the code in your CrushGoals Integrations page.");
       } else {
-        await getSupabase()
+        await supabaseAdmin
           .from("organizations")
           .update({ telegram_chat_id: chatId })
           .eq("id", org.id);
@@ -60,7 +65,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Fetch Organization for other commands
-    const { data: org } = await getSupabase()
+    const { data: org } = await supabaseAdmin
       .from("organizations")
       .select("*")
       .eq("telegram_chat_id", chatId)
