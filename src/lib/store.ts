@@ -140,6 +140,30 @@ const cleanGoalData = (goal: any): OrgGoal => {
   };
 };
 
+const cleanMemberData = (m: any, goals: OrgGoal[]): OrgMember => {
+  const memberGoals = goals.filter((g) => g.assignedTo.includes(m.id));
+  const completed = memberGoals.filter((g) => g.status === "completed").length;
+  const completionRate =
+    memberGoals.length > 0
+      ? Math.round((completed / memberGoals.length) * 100)
+      : 0;
+
+  return {
+    id: m.id,
+    orgId: m.org_id,
+    userId: m.user_id,
+    role: m.role,
+    joinedAt: m.joined_at,
+    name: m.profiles?.full_name || "Unknown User",
+    avatarUrl: m.profiles?.avatar_url,
+    email: m.email || "",
+    goalsAssigned: memberGoals.length,
+    goalsCompleted: completed,
+    completionRate,
+    currentStreak: 0,
+  } as OrgMember;
+};
+
 const cleanTeamData = (team: any): Team => ({
   id: team.id,
   orgId: team.org_id,
@@ -215,9 +239,9 @@ export const useStore = create<AppState>((set, get) => ({
       let teams: Team[] = [];
       let invitations: OrgInvite[] = [];
       let pendingInvitations: OrgInvite[] = [];
+      let memberGoalStatuses: MemberGoalStatus[] = [];
 
       if (orgId) {
-        // ... (existing org-specific fetch)
         const [rawGoals, rawTeams, rawMembers, rawOrgInvites] =
           await Promise.all([
             goalService.getGoals(orgId),
@@ -242,9 +266,6 @@ export const useStore = create<AppState>((set, get) => ({
             }) as any,
         );
 
-        // always fetch any pending invites for the current user too, even when scoping to a
-        // particular org so the banner/creation flow remains available from anywhere in the
-        // app
         if (authUser) {
           const rawUserInvites = await inviteService.getPendingForEmail(
             authUser.email ?? "",
@@ -263,53 +284,61 @@ export const useStore = create<AppState>((set, get) => ({
           );
         }
 
-        members = rawMembers.map((m: any) => {
-          const memberGoals = goals.filter((g) => g.assignedTo.includes(m.id));
-          const completed = memberGoals.filter(
-            (g) => g.status === "completed",
-          ).length;
-          const completionRate =
-            memberGoals.length > 0
-              ? Math.round((completed / memberGoals.length) * 100)
-              : 0;
-
-          return {
-            ...m,
-            id: m.id,
-            orgId: m.org_id,
-            userId: m.user_id,
-            role: m.role,
-            joinedAt: m.joined_at,
-            name: m.profiles?.full_name || "Unknown User",
-            avatarUrl: m.profiles?.avatar_url,
-            email: m.email || "", // Email should come from org_members if available or be empty
-            goalsAssigned: memberGoals.length,
-            goalsCompleted: completed,
-            completionRate,
-            currentStreak: 0,
-          } as OrgMember;
-        }) as any;
+        members = rawMembers.map((m: any) => cleanMemberData(m, goals));
       } else if (authUser) {
-        // Dashboard view: Fetch all goals and user's own memberships to determine roles
-        const userMemberships = await orgService.getMemberships(authUser.id);
-        members = userMemberships.map(
-          (m: any) =>
-            ({
-              id: m.id,
-              orgId: m.org_id,
-              userId: m.user_id,
-              role: m.role,
-              joinedAt: m.joined_at,
-              name: get().user?.name || "User",
-              email: get().user?.email || "",
-            }) as any,
-        );
-
-        // Fetch ALL goals across user's organizations for the dashboard view
+        // Dashboard view: Fetch ALL goals across user's organizations
         const rawGoals = await goalService.getGoalsForUser();
         goals = rawGoals.map(cleanGoalData);
 
-        // Fetch pending invitations for the user (to show banner on dashboard)
+        // Fetch user's own memberships to determine roles
+        const userMemberships = await orgService.getMemberships(authUser.id);
+        
+        // Find orgs where the user is an owner or admin
+        const adminedOrgIds = userMemberships
+          .filter((m: any) => m.role === 'owner' || m.role === 'admin')
+          .map((m: any) => m.org_id);
+
+        let allMembers: any[] = [];
+        let finalStatuses: MemberGoalStatus[] = [];
+
+        if (adminedOrgIds.length > 0) {
+          // Fetch all members for admined orgs, and all statuses
+          const [rawTeamMembers, rawTeamStatuses] = await Promise.all([
+            orgService.getMembers(adminedOrgIds),
+            orgService.getMemberStatuses(adminedOrgIds)
+          ]);
+          allMembers = rawTeamMembers;
+          finalStatuses = rawTeamStatuses.map((row: any) => ({
+            id: row.id,
+            goalId: row.goal_id,
+            userId: row.user_id,
+            orgId: row.org_id,
+            status: row.status,
+            note: row.note,
+            contribution: row.contribution ?? 0,
+            updatedAt: row.updated_at,
+            name: "",
+            avatarUrl: null,
+          }));
+        }
+
+        // For orgs where user is NOT an admin, still include the user's own membership info
+        const nonAdminMemberships = userMemberships.filter((m: any) => !adminedOrgIds.includes(m.org_id));
+        const selfMembers = nonAdminMemberships.map((m: any) => ({
+          ...m,
+          name: get().user?.name || "User",
+          email: get().user?.email || "",
+          profiles: {
+            full_name: get().user?.name || "User",
+            avatar_url: get().user?.avatarUrl
+          }
+        }));
+
+        // Combine and clean
+        members = [...allMembers, ...selfMembers].map((m: any) => cleanMemberData(m, goals));
+        memberGoalStatuses = finalStatuses;
+
+        // Fetch pending invitations
         const rawInvites = await inviteService.getPendingForEmail(
           authUser.email ?? "",
         );
@@ -329,8 +358,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       // Sync goalCount for organizations based on actual goals fetched
       const finalOrgs = orgs.map(cleanOrgData).map((org: any) => {
-        // If we have goals for this org, use that count as it's more reliable than the aggregate
-        const orgGoals = goals.filter((g) => g.orgId === org.id);
+        const orgGoals = goals.filter((g: OrgGoal) => g.orgId === org.id);
         if (orgGoals.length > 0 || (orgId && org.id === orgId)) {
           return { ...org, goalCount: orgGoals.length };
         }
@@ -344,6 +372,9 @@ export const useStore = create<AppState>((set, get) => ({
         teams: teams as any,
         invitations: invitations as any,
         pendingInvitations: pendingInvitations as any,
+        activities: get().activities,
+        memberGoalStatuses: memberGoalStatuses,
+        dailyCheckins: get().dailyCheckins,
         isLoading: false,
       });
     } catch (err: any) {

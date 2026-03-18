@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
-import { Calendar, Flame, Check, CheckCircle } from "lucide-react";
+import { Calendar, Flame, Check, CheckCircle, ArrowRight } from "lucide-react";
 import { useStore, AppState } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
-import { OrgGoal, OrgMember } from "@/types";
+import { OrgGoal, OrgMember, Organization } from "@/types";
+import { sortGoals } from "@/lib/store-utils";
 import { toast } from "sonner";
 
 function getToday(): string {
@@ -43,7 +44,17 @@ function calculateStreak(checkedDates: Set<string>): number {
   return streak;
 }
 
-function DailyGoalCard({ goal }: { goal: OrgGoal }) {
+function OrgLabel({ orgId, orgs }: { orgId: string; orgs: Organization[] }) {
+  const org = orgs.find((o) => o.id === orgId);
+  if (!org) return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-accent/60 text-muted-foreground">
+      {org.emoji} {org.name}
+    </span>
+  );
+}
+
+function DailyGoalCard({ goal, orgs }: { goal: OrgGoal; orgs: Organization[] }) {
   const dailyCheckIn = useStore((state) => state.dailyCheckIn);
   const undoDailyCheckIn = useStore((state) => state.undoDailyCheckIn);
   const fetchCheckIns = useStore((state) => state.fetchCheckIns);
@@ -54,9 +65,13 @@ function DailyGoalCard({ goal }: { goal: OrgGoal }) {
   );
 
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    fetchCheckIns(goal.id);
+    if (!fetchedRef.current) {
+      fetchCheckIns(goal.id);
+      fetchedRef.current = true;
+    }
   }, [goal.id, fetchCheckIns]);
 
   const checkedDatesSet = new Set(
@@ -90,7 +105,7 @@ function DailyGoalCard({ goal }: { goal: OrgGoal }) {
       className="glass-card p-6 animate-fade-in-up group flex flex-col justify-between"
     >
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="w-10 h-10 rounded-xl bg-accent/50 flex items-center justify-center text-xl">
             {goal.emoji}
           </div>
@@ -102,7 +117,8 @@ function DailyGoalCard({ goal }: { goal: OrgGoal }) {
             {goal.frequency}
           </Badge>
         </div>
-        <h3 className="font-bold text-[14px] mb-1 leading-tight">
+        <OrgLabel orgId={goal.orgId} orgs={orgs} />
+        <h3 className="font-bold text-[14px] mt-1.5 mb-1 leading-tight">
           {goal.title}
         </h3>
         <p className="text-[11px] text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
@@ -195,25 +211,40 @@ export function DashboardGoals() {
   const goals = useStore(useShallow((state: AppState) => state.goals));
   const members = useStore(useShallow((state: AppState) => state.members));
   const user = useStore(useShallow((state: AppState) => state.user));
+  const organizations = useStore(
+    useShallow((state: AppState) => state.organizations),
+  );
 
   // Find all member IDs for the current user across all orgs
   const myMemberIds = members
     .filter((m: OrgMember) => m.userId === user?.id)
     .map((m: OrgMember) => m.id);
 
-  // Filter for goals assigned to any of these member IDs
-  const myGoals = goals
-    .filter((g: OrgGoal) => g.assignedTo.some((id) => myMemberIds.includes(id)))
-    .slice(0, 3);
+  // Filter for goals assigned to any of these member IDs and sort them
+  const myGoals = sortGoals(
+    goals.filter((g: OrgGoal) => g.assignedTo.some((id) => myMemberIds.includes(id)))
+  ).slice(0, 3);
 
   if (myGoals.length === 0) return null;
 
+  // For the "View all" link, go to the first org's goals page
+  const firstGoalOrgId = myGoals[0]?.orgId;
+
   return (
     <div className="mt-8">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
           My Active Goals
         </h2>
+        {firstGoalOrgId && (
+          <Link
+            href={`/org/${firstGoalOrgId}/goals`}
+            className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+          >
+            View all
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        )}
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 stagger">
         {myGoals.map((goal) => {
@@ -223,7 +254,7 @@ export function DashboardGoals() {
             goal.frequency === "monthly";
 
           if (isDaily) {
-            return <DailyGoalCard key={goal.id} goal={goal} />;
+            return <DailyGoalCard key={goal.id} goal={goal} orgs={organizations} />;
           }
 
           return (
@@ -249,7 +280,8 @@ export function DashboardGoals() {
                     {goal.priority}
                   </span>
                 </div>
-                <h3 className="font-bold text-[14px] mb-1 leading-tight">
+                <OrgLabel orgId={goal.orgId} orgs={organizations} />
+                <h3 className="font-bold text-[14px] mt-1.5 mb-1 leading-tight">
                   {goal.title}
                 </h3>
                 <p className="text-[11px] text-muted-foreground mb-4 line-clamp-2 leading-relaxed">

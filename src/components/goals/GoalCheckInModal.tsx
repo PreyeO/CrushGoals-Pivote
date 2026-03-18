@@ -66,12 +66,16 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
                 await updateProgress(goal.id, progress);
             }
 
-            // 2. If they mark as blocked, update the goal-level status too
+            // 2. Smart Status Logic:
             if (memberStatus === "blocked") {
+                // Mark goal as blocked
                 await updateGoalStatus(goal.id, "blocked");
             } else if (memberStatus === "completed") {
+                // Mark goal as completed
                 await updateGoalStatus(goal.id, "completed");
-            } else if (goal.status === "not_started") {
+            } else if (goal.status === "blocked" || goal.status === "not_started") {
+                // AUTO-UNBLOCK or START: If user selects anything other than blocked/completed, 
+                // move goal back to in_progress
                 await updateGoalStatus(goal.id, "in_progress");
             }
 
@@ -98,67 +102,64 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[460px] glass-card border-border/40 backdrop-blur-2xl">
-                <DialogHeader>
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                        <TrendingUp className="w-6 h-6 text-primary" />
-                    </div>
-                    <DialogTitle className="text-xl font-bold">Progress Check-in</DialogTitle>
-                    <DialogDescription className="text-muted-foreground text-xs leading-relaxed">
-                        Log your personal update on <span className="text-foreground font-bold">{goal.emoji} {goal.title}</span>.
+            <DialogContent className="sm:max-w-[420px] glass-card border-border/40 backdrop-blur-2xl p-0 overflow-hidden">
+                <DialogHeader className="p-6 pb-0">
+                    <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                        <span className="text-xl">{goal.emoji}</span>
+                        <span>Update Progress</span>
+                    </DialogTitle>
+                    <DialogDescription className="text-[11px] text-muted-foreground line-clamp-1">
+                        {goal.title}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="py-4 space-y-6">
+                <div className="p-6 pt-4 space-y-5">
                     {/* Progress input — only for non-daily goals */}
                     {!isDaily && (
-                        <div className="space-y-4">
-                            <div className="flex items-end justify-between">
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
                                 <Label className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">
-                                    {goal.targetNumber ? `Current ${goal.unit || "Progress"}` : "Current Completion"}
+                                    Current {goal.unit || "Value"}
                                 </Label>
-                                <div className="flex flex-col items-end">
-                                    <span className="text-3xl font-black text-primary tracking-tighter tabular-nums">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-2xl font-black text-primary tabular-nums">
                                         {goal.targetNumber ? progress : `${progress}%`}
                                     </span>
                                     {goal.targetNumber && (
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                                            of {goal.targetNumber} {goal.unit} ({displayProgress}%)
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">
+                                            / {goal.targetNumber} ({displayProgress}%)
                                         </span>
                                     )}
                                 </div>
                             </div>
 
                             {goal.targetNumber ? (
-                                <div className="space-y-2">
+                                <div className="flex gap-2">
                                     <input
                                         type="number"
                                         value={progress}
                                         onChange={(e) => setProgress(Number(e.target.value))}
-                                        className="w-full bg-accent/20 border-2 border-primary/20 rounded-xl h-14 px-4 text-xl font-bold focus:border-primary focus:outline-none transition-all"
+                                        className="flex-1 bg-accent/20 border border-primary/20 rounded-lg h-10 px-3 text-sm font-bold focus:border-primary focus:outline-none transition-all"
                                         placeholder={`Enter ${goal.unit || "amount"}...`}
                                     />
-                                    <div className="flex items-center justify-between px-1">
-                                        <button onClick={() => setProgress(Math.max(0, progress - 1))} className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors">- Decrease</button>
-                                        <button onClick={() => setProgress(Math.min(goal.targetNumber || 100, progress + 1))} className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors">+ Increase</button>
+                                    <div className="flex gap-1">
+                                        <Button variant="outline" size="icon" onClick={() => setProgress(Math.max(0, progress - 1))} className="h-10 w-10 rounded-lg">-</Button>
+                                        <Button variant="outline" size="icon" onClick={() => setProgress(Math.min(goal.targetNumber || 100, progress + 1))} className="h-10 w-10 rounded-lg">+</Button>
                                     </div>
                                 </div>
                             ) : (
-                                <Slider value={[progress]} onValueChange={(v: number[]) => setProgress(v[0])} max={100} step={1} className="py-4" />
+                                <Slider value={[progress]} onValueChange={(v: number[]) => setProgress(v[0])} max={100} step={1} className="py-2" />
                             )}
 
-                            {/* Pacing indicator */}
-                            <div className={cn("flex items-center gap-3 p-3 rounded-xl border", isBehind ? "bg-destructive/5 border-destructive/20" : isAhead ? "bg-emerald-500/5 border-emerald-500/20" : "bg-accent/30 border-border/20")}>
-                                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", isBehind ? "bg-destructive/10 text-destructive" : isAhead ? "bg-emerald-500/10 text-emerald-500" : "bg-primary/10 text-primary")}>
-                                    {isBehind ? <AlertTriangle className="w-4 h-4" /> : isAhead ? <Sparkles className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-wider mb-0.5">Timeline Pacing</p>
-                                    <p className="text-[11px] font-bold">
-                                        {isBehind ? "Behind schedule" : isAhead ? "Crushing the timeline!" : "On track"}
-                                        <span className="text-muted-foreground font-normal ml-1">(Expected: {expectedProgress}%)</span>
-                                    </p>
-                                </div>
+                            {/* Compact Pacing Badge */}
+                            <div className={cn(
+                                "inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-[10px] font-bold",
+                                isBehind ? "bg-destructive/5 border-destructive/20 text-destructive" : 
+                                isAhead ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-500" : 
+                                "bg-accent/30 border-border/20 text-muted-foreground"
+                            )}>
+                                {isBehind ? <AlertTriangle className="w-3 h-3" /> : isAhead ? <Sparkles className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                                <span>{isBehind ? "Behind" : isAhead ? "Ahead" : "On Track"} • Expected: {expectedProgress}%</span>
                             </div>
                         </div>
                     )}
@@ -170,19 +171,26 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
                             {memberStatusOptions.map((opt) => {
                                 const Icon = opt.icon;
                                 const isSelected = memberStatus === opt.value;
+                                
+                                // Dynamic Label: If blocked, "On Track" becomes "Resolved / On Track"
+                                let label = opt.label;
+                                if (goal.status === "blocked" && opt.value === "on_track") {
+                                    label = "Resolved / On Track";
+                                }
+
                                 return (
                                     <button
                                         key={opt.value}
                                         onClick={() => setMemberStatus(opt.value)}
                                         className={cn(
-                                            "flex items-center gap-2 p-3 rounded-xl border text-left transition-all font-semibold text-xs cursor-pointer",
+                                            "flex items-center gap-2 p-2.5 rounded-lg border text-left transition-all font-semibold text-[11px] cursor-pointer",
                                             isSelected
                                                 ? "border-primary/40 bg-primary/10 text-foreground"
                                                 : "border-border/30 bg-accent/20 text-muted-foreground hover:border-border/60"
                                         )}
                                     >
-                                        <Icon className={cn("w-4 h-4 shrink-0", isSelected ? opt.color : "")} />
-                                        {opt.label}
+                                        <Icon className={cn("w-3.5 h-3.5 shrink-0", isSelected ? opt.color : "")} />
+                                        {label}
                                     </button>
                                 );
                             })}
@@ -191,8 +199,11 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
 
                     {/* Personal note — always visible */}
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">
-                            {memberStatus === "blocked" ? "What's blocking you?" : "Update Note (optional)"}
+                        <Label className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground flex items-center justify-between">
+                            <span>{memberStatus === "blocked" ? "What's blocking you?" : "Update Note (optional)"}</span>
+                            {memberStatus === "blocked" && (
+                                <span className="text-[9px] text-destructive lowercase font-bold animate-pulse">Required</span>
+                            )}
                         </Label>
                         <Textarea
                             placeholder={memberStatus === "blocked" ? "Describe what's blocking you..." : "Share what you've done, what's next..."}
@@ -205,14 +216,19 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
                         />
+                        {isBehind && memberStatus === "on_track" && (
+                            <p className="text-[9px] text-yellow-500/80 font-medium">
+                                💡 Tip: You're currently behind schedule. Consider flagging it as "Behind" if you need extra time.
+                            </p>
+                        )}
                     </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="p-6 pt-0">
                     <Button
                         onClick={handleUpdate}
-                        disabled={isSaving}
-                        className="w-full gradient-primary text-white border-0 shadow-lg glow-primary h-12 text-sm font-black rounded-xl disabled:opacity-50"
+                        disabled={isSaving || (memberStatus === "blocked" && !note.trim())}
+                        className="w-full gradient-primary text-white border-0 shadow-lg glow-primary h-10 text-xs font-black rounded-lg disabled:opacity-50"
                     >
                         {isSaving ? "Saving..." : "Save Check-in"}
                     </Button>

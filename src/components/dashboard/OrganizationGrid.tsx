@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Users, Target, Plus } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -12,13 +13,27 @@ interface OrganizationGridProps {
 }
 
 export function OrganizationGrid({ organizations, showCreateCard = true }: OrganizationGridProps) {
+    const [showAll, setShowAll] = useState(false);
+    
+    // Determine which orgs to show. If showAll is false, limit to 3.
+    const displayedOrgs = showAll ? organizations : organizations.slice(0, 3);
+    const hasMore = organizations.length > 3;
+
     return (
-        <>
-            <div className="mb-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Your Organizations</h2>
+        <div className="mt-8">
+            <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-0">Your Organizations</h2>
+                {hasMore && (
+                    <button 
+                        onClick={() => setShowAll(!showAll)}
+                        className="text-sm font-medium text-primary hover:underline transition-colors"
+                    >
+                        {showAll ? "View Less" : "View All"}
+                    </button>
+                )}
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 stagger">
-                {organizations.map((org) => (
+                {displayedOrgs.map((org) => (
                     <Link href={`/org/${org.id}`} key={org.id} className="block">
                         <div className="glass-card-hover p-6 animate-fade-in-up group">
                             <div className="flex items-start justify-between mb-4">
@@ -63,6 +78,6 @@ export function OrganizationGrid({ organizations, showCreateCard = true }: Organ
                     </CreateOrgModal>
                 )}
             </div>
-        </>
+        </div>
     );
 }

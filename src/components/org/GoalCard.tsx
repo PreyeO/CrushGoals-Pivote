@@ -172,6 +172,8 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
   const members = useStore((state) => state.members);
   const user = useStore((state) => state.user);
   const deleteGoal = useStore((state) => state.deleteGoal);
+  const updateGoalStatus = useStore((state) => state.updateGoalStatus);
+  const upsertMemberStatus = useStore((state) => state.upsertMemberStatus);
   const fetchMemberStatuses = useStore((state) => state.fetchMemberStatuses);
   const memberGoalStatuses = useStore(
     useShallow((state) =>
@@ -195,7 +197,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
     }
   }, [isDaily, goal.id, fetchCheckIns]);
 
-  const checkedDatesSet = new Set(checkins.filter(c => c.completed).map(c => c.checkDate));
+  const checkedDatesSet = new Set(checkins.filter(c => c.completed && c.userId === user?.id).map(c => c.checkDate));
   const todayStr = getToday();
   const checkedToday = checkedDatesSet.has(todayStr);
   const streak = calculateStreak(checkedDatesSet);
@@ -233,6 +235,15 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
         toast.success("Check-in undone");
       } else {
         await dailyCheckIn(goal.id, todayStr);
+        
+        // 1. If goal was not started, move to in_progress
+        if (goal.status === "not_started") {
+          await updateGoalStatus(goal.id, "in_progress");
+        }
+        
+        // 2. Sync with Team Pulse status (mark as on_track)
+        await upsertMemberStatus(goal.id, goal.orgId, "on_track", "Daily check-in completed! 🔥", 0);
+        
         toast.success("Checked in! 🔥");
       }
     } catch (error: any) {
