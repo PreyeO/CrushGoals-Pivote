@@ -1,29 +1,41 @@
 import { OrgGoal } from "@/types";
 
 // Use standard server-side token for security
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
 
 export const telegramService = {
   escapeMarkdown(text: string) {
     return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
   },
 
-  async sendMessage(chatId: string, text: string, replyMarkup?: any) {
-    if (!BOT_TOKEN) return;
+  async sendMessage(chatId: string, text: string, replyMarkup?: any, options: { parseMode?: 'MarkdownV2' | 'HTML' | null } = { parseMode: 'MarkdownV2' }): Promise<void> {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) {
+        console.error('No Telegram Bot Token found!');
+        return;
+    }
     try {
-      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      const body: any = {
+        chat_id: chatId,
+        text: options.parseMode === 'MarkdownV2' ? this.escapeMarkdown(text) : text,
+      };
+
+      if (options.parseMode) body.parse_mode = options.parseMode;
+      if (replyMarkup) body.reply_markup = replyMarkup;
+
+      const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: this.escapeMarkdown(text),
-          parse_mode: 'MarkdownV2',
-          reply_markup: replyMarkup
-        }),
+        body: JSON.stringify(body),
       });
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Telegram API error:', errorData);
+        console.error('Telegram API error:', JSON.stringify(errorData));
+        // Fallback: try sending as plain text if Markdown fails
+        if (options.parseMode === 'MarkdownV2') {
+          return this.sendMessage(chatId, text, replyMarkup, { parseMode: null });
+        }
       }
     } catch (error) {
       console.error('Failed to send Telegram message:', error);
@@ -31,7 +43,8 @@ export const telegramService = {
   },
 
   async sendNotification(chatId: string, type: 'win' | 'sos' | 'boost' | 'summary', data: any) {
-    if (!chatId || !BOT_TOKEN) return;
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!chatId || !token) return;
 
     switch (type) {
       case 'win':
@@ -58,9 +71,10 @@ export const telegramService = {
   },
 
   async setWebhook(url: string) {
-    if (!BOT_TOKEN) return;
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) return;
     try {
-      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
+      const response = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
