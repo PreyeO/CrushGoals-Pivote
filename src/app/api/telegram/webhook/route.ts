@@ -45,13 +45,24 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      console.log("[Telegram Webhook] /connect command received. Code:", code, "| Raw text:", text);
+
       const { data: org, error } = await supabaseAdmin
         .from("organizations")
         .select("*")
         .eq("connect_code", code)
         .single();
 
+      console.log("[Telegram Webhook] Query result - org:", org?.id, "| error:", error?.message, error?.code);
+
       if (error || !org) {
+        console.log("[Telegram Webhook] Code not found. Trying case-insensitive lookup...");
+        // Fallback: try fetching all orgs and matching manually
+        const { data: allOrgs } = await supabaseAdmin
+          .from("organizations")
+          .select("id, connect_code");
+        console.log("[Telegram Webhook] All org codes:", allOrgs?.map((o: any) => ({ id: o.id, code: o.connect_code })));
+
         await telegramService.sendMessage(chatId, "❌ *Code Not Found* \n\nPlease double check the code in your CrushGoals Integrations page.");
       } else {
         await supabaseAdmin
