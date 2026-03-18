@@ -17,13 +17,13 @@ export function Hero() {
         className="absolute inset-0 pointer-events-none overflow-hidden"
         aria-hidden="true"
       >
-        <div className="absolute -top-24 left-1/3 w-[500px] h-[500px] rounded-full bg-[oklch(0.50_0.20_150_/_0.12)] blur-[120px] animate-float" />
+        <div className="absolute -top-24 left-1/3 w-125 h-125 rounded-full bg-[oklch(0.50_0.20_150_/0.12)] blur-[120px] animate-float" />
         <div
-          className="absolute top-1/2 -right-32 w-[400px] h-[400px] rounded-full bg-[oklch(0.55_0.18_175_/_0.08)] blur-[100px] animate-float"
+          className="absolute top-1/2 -right-32 w-100 h-100 rounded-full bg-[oklch(0.55_0.18_175_/0.08)] blur-[100px] animate-float"
           style={{ animationDelay: "3s" }}
         />
         <div
-          className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full bg-[oklch(0.60_0.15_130_/_0.06)] blur-[80px] animate-float"
+          className="absolute bottom-0 left-0 w-75 h-75 rounded-full bg-[oklch(0.60_0.15_130_/0.06)] blur-[80px] animate-float"
           style={{ animationDelay: "5s" }}
         />
         {/* Orbiting dots */}
@@ -47,7 +47,9 @@ export function Hero() {
         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight mb-8 animate-fade-in-up">
           <span className="text-gradient-hero">{heroData.headline.part1}</span>
           <br />
-          <span className="text-gradient-primary">{heroData.headline.part2}</span>
+          <span className="text-gradient-primary">
+            {heroData.headline.part2}
+          </span>
         </h1>
 
         {/* Subhead */}
@@ -115,12 +117,14 @@ export function Hero() {
             </div>
             <div className="text-left">
               <div className="flex gap-0.5">
-                {Array.from({ length: heroData.socialProof.rating }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400"
-                  />
-                ))}
+                {Array.from({ length: heroData.socialProof.rating }).map(
+                  (_, i) => (
+                    <Star
+                      key={i}
+                      className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400"
+                    />
+                  ),
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-medium">
                 {heroData.socialProof.text}
