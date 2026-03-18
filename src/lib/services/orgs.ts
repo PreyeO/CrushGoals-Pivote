@@ -39,6 +39,11 @@ export const orgService = {
             slackSettings: org.slack_settings,
             lastSlackNudgeAt: org.last_slack_nudge_at,
             lastWeeklySummaryAt: org.last_weekly_summary_at,
+            telegramBotToken: org.telegram_bot_token,
+            telegramChatId: org.telegram_chat_id,
+            connectCode: org.connect_code,
+            telegramSettings: org.telegram_settings,
+            lastTelegramNudgeAt: org.last_telegram_nudge_at,
             createdAt: org.created_at || new Date().toISOString()
         }));
     },
@@ -59,7 +64,8 @@ export const orgService = {
                     name: String(name),
                     description: String(description),
                     emoji: String(emoji),
-                    owner_id: user.id
+                    owner_id: user.id,
+                    connect_code: Math.random().toString(36).substring(2, 8).toUpperCase()
                 }])
                 .select()
                 .single();
@@ -157,6 +163,11 @@ export const orgService = {
         if (slackSettings !== undefined) updateData.slack_settings = slackSettings;
         if (data.lastSlackNudgeAt !== undefined) updateData.last_slack_nudge_at = data.lastSlackNudgeAt;
         if (data.lastWeeklySummaryAt !== undefined) updateData.last_weekly_summary_at = data.lastWeeklySummaryAt;
+        if (data.telegramBotToken !== undefined) updateData.telegram_bot_token = data.telegramBotToken;
+        if (data.telegramChatId !== undefined) updateData.telegram_chat_id = data.telegramChatId;
+        if (data.connectCode !== undefined) updateData.connect_code = data.connectCode;
+        if (data.telegramSettings !== undefined) updateData.telegram_settings = data.telegramSettings;
+        if (data.lastTelegramNudgeAt !== undefined) updateData.last_telegram_nudge_at = data.lastTelegramNudgeAt;
 
         const { data: result, error } = await getSupabase()
             .from('organizations')
@@ -174,6 +185,11 @@ export const orgService = {
             slackSettings: result.slack_settings,
             lastSlackNudgeAt: result.last_slack_nudge_at,
             lastWeeklySummaryAt: result.last_weekly_summary_at,
+            telegramBotToken: result.telegram_bot_token,
+            telegramChatId: result.telegram_chat_id,
+            connectCode: result.connect_code,
+            telegramSettings: result.telegram_settings,
+            lastTelegramNudgeAt: result.last_telegram_nudge_at,
             createdAt: result.created_at || new Date().toISOString()
         };
     }

@@ -19,6 +19,18 @@ export interface Organization {
   };
   lastSlackNudgeAt?: string;
   lastWeeklySummaryAt?: string;
+  telegramBotToken?: string;
+  telegramChatId?: string;
+  connectCode?: string;
+  telegramSettings?: {
+    notify_on_completion: boolean;
+    notify_on_blocked: boolean;
+    notify_on_stale: boolean;
+    notify_on_streaks: boolean;
+    stale_threshold_days: number;
+    allow_commands: boolean;
+  };
+  lastTelegramNudgeAt?: string;
 }
 
 export type OrgRole = "owner" | "admin" | "member";
