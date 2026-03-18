@@ -56,14 +56,15 @@ export async function POST(req: NextRequest) {
       console.log("[Telegram Webhook] Query result - org:", org?.id, "| error:", error?.message, error?.code);
 
       if (error || !org) {
-        console.log("[Telegram Webhook] Code not found. Trying case-insensitive lookup...");
-        // Fallback: try fetching all orgs and matching manually
+        // Send debug info to the chat so we can see what's happening
         const { data: allOrgs } = await supabaseAdmin
           .from("organizations")
           .select("id, connect_code");
-        console.log("[Telegram Webhook] All org codes:", allOrgs?.map((o: any) => ({ id: o.id, code: o.connect_code })));
-
-        await telegramService.sendMessage(chatId, "❌ *Code Not Found* \n\nPlease double check the code in your CrushGoals Integrations page.");
+        const allCodes = allOrgs?.map((o: any) => o.connect_code).join(", ") || "NONE";
+        
+        await telegramService.sendMessage(chatId, 
+          `❌ Debug Info:\nCode received: "${code}"\nDB error: ${error?.message || "none"}\nAll codes in DB: ${allCodes}`
+        );
       } else {
         await supabaseAdmin
           .from("organizations")
