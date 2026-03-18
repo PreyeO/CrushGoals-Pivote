@@ -45,33 +45,58 @@ export async function POST(req: NextRequest) {
       const code = codeWord ? codeWord.replace(/[\[\]]/g, "").trim().toUpperCase() : "";
       
       if (!code) {
-        await telegramService.sendMessage(chatId, "👋 Welcome! Link your group to CrushGoals by typing:\n\n/connect [your_code]");
+        await telegramService.sendMessage(chatId, "👋 Welcome! Link your team to CrushGoals by typing:\n\n/connect [your_code]");
         return NextResponse.json({ ok: true });
       }
 
-      const { data: org, error } = await supabaseAdmin.from("organizations").select("*").eq("connect_code", code).maybeSingle();
+      const { data: org, error: findError } = await supabaseAdmin.from("organizations").select("*").eq("connect_code", code).maybeSingle();
 
-      if (error || !org) {
-        const { data: allOrgs } = await supabaseAdmin.from("organizations").select("connect_code");
-        const allCodes = allOrgs?.map((o: any) => o.connect_code).join(", ") || "NONE";
-        await telegramService.sendMessage(chatId, `❌ Code not found: "${code}". Try again with the code from your Integrations settings.`);
+      if (findError || !org) {
+        await telegramService.sendMessage(chatId, `❌ Code not found: "${code}". Please double check your Integrations settings.`);
+        return NextResponse.json({ ok: true });
+      }
+
+      // --- UNIQUE CONNECTION LOGIC ---
+      // 1. First, "unplug" this Telegram group from any other organization it might be linked to
+      await supabaseAdmin
+        .from("organizations")
+        .update({ telegram_chat_id: null, telegram_chat_title: null })
+        .eq("telegram_chat_id", chatId);
+
+      // 2. Now link it to the NEW organization
+      const { error: updateError } = await supabaseAdmin
+        .from("organizations")
+        .update({ 
+          telegram_chat_id: chatId,
+          telegram_chat_title: chatTitle
+        })
+        .eq("id", org.id);
+
+      if (updateError) {
+        await telegramService.sendMessage(chatId, `❌ Connection error! Database update failed.`);
       } else {
-        await supabaseAdmin.from("organizations").update({ telegram_chat_id: chatId, telegram_chat_title: chatTitle }).eq("id", org.id);
         await telegramService.sendMessage(chatId, `✅ Success! Connected to: ${org.name}\n\nType /goals to see active tasks.`);
       }
       return NextResponse.json({ ok: true });
     }
 
     // 3. Command logic with Admin Access (RLS bypass)
-    const { data: org } = await supabaseAdmin.from("organizations").select("*").eq("telegram_chat_id", chatId).maybeSingle();
+    // We use .limit(1) and .maybeSingle() to survive even if there are duplicate rows in DB
+    const { data: org, error: lookupError } = await supabaseAdmin
+      .from("organizations")
+      .select("*")
+      .eq("telegram_chat_id", chatId)
+      .limit(1)
+      .maybeSingle();
 
-    if (!org) {
+    if (lookupError || !org) {
       if (text.startsWith("/")) {
-        await telegramService.sendMessage(chatId, `⚠️ Group Not Linked. Please type /connect [code] to start.`);
+        await telegramService.sendMessage(chatId, `⚠️ Group Not Linked. Please type /connect [code] to link this group.`);
       }
       return NextResponse.json({ ok: true });
     }
 
+    // 4. Handle Commands
     if (normalizedText.startsWith("/goals")) {
       const { data: goals } = await supabaseAdmin.from("goals").select("*").eq("org_id", org.id).neq("status", "completed");
       if (!goals || goals.length === 0) {
@@ -94,11 +119,11 @@ export async function POST(req: NextRequest) {
         await telegramService.sendMessage(chatId, msg);
       }
     } else if (normalizedText.startsWith("/mystatus")) {
-      await telegramService.sendMessage(chatId, "👤 My Status: Link your personal Telegram ID in settings to see your personal progress here!");
+      await telegramService.sendMessage(chatId, "👤 My Status: Link your profile in settings to see your summary!");
     } else if (normalizedText.startsWith("/done") || normalizedText.startsWith("/blocked")) {
-      await telegramService.sendMessage(chatId, "⚡ Tip: You can respond to task nudges using the Crushed/Blocked buttons below each message!");
+      await telegramService.sendMessage(chatId, "⚡ Tip: Use the buttons on goal nudges to mark them as completed or blocked!");
     } else if (normalizedText.startsWith("/help")) {
-      await telegramService.sendMessage(chatId, "📖 Commands:\n/goals - Show active goals\n/mystatus - Your progress\n/leaderboard - Rankings\n/help - All commands");
+      await telegramService.sendMessage(chatId, "📖 Commands:\n/goals - Show goals\n/leaderboard - Rankings\n/help - All commands");
     }
 
     return NextResponse.json({ ok: true });
