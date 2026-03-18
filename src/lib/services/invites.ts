@@ -51,7 +51,7 @@ export const inviteService = {
                 .eq('id', user.id)
                 .single();
 
-            const hostName = userData?.full_name || userData?.name || 'A team member';
+            const hostName = userData?.full_name || userData?.name || 'A member';
 
             const result = await sendInvitationEmailAction({
                 to: email,
@@ -101,7 +101,22 @@ export const inviteService = {
             .eq('status', 'pending')
             .single();
 
-        if (error) throw error;
+        if (error || !data) throw new Error("This invitation is invalid or has already been used.");
+
+        // Check expiration (7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const createdAt = new Date(data.created_at);
+
+        if (createdAt < sevenDaysAgo) {
+            // Update status to expired if we found it was pending but old
+            await getSupabase()
+                .from('invitations')
+                .update({ status: 'expired' })
+                .eq('id', data.id);
+            throw new Error("This invitation has expired.");
+        }
+
         return data;
     },
 
@@ -109,9 +124,9 @@ export const inviteService = {
         const { data: { user } } = await getSupabase().auth.getUser();
         if (!user) throw new Error("Not authenticated");
 
-        // 1. Get invitation
+        // 1. Get invitation (this already checks status='pending' and now 7-day expiry)
         const invite = await this.getInvitationByToken(token);
-        if (!invite) throw new Error("Invalid or expired invitation");
+        if (!invite) throw new Error("This invitation has expired or is no longer valid.");
 
         // 2. Add as member
         const { error: memberError } = await getSupabase()

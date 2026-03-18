@@ -8,16 +8,17 @@ export interface Organization {
   memberCount: number;
   goalCount: number;
   completionRate: number;
-  plan: "free" | "team" | "enterprise";
-}
-
-export interface Team {
-  id: string;
-  orgId: string;
-  name: string;
-  description: string;
-  emoji?: string;
-  createdAt: string;
+  plan: "free" | "plus" | "enterprise";
+  slackWebhookUrl?: string;
+  slackSettings?: {
+    notify_on_completion: boolean;
+    notify_on_blocked: boolean;
+    notify_on_stale: boolean;
+    notify_on_streaks: boolean;
+    stale_threshold_days: number;
+  };
+  lastSlackNudgeAt?: string;
+  lastWeeklySummaryAt?: string;
 }
 
 export type OrgRole = "owner" | "admin" | "member";
@@ -45,7 +46,6 @@ export interface OrgMember {
   orgId: string;
   userId: string;
   role: OrgRole;
-  teamId?: string; // Link to a team
   joinedAt: string;
   // Join fields from 'profiles'
   name: string;
@@ -61,7 +61,6 @@ export interface OrgMember {
 export interface OrgGoal {
   id: string;
   orgId: string;
-  teamId?: string; // Link to a team
   frequency: GoalFrequency;
   title: string;
   description: string;
@@ -127,7 +126,7 @@ export interface LeaderboardEntry {
   totalPoints: number;
 }
 
-export interface TeamHealthScore {
+export interface OrgHealthScore {
   overall: number; // 0-100
   goalProgress: number;
   memberEngagement: number;

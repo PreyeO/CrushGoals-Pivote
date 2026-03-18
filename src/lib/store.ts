@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import {
   Organization,
-  Team,
   OrgGoal,
   OrgMember,
   OrgRole,
@@ -14,14 +13,13 @@ import {
 } from "@/types";
 import { goalService } from "./services/goals";
 import { orgService } from "./services/orgs";
-import { teamService } from "./services/teams";
 import { inviteService } from "./services/invites";
+import { slackService } from "./services/slack";
 
 export interface AppState {
   organizations: Organization[];
   goals: OrgGoal[];
   members: OrgMember[];
-  teams: Team[];
   invitations: OrgInvite[];
   // invitations the current user has received but not yet accepted (across orgs)
   pendingInvitations: OrgInvite[];
@@ -35,17 +33,19 @@ export interface AppState {
     avatarUrl: string | null;
   } | null;
   isLoading: boolean;
+  isCheckingNotifications: boolean;
   error: string | null;
+  sidebarCollapsed: boolean;
 
   // Actions
   fetchInitialData: (orgId?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   addOrganization: (data: {
     name: string;
     description: string;
     emoji: string;
   }) => Promise<string>;
-  addTeam: (orgId: string, name: string, description: string) => Promise<void>;
   sendInvitation: (
     orgId: string,
     email: string,
@@ -63,7 +63,7 @@ export interface AppState {
     progress: number,
     note?: string,
   ) => Promise<void>;
-  updateGoalStatus: (goalId: string, status: GoalStatus) => Promise<void>;
+  updateGoalStatus: (goalId: string, status: GoalStatus, reason?: string) => Promise<void>;
   deleteGoal: (goalId: string, orgId: string) => Promise<void>;
   fetchMemberStatuses: (goalId: string) => Promise<void>;
   upsertMemberStatus: (
@@ -80,6 +80,8 @@ export interface AppState {
   ) => Promise<void>;
   undoDailyCheckIn: (goalId: string, checkDate: string) => Promise<void>;
   fetchCheckIns: (goalId: string) => Promise<void>;
+  updateOrganization: (orgId: string, data: Partial<Organization>) => Promise<void>;
+  checkScheduledNotifications: (orgId: string) => Promise<void>;
 }
 
 import { authService } from "./services/auth";
@@ -117,7 +119,6 @@ const cleanGoalData = (goal: any): OrgGoal => {
   return {
     id: goal.id,
     orgId: goal.org_id,
-    teamId: goal.team_id,
     title: goal.title,
     description: goal.description,
     category: goal.category,
@@ -140,7 +141,13 @@ const cleanGoalData = (goal: any): OrgGoal => {
   };
 };
 
-const cleanMemberData = (m: any, goals: OrgGoal[]): OrgMember => {
+import { getUserStreak } from "./store-utils";
+
+const cleanMemberData = (
+  m: any,
+  goals: OrgGoal[],
+  checkins: DailyCheckIn[],
+): OrgMember => {
   const memberGoals = goals.filter((g) => g.assignedTo.includes(m.id));
   const completed = memberGoals.filter((g) => g.status === "completed").length;
   const completionRate =
@@ -160,23 +167,16 @@ const cleanMemberData = (m: any, goals: OrgGoal[]): OrgMember => {
     goalsAssigned: memberGoals.length,
     goalsCompleted: completed,
     completionRate,
-    currentStreak: 0,
+    currentStreak: getUserStreak(m.user_id, checkins),
   } as OrgMember;
 };
 
-const cleanTeamData = (team: any): Team => ({
-  id: team.id,
-  orgId: team.org_id,
-  name: team.name,
-  description: team.description,
-  emoji: team.emoji,
-  createdAt: team.created_at,
-});
 
 const syncMemberStats = (
   goals: OrgGoal[],
   members: OrgMember[],
   orgId: string,
+  checkins: DailyCheckIn[],
 ): OrgMember[] => {
   return members.map((m) => {
     if (m.orgId !== orgId) return m;
@@ -195,6 +195,7 @@ const syncMemberStats = (
       goalsAssigned: memberGoals.length,
       goalsCompleted: completed,
       completionRate,
+      currentStreak: getUserStreak(m.userId, checkins),
     };
   }) as OrgMember[];
 };
@@ -203,15 +204,16 @@ export const useStore = create<AppState>((set, get) => ({
   organizations: [],
   goals: [],
   members: [],
-  teams: [],
-  invitations: [], // org-specific invites (used by admins)
-  pendingInvitations: [], // personal invites across all orgs
+  invitations: [],
+  pendingInvitations: [],
   activities: [],
   memberGoalStatuses: [],
   dailyCheckins: [],
   user: null,
   isLoading: false,
+  isCheckingNotifications: false,
   error: null,
+  sidebarCollapsed: false,
 
   fetchInitialData: async (orgId) => {
     set({ isLoading: true, error: null });
@@ -236,41 +238,28 @@ export const useStore = create<AppState>((set, get) => ({
       const orgs = await orgService.getOrganizations();
       let goals: OrgGoal[] = [];
       let members: OrgMember[] = [];
-      let teams: Team[] = [];
       let invitations: OrgInvite[] = [];
       let pendingInvitations: OrgInvite[] = [];
       let memberGoalStatuses: MemberGoalStatus[] = [];
 
       if (orgId) {
-        const [rawGoals, rawTeams, rawMembers, rawOrgInvites] =
+        const [rawGoals, rawMembers, rawOrgInvites, rawCheckins] =
           await Promise.all([
             goalService.getGoals(orgId),
-            teamService.getTeams(orgId),
             orgService.getMembers(orgId),
             inviteService.getInvitations(orgId),
+            goalService.getOrgCheckIns([orgId]),
           ]);
 
         goals = rawGoals.map(cleanGoalData);
-        teams = rawTeams.map(cleanTeamData);
-        invitations = rawOrgInvites.map(
-          (i: any) =>
-            ({
-              id: i.id,
-              orgId: i.org_id,
-              email: i.email,
-              role: i.role,
-              status: i.status,
-              invitedBy: i.invited_by,
-              createdAt: i.created_at,
-              token: i.token,
-            }) as any,
-        );
+        const orgCheckins: DailyCheckIn[] = rawCheckins;
+        const now = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(now.getDate() - 7);
 
-        if (authUser) {
-          const rawUserInvites = await inviteService.getPendingForEmail(
-            authUser.email ?? "",
-          );
-          pendingInvitations = rawUserInvites.map(
+        invitations = rawOrgInvites
+          .filter((i: any) => new Date(i.created_at) > sevenDaysAgo)
+          .map(
             (i: any) =>
               ({
                 id: i.id,
@@ -278,13 +267,33 @@ export const useStore = create<AppState>((set, get) => ({
                 email: i.email,
                 role: i.role,
                 status: i.status,
-                token: i.token,
+                invitedBy: i.invited_by,
                 createdAt: i.created_at,
+                token: i.token,
               }) as any,
           );
+
+        if (authUser) {
+          const rawUserInvites = await inviteService.getPendingForEmail(
+            authUser.email ?? "",
+          );
+          pendingInvitations = rawUserInvites
+            .filter((i: any) => new Date(i.created_at) > sevenDaysAgo)
+            .map(
+              (i: any) =>
+                ({
+                  id: i.id,
+                  orgId: i.org_id,
+                  email: i.email,
+                  role: i.role,
+                  status: i.status,
+                  token: i.token,
+                  createdAt: i.created_at,
+                }) as any,
+            );
         }
 
-        members = rawMembers.map((m: any) => cleanMemberData(m, goals));
+        members = rawMembers.map((m: any) => cleanMemberData(m, goals, orgCheckins));
       } else if (authUser) {
         // Dashboard view: Fetch ALL goals across user's organizations
         const rawGoals = await goalService.getGoalsForUser();
@@ -300,15 +309,19 @@ export const useStore = create<AppState>((set, get) => ({
 
         let allMembers: any[] = [];
         let finalStatuses: MemberGoalStatus[] = [];
+        let orgCheckins: DailyCheckIn[] = [];
 
         if (adminedOrgIds.length > 0) {
-          // Fetch all members for admined orgs, and all statuses
-          const [rawTeamMembers, rawTeamStatuses] = await Promise.all([
-            orgService.getMembers(adminedOrgIds),
-            orgService.getMemberStatuses(adminedOrgIds)
-          ]);
-          allMembers = rawTeamMembers;
-          finalStatuses = rawTeamStatuses.map((row: any) => ({
+          // Fetch all members for admined orgs, all statuses, AND all check-ins for streaks
+          const [rawOrgMembers, rawOrgStatuses, rawCheckins] =
+            await Promise.all([
+              orgService.getMembers(adminedOrgIds),
+              orgService.getMemberStatuses(adminedOrgIds),
+              goalService.getOrgCheckIns(adminedOrgIds),
+            ]);
+          allMembers = rawOrgMembers;
+          orgCheckins = rawCheckins;
+          finalStatuses = rawOrgStatuses.map((row: any) => ({
             id: row.id,
             goalId: row.goal_id,
             userId: row.user_id,
@@ -335,25 +348,33 @@ export const useStore = create<AppState>((set, get) => ({
         }));
 
         // Combine and clean
-        members = [...allMembers, ...selfMembers].map((m: any) => cleanMemberData(m, goals));
+        members = [...allMembers, ...selfMembers].map((m: any) =>
+          cleanMemberData(m, goals, orgCheckins),
+        );
         memberGoalStatuses = finalStatuses;
 
         // Fetch pending invitations
         const rawInvites = await inviteService.getPendingForEmail(
           authUser.email ?? "",
         );
-        pendingInvitations = rawInvites.map(
-          (i: any) =>
-            ({
-              id: i.id,
-              orgId: i.org_id,
-              email: i.email,
-              role: i.role,
-              status: i.status,
-              token: i.token,
-              createdAt: i.created_at,
-            }) as any,
-        );
+        const now = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(now.getDate() - 7);
+
+        pendingInvitations = rawInvites
+          .filter((i: any) => new Date(i.created_at) > sevenDaysAgo)
+          .map(
+            (i: any) =>
+              ({
+                id: i.id,
+                orgId: i.org_id,
+                email: i.email,
+                role: i.role,
+                status: i.status,
+                token: i.token,
+                createdAt: i.created_at,
+              }) as any,
+          );
       }
 
       // Sync goalCount for organizations based on actual goals fetched
@@ -369,7 +390,6 @@ export const useStore = create<AppState>((set, get) => ({
         organizations: finalOrgs as any,
         goals: goals as any,
         members: members as any,
-        teams: teams as any,
         invitations: invitations as any,
         pendingInvitations: pendingInvitations as any,
         activities: get().activities,
@@ -377,6 +397,12 @@ export const useStore = create<AppState>((set, get) => ({
         dailyCheckins: get().dailyCheckins,
         isLoading: false,
       });
+
+      // 3. Check for scheduled Slack messages
+      if (orgId) {
+        get().checkScheduledNotifications(orgId);
+      }
+
     } catch (err: any) {
       set({ error: err.message, isLoading: false });
     }
@@ -398,19 +424,6 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  addTeam: async (orgId, name, description) => {
-    set({ isLoading: true });
-    try {
-      const newTeam = await teamService.createTeam(orgId, name, description);
-      const cleanedTeam = cleanTeamData(newTeam);
-      set((state) => ({
-        teams: [...state.teams, cleanedTeam],
-        isLoading: false,
-      }));
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
-    }
-  },
 
   sendInvitation: async (orgId, email, role) => {
     set({ isLoading: true });
@@ -464,7 +477,12 @@ export const useStore = create<AppState>((set, get) => ({
         const newGoals = [cleanedGoal, ...state.goals];
         return {
           goals: newGoals,
-          members: syncMemberStats(newGoals, state.members, goalData.orgId),
+          members: syncMemberStats(
+            newGoals,
+            state.members,
+            goalData.orgId,
+            state.dailyCheckins,
+          ),
           organizations: state.organizations.map((o) =>
             o.id === goalData.orgId
               ? { ...o, goalCount: (o.goalCount || 0) + 1 }
@@ -505,9 +523,26 @@ export const useStore = create<AppState>((set, get) => ({
         const updatedGoal = newGoals.find((g) => g.id === goalId);
         if (!updatedGoal) return { goals: newGoals };
 
+        // Handle Slack Win Notification on 100% Progress
+        const org = state.organizations.find(o => o.id === updatedGoal.orgId);
+        const oldGoal = state.goals.find(g => g.id === goalId);
+        
+        if (org?.slackWebhookUrl && org.slackSettings?.notify_on_completion && updatedGoal.progress >= 100 && oldGoal && oldGoal.progress < 100) {
+            slackService.sendGoalCompletion(
+              org.slackWebhookUrl, 
+              state.user?.name || "Someone", 
+              updatedGoal
+            ).catch(err => console.error("Slack notify error:", err));
+        }
+
         return {
           goals: newGoals,
-          members: syncMemberStats(newGoals, state.members, updatedGoal.orgId),
+          members: syncMemberStats(
+            newGoals,
+            state.members,
+            updatedGoal.orgId,
+            state.dailyCheckins,
+          ),
         };
       });
     } catch (err: any) {
@@ -515,10 +550,11 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  updateGoalStatus: async (goalId, status) => {
+  updateGoalStatus: async (goalId, status, reason) => {
     try {
       await goalService.updateStatus(goalId, status);
       set((state) => {
+        const oldGoal = state.goals.find(g => g.id === goalId);
         const newGoals = state.goals.map((g) =>
           g.id === goalId
             ? { ...g, status, updatedAt: new Date().toISOString() }
@@ -528,9 +564,28 @@ export const useStore = create<AppState>((set, get) => ({
         const updatedGoal = newGoals.find((g) => g.id === goalId);
         if (!updatedGoal) return { goals: newGoals };
 
+        // Trigger Slack Notifications
+        const org = state.organizations.find(o => o.id === updatedGoal.orgId);
+        if (org?.slackWebhookUrl && oldGoal) {
+          const userName = state.user?.name || "Someone";
+          
+          if (status === "completed" && oldGoal.status !== "completed" && org.slackSettings?.notify_on_completion) {
+            slackService.sendGoalCompletion(org.slackWebhookUrl, userName, updatedGoal)
+              .catch(e => console.error("Slack notify error:", e));
+          } else if (status === "blocked" && oldGoal.status !== "blocked" && org.slackSettings?.notify_on_blocked) {
+            slackService.sendGoalBlocked(org.slackWebhookUrl, userName, updatedGoal, reason || "No reason provided")
+              .catch(e => console.error("Slack notify error:", e));
+          }
+        }
+
         return {
           goals: newGoals,
-          members: syncMemberStats(newGoals, state.members, updatedGoal.orgId),
+          members: syncMemberStats(
+            newGoals,
+            state.members,
+            updatedGoal.orgId,
+            state.dailyCheckins,
+          ),
         };
       });
     } catch (err: any) {
@@ -548,7 +603,12 @@ export const useStore = create<AppState>((set, get) => ({
         const newGoals = state.goals.filter((g) => g.id !== goalId);
         return {
           goals: newGoals,
-          members: syncMemberStats(newGoals, state.members, orgId),
+          members: syncMemberStats(
+            newGoals,
+            state.members,
+            orgId,
+            state.dailyCheckins,
+          ),
           organizations: state.organizations.map((o) =>
             o.id === orgId
               ? { ...o, goalCount: Math.max(0, (o.goalCount || 0) - 1) }
@@ -572,6 +632,10 @@ export const useStore = create<AppState>((set, get) => ({
       memberGoalStatuses: [],
       dailyCheckins: [],
     });
+  },
+  
+  setSidebarCollapsed: (collapsed: boolean) => {
+    set({ sidebarCollapsed: collapsed });
   },
 
   fetchMemberStatuses: async (goalId) => {
@@ -617,8 +681,8 @@ export const useStore = create<AppState>((set, get) => ({
         note: note || null,
         createdAt: new Date().toISOString(),
       };
-      set((state) => ({
-        dailyCheckins: [
+      set((state) => {
+        const updatedCheckins = [
           ...state.dailyCheckins.filter(
             (c) =>
               !(
@@ -628,8 +692,20 @@ export const useStore = create<AppState>((set, get) => ({
               ),
           ),
           newCheckIn,
-        ],
-      }));
+        ];
+        const goal = state.goals.find((g) => g.id === goalId);
+        return {
+          dailyCheckins: updatedCheckins,
+          members: goal
+            ? syncMemberStats(
+                state.goals,
+                state.members,
+                goal.orgId,
+                updatedCheckins,
+              )
+            : state.members,
+        };
+      });
     }
   },
 
@@ -639,16 +715,28 @@ export const useStore = create<AppState>((set, get) => ({
     } = await (await import("@/lib/supabase")).getSupabase().auth.getUser();
     await goalService.undoDailyCheckIn(goalId, checkDate);
     if (user) {
-      set((state) => ({
-        dailyCheckins: state.dailyCheckins.filter(
+      set((state) => {
+        const updatedCheckins = state.dailyCheckins.filter(
           (c) =>
             !(
               c.goalId === goalId &&
               c.userId === user.id &&
               c.checkDate === checkDate
             ),
-        ),
-      }));
+        );
+        const goal = state.goals.find((g) => g.id === goalId);
+        return {
+          dailyCheckins: updatedCheckins,
+          members: goal
+            ? syncMemberStats(
+                state.goals,
+                state.members,
+                goal.orgId,
+                updatedCheckins,
+              )
+            : state.members,
+        };
+      });
     }
   },
 
@@ -665,4 +753,96 @@ export const useStore = create<AppState>((set, get) => ({
       console.error("fetchCheckIns error:", err.message);
     }
   },
+
+  updateOrganization: async (orgId, data) => {
+    try {
+      const updatedOrg = await orgService.updateOrganization(orgId, data);
+      set((state) => ({
+        organizations: state.organizations.map((o) =>
+          o.id === orgId ? { ...o, ...updatedOrg } : o,
+        ),
+      }));
+    } catch (err: any) {
+      console.error("updateOrganization error:", err.message);
+      throw err;
+    }
+  },
+
+  checkScheduledNotifications: async (orgId) => {
+    if (get().isCheckingNotifications) return;
+
+    const org = get().organizations.find(o => o.id === orgId);
+    if (!org?.slackWebhookUrl) return;
+
+    const now = new Date();
+    const isMonday = now.getDay() === 1;
+    const hour = now.getHours();
+
+    set({ isCheckingNotifications: true });
+
+    try {
+      // 1. Weekly Summary (Monday 8-11am)
+      const shouldSendSummary = isMonday && hour >= 8 && hour < 11 && (
+        !org.lastWeeklySummaryAt || 
+        new Date(org.lastWeeklySummaryAt).getTime() < now.getTime() - 24 * 60 * 60 * 1000 * 6 // 6 days
+      );
+
+      if (shouldSendSummary) {
+        // Optimistically update to prevent duplicates from other components
+        set((state) => ({
+          organizations: state.organizations.map(o => 
+            o.id === orgId ? { ...o, lastWeeklySummaryAt: now.toISOString() } : o
+          )
+        }));
+
+        const orgGoals = get().goals.filter(g => g.orgId === orgId);
+        const crushed = orgGoals.filter(g => g.status === 'completed').length;
+        const blocked = orgGoals.filter(g => g.status === 'blocked').length;
+        const active = orgGoals.length - crushed - blocked;
+
+        await slackService.sendWeeklySummary(org.slackWebhookUrl, crushed, active, blocked);
+        await orgService.updateOrganization(orgId, { lastWeeklySummaryAt: now.toISOString() });
+      }
+
+      // 2. Stale Goal Nudge (Daily check, once per 24h)
+      const shouldCheckStale = org.slackSettings?.notify_on_stale && (
+        !org.lastSlackNudgeAt || 
+        new Date(org.lastSlackNudgeAt).getTime() < now.getTime() - 24 * 60 * 60 * 1000 // 24 hours
+      );
+
+      if (shouldCheckStale) {
+        // Optimistically update to prevent duplicates
+        set((state) => ({
+          organizations: state.organizations.map(o => 
+            o.id === orgId ? { ...o, lastSlackNudgeAt: now.toISOString() } : o
+          )
+        }));
+
+        const thresholdDays = org.slackSettings?.stale_threshold_days || 7;
+        const orgGoals = get().goals.filter(g => g.orgId === orgId && g.status !== 'completed');
+        
+        const staleGoals = orgGoals.filter(g => {
+          const lastUpdate = new Date(g.updatedAt);
+          const daysSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24);
+          return daysSinceUpdate >= thresholdDays;
+        }).map(g => {
+          const owner = get().members.find(m => g.assignedTo.includes(m.id));
+          return {
+            title: g.title,
+            memberName: owner?.name || "Someone",
+            days: Math.floor((now.getTime() - new Date(g.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
+          };
+        });
+
+        if (staleGoals.length > 0) {
+          await slackService.sendStaleNudge(org.slackWebhookUrl, staleGoals);
+          await orgService.updateOrganization(orgId, { lastSlackNudgeAt: now.toISOString() });
+        }
+      }
+    } catch (err) {
+      console.error("Scheduled notifications error:", err);
+    } finally {
+      set({ isCheckingNotifications: false });
+    }
+  }
 }));

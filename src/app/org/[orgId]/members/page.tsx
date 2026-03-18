@@ -52,7 +52,16 @@ export default function OrgMembersPage({ params }: { params: Promise<{ orgId: st
     const membersList = members.filter(m => m.orgId === orgId);
     const myMember = membersList.find(m => m.userId === user?.id);
     const isMemberOnly = myMember?.role === "member";
-    const pendingInvites = invitations.filter(i => i.orgId === orgId && i.status === 'pending');
+    
+    // Filter invitations: only pending AND less than 7 days old
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const pendingInvites = invitations.filter(i => {
+        const isPending = i.orgId === orgId && i.status === 'pending';
+        const isRecent = new Date(i.createdAt) > sevenDaysAgo;
+        return isPending && isRecent;
+    });
 
     const filteredMembers = membersList.filter(
         (m) =>
@@ -258,7 +267,7 @@ export default function OrgMembersPage({ params }: { params: Promise<{ orgId: st
                                                     {invite.role}
                                                 </Badge>
                                                 <span className="text-[10px] text-muted-foreground italic">
-                                                    Awaiting acceptance...
+                                                    Expires in {Math.max(1, Math.ceil((new Date(invite.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000)))} days
                                                 </span>
                                             </div>
                                         </div>
@@ -290,9 +299,11 @@ export default function OrgMembersPage({ params }: { params: Promise<{ orgId: st
                             <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center mx-auto mb-4">
                                 <Mail className="w-8 h-8 text-muted-foreground/40" />
                             </div>
+                            <h1 className="text-2xl font-bold tracking-tight">The Team</h1>
+                            <p className="text-[13px] text-muted-foreground mt-1">Manage your team and pending invitations</p>
                             <h3 className="text-sm font-bold text-foreground mb-1">No pending invitations</h3>
                             <p className="text-xs text-muted-foreground mb-6">
-                                Invite team members to start collaborating on goals.
+                                Invite members to start collaborating on goals.
                             </p>
                             {!isMemberOnly && (
                                 <InviteMemberModal orgId={orgId}>

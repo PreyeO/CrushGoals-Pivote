@@ -16,7 +16,7 @@ export function DashboardStats({ orgCount, memberCount, goalCount }: DashboardSt
             bg: "bg-[oklch(0.82_0.28_150)]/10"
         },
         {
-            label: "Team Members",
+            label: "Members",
             value: memberCount,
             icon: Users,
             color: "text-[oklch(0.70_0.20_190)]",

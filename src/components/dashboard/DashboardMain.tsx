@@ -123,7 +123,7 @@ export function DashboardMain() {
         showCreateOrg={true}
       />
 
-      {/* Team Pulse — Who needs attention across all orgs */}
+      {/* Pulse — Who needs attention across all orgs */}
       {isOwnerOrAdmin && needsAttention.length > 0 && (
         <div className="mb-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="flex items-center justify-between px-1">
@@ -133,7 +133,7 @@ export function DashboardMain() {
               </div>
               <div>
                 <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
-                  Team Pulse
+                  Pulse
                   <span className="flex h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
                 </h3>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -176,7 +176,7 @@ export function DashboardMain() {
                           {member.name}
                         </p>
                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">
-                          {organizations.find(o => o.id === member.orgId)?.name || "Team Member"}
+                          {organizations.find(o => o.id === member.orgId)?.name || "Member"}
                         </p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-muted-foreground/20 group-hover:text-yellow-600 group-hover:translate-x-1 transition-all duration-500" />

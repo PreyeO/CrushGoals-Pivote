@@ -39,7 +39,7 @@ export function Navbar() {
               Sign In
             </Button>
           </Link>
-          <Link href="/auth/login">
+          <Link href="/auth/signup">
             <Button
               size="sm"
               className="cursor-pointer gradient-primary text-white border-0 hover:opacity-90 glow-primary-sm text-xs px-4"

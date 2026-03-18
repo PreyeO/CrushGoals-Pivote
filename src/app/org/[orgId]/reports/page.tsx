@@ -76,9 +76,7 @@ export default function OrgReportsPage({ params }: { params: Promise<{ orgId: st
                         <BarChart3 className="w-5 h-5 text-primary" />
                         Reports & Insights
                     </h1>
-                    <p className="text-[13px] text-muted-foreground mt-1">
                         Deep dive into your team's performance and objective health.
-                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" className="h-9 text-[11px] font-bold gap-2 bg-accent/20 border-border/40">
@@ -93,7 +91,7 @@ export default function OrgReportsPage({ params }: { params: Promise<{ orgId: st
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger">
                 <StatCard title="Avg. Completion" value={`${avgProgress}%`} icon={TrendingUp} trend="up" trendValue="+12% vs last month" />
                 <StatCard title="Active Goals" value={goals.length} icon={Target} trend="stable" trendValue="Same as last week" />
-                <StatCard title="Team Health" value="84/100" icon={Activity} trend="up" trendValue="Improving consistently" />
+                <StatCard title="Member Health" value="84/100" icon={Activity} trend="up" trendValue="Improving consistently" />
                 <StatCard title="Collaborators" value={org.memberCount} icon={Users} trend="up" trendValue="+2 new members" />
             </div>
 
@@ -157,7 +155,7 @@ export default function OrgReportsPage({ params }: { params: Promise<{ orgId: st
 
                         <div className="pt-4 mt-4 border-t border-border/20">
                             <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                Your team is completing goals <span className="text-emerald-500 font-bold">2.4x faster</span> than last quarter.
+                                Your members are completing goals <span className="text-emerald-500 font-bold">2.4x faster</span> than last quarter.
                                 Most blockers are resolved within 48 hours.
                             </p>
                         </div>

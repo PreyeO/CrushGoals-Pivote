@@ -19,6 +19,6 @@ export const getGoal = () => undefined;
 export const getOrgActivities = () => [];
 export const getOrgInvites = () => [];
 export const getOrgLeaderboard = () => [];
-export const getTeamHealthScore = () => ({ overall: 0, goalProgress: 0, memberEngagement: 0, onTimeCompletion: 0, trend: "stable" });
+export const getOrgHealthScore = () => ({ overall: 0, goalProgress: 0, memberEngagement: 0, onTimeCompletion: 0, trend: "stable" });
 export const getMemberById = () => undefined;
 export const getGoalAssignees = () => [];

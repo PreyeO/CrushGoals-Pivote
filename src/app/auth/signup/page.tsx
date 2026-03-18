@@ -8,8 +8,8 @@ import { Suspense } from "react";
 export default function SignUpPage() {
     return (
         <AuthLayout
-            title="Join the Team"
-            subtitle="Start tracking your team's progress for free."
+            title="Start Your Journey"
+            subtitle="Start tracking your organization's progress for free."
         >
             <Suspense fallback={<div className="h-48 flex items-center justify-center font-black animate-pulse opacity-20 uppercase tracking-widest text-[10px]">Preparing Workspace...</div>}>
                 <SignUpForm />

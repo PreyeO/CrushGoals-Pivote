@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -15,8 +16,19 @@ import type { OrgGoal, Organization } from "@/types";
 import { getVisibleGoals } from "@/lib/store-utils";
 
 export default function OrgGoalsPage({ params }: { params: Promise<{ orgId: string }> }) {
+    return (
+        <Suspense fallback={<div className="p-8 text-center animate-pulse text-muted-foreground uppercase tracking-widest font-black">Loading Goals...</div>}>
+            <OrgGoalsContent params={params} />
+        </Suspense>
+    );
+}
+
+function OrgGoalsContent({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params);
-    const [filter, setFilter] = useState<string>("all");
+    const searchParams = useSearchParams();
+    const initialFilter = searchParams.get("filter") || "all";
+    
+    const [filter, setFilter] = useState<string>(initialFilter);
     const [mounted, setMounted] = useState(false);
 
     const fetchInitialData = useStore((state) => state.fetchInitialData);
@@ -50,7 +62,7 @@ export default function OrgGoalsPage({ params }: { params: Promise<{ orgId: stri
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                         <Target className="w-5 h-5 text-primary" />
-                        Team Goals
+                        Goals
                     </h1>
                     <p className="text-[13px] text-muted-foreground mt-1">
                         {visibleGoals.length} goals · {counts.completed} completed · {counts.blocked > 0 ? `${counts.blocked} blocked` : "no blockers"}

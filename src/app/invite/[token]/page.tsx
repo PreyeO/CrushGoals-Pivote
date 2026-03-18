@@ -65,13 +65,19 @@ export default function InvitationPage({
       const orgId = await inviteService.acceptInvitation(token);
       toast.success("Welcome aboard! You've successfully joined.");
 
+      // Optimistically remove this invite from the store immediately
+      // so sidebar doesn't show stale pending invite after redirect
+      useStore.setState((state) => ({
+        pendingInvitations: state.pendingInvitations.filter(
+          (i) => i.token !== token
+        ),
+      }));
+
       // Refresh store with the new organization data before redirecting
       await fetchInitialData(orgId);
 
-      // Go to dashboard so the user can see remaining pending invitations
-      // and/or create a new org.  The auto-redirect logic we used to have is
-      // gone, so /dashboard will always stay on the dashboard now.
-      router.push(`/dashboard`);
+      // Go to the new org dashboard
+      router.push(`/org/${orgId}`);
     } catch (err: any) {
       console.error("Accept invite error:", err);
       toast.error(err.message || "Failed to accept invitation.");
@@ -113,7 +119,7 @@ export default function InvitationPage({
             </div>
           </div>
 
-          <h1 className="text-3xl font-black tracking-tighter mb-4">
+          <h1 className="text-3xl font-bold tracking-tight mb-4">
             You&apos;re Invited!
           </h1>
 
@@ -121,7 +127,7 @@ export default function InvitationPage({
             Join <span className="text-foreground font-bold">{org?.name}</span>{" "}
             on CrushGoals. You&apos;ll be joining as a{" "}
             <span className="text-primary font-bold uppercase tracking-wider text-xs">
-              {invitation.role}
+              {invitation?.role}
             </span>
             .
           </p>
@@ -142,7 +148,7 @@ export default function InvitationPage({
               <Building2 className="w-5 h-5 text-[oklch(0.70_0.18_155)] shrink-0" />
               <div>
                 <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-                  Organization
+                  Team
                 </p>
                 <p className="text-xs font-medium">{org?.name} Workspace</p>
               </div>

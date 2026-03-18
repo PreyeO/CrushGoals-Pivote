@@ -10,7 +10,7 @@ import { ActiveGoalsList } from "@/components/org/ActiveGoalsList";
 import { LeaderboardTable } from "@/components/org/LeaderboardTable";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { notFound } from "next/navigation";
-import { getTeamHealthScore, getOrgLeaderboard } from "@/lib/store-utils";
+import { getOrgHealthScore, getOrgLeaderboard } from "@/lib/store-utils";
 import type { OrgGoal, OrgMember, Organization } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -49,6 +49,7 @@ export default function OrgDashboardPage({
   );
   const fetchInitialData = useStore((state) => state.fetchInitialData);
   const isLoading = useStore((state) => state.isLoading);
+  const user = useStore((state) => state.user);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -59,7 +60,7 @@ export default function OrgDashboardPage({
   if (!mounted || (isLoading && !org)) return <LoadingState />;
   if (!org) return notFound();
 
-  const health = getTeamHealthScore(orgId, goals, membersList);
+  const health = getOrgHealthScore(orgId, goals, membersList);
   const leaderboard = getOrgLeaderboard(orgId, membersList);
 
   const activeGoalsCount = goals.filter(
@@ -69,7 +70,10 @@ export default function OrgDashboardPage({
     (g: OrgGoal) => g.status === "completed",
   ).length;
 
-  // ===== Team Pulse Calculations =====
+  // Role gating: only admins/owners see Pulse
+  const myMember = membersList.find((m) => m.userId === user?.id);
+  const isAdminOrOwner = myMember?.role === "owner" || myMember?.role === "admin";
+
   const membersWithIssues: {
     member: OrgMember;
     behindCount: number;
@@ -132,7 +136,7 @@ export default function OrgDashboardPage({
         healthTrend={health.trend}
       />
 
-      {needsAttention.length > 0 && (
+      {isAdminOrOwner && needsAttention.length > 0 && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2.5">
@@ -140,8 +144,8 @@ export default function OrgDashboardPage({
                 <AlertCircle className="w-5 h-5 text-destructive" />
               </div>
               <div>
-                <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
-                  Team Pulse
+                <h3 className="text-sm font-bold tracking-tight flex items-center gap-2">
+                  Pulse
                   <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />
                 </h3>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -237,7 +241,7 @@ export default function OrgDashboardPage({
               value="leaderboard"
               className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 pb-3 text-sm font-bold flex items-center gap-2 transition-all"
             >
-              <Trophy className="w-4 h-4" /> Team Standings
+              <Trophy className="w-4 h-4" /> Standings
             </TabsTrigger>
             <TabsTrigger
               value="goals"
@@ -259,7 +263,7 @@ export default function OrgDashboardPage({
           value="goals"
           className="mt-0 animate-in fade-in duration-300"
         >
-          <ActiveGoalsList orgId={orgId} />
+          <ActiveGoalsList orgId={orgId} limit={3} />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,4 +1,46 @@
-import { Organization, OrgGoal, OrgMember, LeaderboardEntry, TeamHealthScore } from "@/types";
+import { Organization, OrgGoal, OrgMember, LeaderboardEntry, OrgHealthScore, DailyCheckIn } from "@/types";
+
+export function getToday(): string {
+    return new Date().toISOString().split("T")[0];
+}
+
+export function getLast14Days(): string[] {
+    const days: string[] = [];
+    for (let i = 13; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().split("T")[0]);
+    }
+    return days;
+}
+
+export function calculateStreak(checkedDates: Set<string>): number {
+    let streak = 0;
+    const today = new Date();
+    // Use a fixed reference to "today" at midnight for consistent calculation
+    const todayStr = today.toISOString().split("T")[0];
+
+    for (let i = 0; i < 365; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split("T")[0];
+
+        if (checkedDates.has(dateStr)) {
+            streak++;
+        } else {
+            // Allow today to be unchecked if streak started yesterday
+            if (i === 0) continue;
+            break;
+        }
+    }
+    return streak;
+}
+
+export function getUserStreak(userId: string, checkins: DailyCheckIn[]): number {
+    const userCheckins = checkins.filter(c => c.userId === userId);
+    const checkedDates = new Set(userCheckins.map(c => c.checkDate));
+    return calculateStreak(checkedDates);
+}
 
 export function getOrgLeaderboard(orgId: string, members: OrgMember[]): LeaderboardEntry[] {
     const orgMembers = members.filter(m => m.orgId === orgId);
@@ -23,7 +65,7 @@ export function getOrgLeaderboard(orgId: string, members: OrgMember[]): Leaderbo
         .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
 
-export function getTeamHealthScore(orgId: string, goals: OrgGoal[], members: OrgMember[]): TeamHealthScore {
+export function getOrgHealthScore(orgId: string, goals: OrgGoal[], members: OrgMember[]): OrgHealthScore {
     const orgGoals = goals.filter(g => g.orgId === orgId);
     const orgMembers = members.filter(m => m.orgId === orgId);
 

@@ -41,7 +41,7 @@ export default function OrgLeaderboardPage({ params }: { params: Promise<{ orgId
             <div className="mb-6 animate-fade-in">
                 <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-primary" />
-                    Team Leaderboard
+                    Leaderboard
                 </h1>
                 <p className="text-[13px] text-muted-foreground mt-1">
                     See who&apos;s crushing it in {org.name}

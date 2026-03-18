@@ -33,8 +33,12 @@ export const orgService = {
             ...org,
             memberCount: org.memberCount?.[0]?.count || 0,
             goalCount: org.goalCount?.[0]?.count || 0,
-            completionRate: 0, // We'll calculate this if needed
+            completionRate: 0,
             ownerId: org.owner_id,
+            slackWebhookUrl: org.slack_webhook_url,
+            slackSettings: org.slack_settings,
+            lastSlackNudgeAt: org.last_slack_nudge_at,
+            lastWeeklySummaryAt: org.last_weekly_summary_at,
             createdAt: org.created_at || new Date().toISOString()
         }));
     },
@@ -140,5 +144,37 @@ export const orgService = {
 
         if (error) throw error;
         return data ?? [];
+    },
+
+    async updateOrganization(orgId: string, data: Partial<Organization>) {
+        const { name, description, emoji, slackWebhookUrl, slackSettings } = data;
+        
+        const updateData: any = {};
+        if (name !== undefined) updateData.name = name;
+        if (description !== undefined) updateData.description = description;
+        if (emoji !== undefined) updateData.emoji = emoji;
+        if (slackWebhookUrl !== undefined) updateData.slack_webhook_url = slackWebhookUrl;
+        if (slackSettings !== undefined) updateData.slack_settings = slackSettings;
+        if (data.lastSlackNudgeAt !== undefined) updateData.last_slack_nudge_at = data.lastSlackNudgeAt;
+        if (data.lastWeeklySummaryAt !== undefined) updateData.last_weekly_summary_at = data.lastWeeklySummaryAt;
+
+        const { data: result, error } = await getSupabase()
+            .from('organizations')
+            .update(updateData)
+            .eq('id', orgId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        
+        return {
+            ...result,
+            ownerId: result.owner_id,
+            slackWebhookUrl: result.slack_webhook_url,
+            slackSettings: result.slack_settings,
+            lastSlackNudgeAt: result.last_slack_nudge_at,
+            lastWeeklySummaryAt: result.last_weekly_summary_at,
+            createdAt: result.created_at || new Date().toISOString()
+        };
     }
 };

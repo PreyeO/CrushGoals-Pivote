@@ -136,8 +136,8 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
         }
     };
 
-    const toggleWholeTeam = () => {
-        if (isMemberOnly) return; // Members can't assign to whole team
+    const toggleEveryone = () => {
+        if (isMemberOnly) return; // Members can't assign to everyone
         if (selectedAssignees.length === members.length) {
             setValue("assigneeIds", [myMemberId]); // Default back to self
         } else {
@@ -223,7 +223,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                 <DialogHeader>
                     <DialogTitle className="text-xl font-bold">Set Your First Goal</DialogTitle>
                     <DialogDescription className="text-muted-foreground text-xs">
-                        {isMemberOnly ? "Set a personal goal to contribute to your team's success." : "Welcome! Let's get your team moving. What is the #1 priority right now?"}
+                        {isMemberOnly ? "Set a personal goal to contribute to the organization's success." : "Welcome! Let's get everyone moving. What is the #1 priority right now?"}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -365,14 +365,14 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={toggleWholeTeam}
+                                                    onClick={toggleEveryone}
                                                     className={cn(
                                                         "h-7 text-[10px] px-2 gap-1.5 border border-border/20",
                                                         selectedAssignees.length === members.length && "bg-primary/10 text-primary border-primary/20"
                                                     )}
                                                 >
                                                     <Users className="w-3 h-3" />
-                                                    Whole Team
+                                                    Everyone
                                                 </Button>
                                             )}
                                         </div>
