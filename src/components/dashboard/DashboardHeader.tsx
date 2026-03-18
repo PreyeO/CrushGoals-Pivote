@@ -5,14 +5,6 @@ import { Organization } from "@/types";
 import { CreateOrgModal } from "@/components/create-org-modal";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useState } from "react";
 
 interface DashboardHeaderProps {
   organizations: Organization[];
@@ -28,9 +20,6 @@ export function DashboardHeader({
   showCreateOrg = true,
 }: DashboardHeaderProps) {
   const user = useStore((state) => state.user);
-  const [selectedOrgId, setSelectedOrgId] = useState<string>(
-    organizations[0]?.id || "",
-  );
 
   return (
     <header className="mb-8 animate-fade-in flex flex-col sm:flex-row sm:items-end justify-between gap-6">
@@ -49,23 +38,9 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-3">
-        {organizations.length > 1 && (
-          <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
-            <SelectTrigger className="w-45 bg-accent/30 border-border/40 h-10 text-xs">
-              <SelectValue placeholder="Select Organization" />
-            </SelectTrigger>
-            <SelectContent className="glass-card border-border/40">
-              {organizations.map((org) => (
-                <SelectItem key={org.id} value={org.id} className="text-xs">
-                  {org.emoji} {org.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
         {showCreateOrg && (
           <CreateOrgModal>
-            <Button className="cursor-pointer gradient-primary text-white border-0 px-6 h-10 text-xs font-semibold glow-primary gap-2">
+            <Button className="gradient-primary text-white border-0 shadow-lg shadow-primary/20 h-10 px-5 font-bold tracking-tight gap-2">
               <Plus className="w-4 h-4" />
               Create Organization
             </Button>

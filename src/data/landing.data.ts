@@ -1,15 +1,15 @@
 import { Layers, Users, BarChart3, Trophy, Shield, Clock } from "lucide-react";
 
 export const heroData = {
-  badge: "Built for Team Execution",
+  badge: "Built for Team Performance",
   headline: {
-    part1: "Align Your Team.",
+    part1: "Align Your People.",
     part2: "Execute With Clarity.",
   },
   subhead:
-    "CrushGoals helps teams set clear goals, assign ownership, and track real progress without heavy project management tools.",
+    "CrushGoals helps teams and organizations set clear goals, assign ownership, and track real progress without heavy project management tools.",
   cta: {
-    placeholder: "Enter your team name...",
+    placeholder: "Enter organization name...",
     buttonText: "Start Free",
     subtext: "No credit card required • Instant setup",
   },
@@ -23,7 +23,7 @@ export const heroData = {
 export const statsData = [
   { value: "2,400+", label: "Goals Achieved" },
   { value: "180+", label: "Teams Active" },
-  { value: "95%", label: "Teams Report Faster Alignment" },
+  { value: "95%", label: "Better Strategic Alignment" },
   { value: "4.9/5", label: "Average User Rating" },
 ];
 
@@ -44,7 +44,7 @@ export const featuresData = [
     icon: BarChart3,
     title: "Live Progress Overview",
     description:
-      "See progress, trends, and blockers at a glance. Spot issues before they slow your team.",
+      "See progress, trends, and blockers at a glance. Spot issues before they slow your momentum.",
   },
   {
     icon: Trophy,
@@ -70,7 +70,7 @@ export const testimonialsData = [
   {
     name: "Adeola K.",
     role: "Startup Founder",
-    text: "We replaced 3 tools with CrushGoals. Our team finally has one place to see all our quarterly targets and who owns what. Game changer.",
+    text: "We replaced 3 tools with CrushGoals. Our team finally has one place to see all our targets and who owns what. Game changer.",
     rating: 5,
   },
   {

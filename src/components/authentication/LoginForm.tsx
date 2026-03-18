@@ -54,6 +54,13 @@ export function LoginForm() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
+          <button
+            type="button"
+            onClick={() => router.push("/auth/forgot-password")}
+            className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+          >
+            Forgot password?
+          </button>
         </div>
         <div className="relative">
           <Input

@@ -4,17 +4,17 @@ const howItWorks = [
   {
     step: "01",
     title: "Launch Your Workspace",
-    desc: "Sign up, name your team, and get set up in seconds.",
+    desc: "Sign up, name your organization, and get set up in seconds.",
   },
   {
     step: "02",
-    title: "Add Your Team & Goals",
+    title: "Add Your Members & Goals",
     desc: "Invite members, set objectives, and assign clear ownership.",
   },
   {
     step: "03",
     title: "Track Progress & Stay Aligned",
-    desc: "Monitor updates in real time, spot blockers, and keep the team aligned.",
+    desc: "Monitor updates in real time, spot blockers, and keep everyone aligned.",
   },
 ];
 
@@ -28,7 +28,7 @@ export function HowItWorks() {
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
             3 Steps to
-            <span className="text-gradient-primary"> Team Execution</span>
+            <span className="text-gradient-primary"> Team Performance</span>
           </h2>
         </div>
         <div className="grid md:grid-cols-3 gap-10 stagger">

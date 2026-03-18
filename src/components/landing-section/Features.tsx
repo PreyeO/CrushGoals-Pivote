@@ -11,11 +11,11 @@ export function Features() {
             Features
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-            Team Execution,{" "}
+            Team Performance,{" "}
             <span className="text-gradient-primary">Simplified</span>
           </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            CrushGoals gives your team clarity, ownership, and visibility
+          <p className="text-muted-foreground max-lg mx-auto">
+            CrushGoals gives your organization clarity, ownership, and visibility
             without heavy project management tools.
           </p>
         </div>

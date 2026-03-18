@@ -8,14 +8,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CrushGoals — Team Goal Management",
+  title: "CrushGoals — Organizational Performance Management",
   description:
-    "Align your team. Crush every goal. The lightweight goal management platform for teams who want clarity and accountability without heavy software.",
+    "Align your people. Crush every goal. The lightweight goal management platform for organizations who want clarity and accountability without heavy software.",
   keywords: [
-    "team goals",
+    "organization goals",
     "OKR",
     "goal tracking",
-    "team management",
+    "business alignment",
     "accountability",
   ],
 };

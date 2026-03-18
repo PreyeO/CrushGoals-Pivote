@@ -92,7 +92,7 @@ export function LeaderboardTable({ leaderboard }: LeaderboardTableProps) {
                             {entry.name}
                           </p>
                           <p className="text-[10px] text-muted-foreground">
-                            Team Member
+                            Member
                           </p>
                         </div>
                       </div>
@@ -151,12 +151,12 @@ export function LeaderboardTable({ leaderboard }: LeaderboardTableProps) {
             It's lonely at the top (and everywhere else).
           </h3>
           <p className="text-sm text-muted-foreground max-w-sm mb-6 leading-relaxed">
-            CrushGoals is better with teammates. Invite them to start competing
+            CrushGoals is better with friends. Invite others to start competing
             for the #1 spot!
           </p>
           <Button className="gradient-primary text-white border-0 gap-2 h-11 px-8 rounded-xl font-bold">
             <Sparkles className="w-4 h-4" />
-            Invite Teammates
+            Invite Others
           </Button>
         </div>
       )}

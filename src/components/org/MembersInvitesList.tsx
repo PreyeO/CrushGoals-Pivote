@@ -80,7 +80,7 @@ export function MembersInvitesList({ orgId }: MembersInvitesListProps) {
         <div className="flex items-center gap-2 px-1">
           <Users className="w-5 h-5 text-primary" />
           <h3 className="font-bold tracking-tight">
-            Active Members ({filteredMembers.length})
+            The Team ({filteredMembers.length})
           </h3>
         </div>
 

@@ -31,6 +31,7 @@ import type {
   MemberGoalStatusValue,
 } from "@/types";
 import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
+import { Celebration } from "@/components/ui/celebration";
 
 const statusStyles: Record<
   GoalStatus,
@@ -110,37 +111,7 @@ const memberStatusConfig: Record<
 
 const STALE_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
 
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-function getLast14Days(): string[] {
-  const days: string[] = [];
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
-  }
-  return days;
-}
-
-function calculateStreak(checkedDates: Set<string>): number {
-  let streak = 0;
-  const today = new Date();
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split("T")[0];
-    if (checkedDates.has(dateStr)) {
-      streak++;
-    } else {
-      // Allow today to be unchecked if streak started yesterday
-      if (i === 0) continue;
-      break;
-    }
-  }
-  return streak;
-}
+import { calculateStreak, getToday, getLast14Days } from "@/lib/store-utils";
 
 export function GoalCard({ goal }: { goal: OrgGoal }) {
   const [now] = useState(() => Date.now());
@@ -153,6 +124,14 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+
+  // Trigger celebration on completion
+  useEffect(() => {
+    if (goal.status === "completed" && !isDaily) {
+      setShowCelebration(true);
+    }
+  }, [goal.status, isDaily]);
 
   // Pacing (only for non-daily goals)
   const start = new Date(goal.startDate || goal.createdAt).getTime();
@@ -241,7 +220,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
           await updateGoalStatus(goal.id, "in_progress");
         }
         
-        // 2. Sync with Team Pulse status (mark as on_track)
+        // 2. Sync with Pulse status (mark as on_track)
         await upsertMemberStatus(goal.id, goal.orgId, "on_track", "Daily check-in completed! 🔥", 0);
         
         toast.success("Checked in! 🔥");
@@ -272,6 +251,8 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
           <AlertTriangle className="w-3 h-3" /> Overdue
         </div>
       )}
+
+      <Celebration active={showCelebration} onComplete={() => setShowCelebration(false)} />
 
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
@@ -381,7 +362,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
 
           {/* Mini calendar heat map — last 14 days */}
           <div className="flex items-center gap-1">
-            {last14Days.map((day) => {
+            {last14Days.map((day: string) => {
               const isChecked = checkedDatesSet.has(day);
               const isToday = day === todayStr;
               const dayLabel = new Date(day + "T12:00:00").toLocaleDateString("en-US", { weekday: "narrow" });
@@ -508,7 +489,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors uppercase tracking-wider cursor-pointer px-3 py-1.5 rounded-lg hover:bg-accent/50"
           >
             <Users className="w-3.5 h-3.5" />
-            {expanded ? "Hide" : "Team"}
+            {expanded ? "Hide" : "Members"}
             <ChevronDown
               className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
             />
@@ -517,7 +498,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
         </div>
       </div>
 
-      {/* Team Progress Panel */}
+      {/* Organization Progress Panel */}
       {expanded && (
         <div className="mt-5 pt-5 border-t border-border/30 space-y-3 animate-in fade-in slide-in-from-top-3">
           <p className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-[0.2em]">

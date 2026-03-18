@@ -329,4 +329,36 @@ export const goalService = {
       createdAt: row.created_at,
     }));
   },
+
+  async getOrgCheckIns(orgIdOrIds: string | string[]) {
+    // 1. Get all goal IDs for these orgs
+    const { data: goals, error: goalsError } = await getSupabase()
+        .from('goals')
+        .select('id')
+        .in('org_id', Array.isArray(orgIdOrIds) ? orgIdOrIds : [orgIdOrIds]);
+
+    if (goalsError) throw goalsError;
+    if (!goals || goals.length === 0) return [];
+
+    const goalIds = goals.map((g: { id: string }) => g.id);
+
+    // 2. Fetch all check-ins for those goals
+    const { data, error } = await getSupabase()
+        .from('daily_checkins')
+        .select('*')
+        .in('goal_id', goalIds)
+        .order('check_date', { ascending: false });
+
+    if (error) throw error;
+
+    return (data ?? []).map((row: any): DailyCheckIn => ({
+        id: row.id,
+        goalId: row.goal_id,
+        userId: row.user_id,
+        checkDate: row.check_date,
+        completed: row.completed,
+        note: row.note,
+        createdAt: row.created_at,
+    }));
+  },
 };

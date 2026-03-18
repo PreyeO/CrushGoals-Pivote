@@ -13,8 +13,8 @@ export function QuickActions({ organizations }: QuickActionsProps) {
 
     const actions = [
         { label: `Go to ${firstOrg?.name || "your org"}`, desc: "View dashboard and goals", href: `/org/${firstOrg?.id || ""}` },
-        { label: "View Team Goals", desc: "Track progress and milestones", href: `/org/${firstOrg?.id || ""}/goals` },
-        { label: "Team Leaderboard", desc: "See who's crushing it", href: `/org/${firstOrg?.id || ""}/leaderboard` },
+        { label: "View Goals", desc: "Track progress and milestones", href: `/org/${firstOrg?.id || ""}/goals` },
+        { label: "Leaderboard", desc: "See who's crushing it", href: `/org/${firstOrg?.id || ""}/leaderboard` },
     ];
 
     return (

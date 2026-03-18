@@ -102,7 +102,7 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
             <DialogTrigger asChild>
                 {children || (
                     <Button className="gradient-primary text-white border-0 hover:opacity-90 gap-2 h-9 text-[13px] font-semibold">
-                        <UserPlus className="w-4 h-4" /> Invite Member
+                        <UserPlus className="w-4 h-4" /> Invite Teammate
                     </Button>
                 )}
             </DialogTrigger>
@@ -111,9 +111,9 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
                     <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center mb-4 glow-primary-sm">
                         <Mail className="w-6 h-6 text-white" />
                     </div>
-                    <DialogTitle className="text-xl font-bold">Invite Team Member</DialogTitle>
+                    <DialogTitle className="text-xl font-bold">Invite Teammate</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
-                        {inviteLink ? "Invitation created! Share the link below with your teammate." : "Send an invitation to join your organization."}
+                        {inviteLink ? "Invitation created! Share the link below with them." : "Send an invitation to join your team."}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -132,7 +132,7 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
                             </div>
                         </div>
                         <p className="text-[11px] text-muted-foreground italic text-center px-4">
-                            The recipient can use this link to join the organization directly.
+                            The recipient can use this link to join the team directly.
                         </p>
                         <DialogFooter className="pt-4">
                             <Button variant="outline" onClick={() => handleOpenChange(false)} className="w-full border-border/60 hover:bg-accent/60">
@@ -147,7 +147,7 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="teammate@example.com"
+                                placeholder="member@example.com"
                                 className="bg-accent/30 border-border/40 focus:border-primary/50 transition-colors"
                                 {...register("email")}
                             />
@@ -164,7 +164,7 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
                                 </SelectTrigger>
                                 <SelectContent className="glass-card border-border/40">
                                     <SelectItem value="member">Member (Can track goals)</SelectItem>
-                                    <SelectItem value="admin">Admin (Can manage team)</SelectItem>
+                                    <SelectItem value="admin">Admin (Can manage organization)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

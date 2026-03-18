@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 
 import Link from "next/link";
-import { Target, ArrowRight, Flame, Check, CheckCircle } from "lucide-react";
+import { Target, ArrowRight, Flame, Check, CheckCircle, Trophy, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreateGoalModal } from "@/components/create-goal-modal";
@@ -223,6 +223,7 @@ export function ActiveGoalsList({
   goals: propGoals,
   members: propMembers,
 }: ActiveGoalsListProps) {
+  const [showCrushed, setShowCrushed] = useState(false);
   const storeGoals = useStore(
     useShallow((state) => state.goals.filter((g) => g.orgId === orgId)),
   );
@@ -237,11 +238,13 @@ export function ActiveGoalsList({
   );
   const visibleGoals = getVisibleGoals(goals, myMember);
 
-  const [now] = useState(() => Date.now());
-  const displayedGoals = limit ? visibleGoals.slice(0, limit) : visibleGoals;
+  const activeGoals = visibleGoals.filter(g => g.status !== 'completed');
+  const crushedGoals = visibleGoals.filter(g => g.status === 'completed');
 
-  // Fixed: check visibleGoals instead of goals so members with no assigned goals see the empty state
-  if (visibleGoals.length === 0) {
+  const [now] = useState(() => Date.now());
+  const displayedActive = limit ? activeGoals.slice(0, limit) : activeGoals;
+
+  if (activeGoals.length === 0 && crushedGoals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 glass-card border-dashed border-2 border-border/40 rounded-2xl">
         <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center mb-4">
@@ -259,135 +262,190 @@ export function ActiveGoalsList({
   }
 
   return (
-    <div className="space-y-4">
-      {displayedGoals.map((goal) => {
-        const isDaily =
-          goal.frequency === "daily" ||
-          goal.frequency === "weekly" ||
-          goal.frequency === "monthly";
+    <div className="space-y-6">
+      <div className="space-y-4">
+        {displayedActive.map((goal) => {
+          const isDaily =
+            goal.frequency === "daily" ||
+            goal.frequency === "weekly" ||
+            goal.frequency === "monthly";
 
-        if (isDaily) {
-          return (
-            <DailyGoalListItem key={goal.id} goal={goal} members={members} />
+          if (isDaily) {
+            return (
+              <DailyGoalListItem key={goal.id} goal={goal} members={members} />
+            );
+          }
+
+          const goalAssignees = members.filter((m) =>
+            goal.assignedTo.includes(m.id),
           );
-        }
+          const blockedCount = goal.status === "blocked" ? 1 : 0;
 
-        const goalAssignees = members.filter((m) =>
-          goal.assignedTo.includes(m.id),
-        );
-        const blockedCount = goal.status === "blocked" ? 1 : 0;
+          const start = new Date(goal.startDate || goal.createdAt).getTime();
+          const end = new Date(goal.deadline).getTime();
+          const expectedProgress =
+            end - start > 0
+              ? Math.min(
+                  100,
+                  Math.max(0, Math.round(((now - start) / (end - start)) * 100)),
+                )
+              : 0;
+          const isBehind = goal.progress < expectedProgress - 15;
+          const isAhead = goal.progress > expectedProgress + 15;
 
-        const start = new Date(goal.startDate || goal.createdAt).getTime();
-        const end = new Date(goal.deadline).getTime();
-        const expectedProgress =
-          end - start > 0
-            ? Math.min(
-                100,
-                Math.max(0, Math.round(((now - start) / (end - start)) * 100)),
-              )
-            : 0;
-        const isBehind = goal.progress < expectedProgress - 15;
-        const isAhead = goal.progress > expectedProgress + 15;
-
-        return (
-          <div
-            key={goal.id}
-            className="glass-card border-border/40 hover:border-primary/30 transition-all p-5 group flex flex-col sm:flex-row gap-5"
-          >
-            <div className="flex-1 space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl group-hover:scale-110 transition-transform">
-                      {goal.emoji}
-                    </span>
-                    <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                      {goal.title}
-                    </h4>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-[9px] font-bold uppercase tracking-wider px-1.5 h-4",
-                        isBehind
-                          ? "bg-destructive/10 text-destructive border-destructive/20"
-                          : isAhead
-                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                            : "bg-primary/10 text-primary border-primary/20",
-                      )}
-                    >
-                      {isBehind ? "Behind" : isAhead ? "Ahead" : "On Track"}
-                    </Badge>
+          return (
+            <div
+              key={goal.id}
+              className="glass-card border-border/40 hover:border-primary/30 transition-all p-5 group flex flex-col sm:flex-row gap-5"
+            >
+              <div className="flex-1 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl group-hover:scale-110 transition-transform">
+                        {goal.emoji}
+                      </span>
+                      <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                        {goal.title}
+                      </h4>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[9px] font-bold uppercase tracking-wider px-1.5 h-4",
+                          isBehind
+                            ? "bg-destructive/10 text-destructive border-destructive/20"
+                            : isAhead
+                              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                              : "bg-primary/10 text-primary border-primary/20",
+                        )}
+                      >
+                        {isBehind ? "Behind" : isAhead ? "Ahead" : "On Track"}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground line-clamp-1">
+                      {goal.description}
+                    </p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground line-clamp-1">
-                    {goal.description}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    {goal.targetNumber
-                      ? `${goal.currentValue} / ${goal.targetNumber} ${goal.unit}`
-                      : goal.targetValue}
-                  </span>
-                  {blockedCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="h-5 text-[9px] font-black px-1.5 animate-pulse bg-destructive shadow-[0_0_10px_-2px_var(--destructive)]"
-                    >
-                      STUCK
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-[10px] font-bold">
-                  <span className="text-muted-foreground">
-                    Overall Momentum
-                  </span>
-                  <span className="text-primary tabular-nums tracking-tight">
-                    {goal.progress}%
-                  </span>
-                </div>
-                <div className="h-2 w-full bg-accent/30 rounded-full overflow-hidden border border-border/10">
-                  <div
-                    className={cn(
-                      "h-full transition-all duration-1000 ease-out shadow-[0_0_10px_-2px_rgba(var(--primary),0.5)]",
-                      goal.status === "blocked"
-                        ? "bg-destructive"
-                        : "bg-primary",
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      {goal.targetNumber
+                        ? `${goal.currentValue} / ${goal.targetNumber} ${goal.unit}`
+                        : goal.targetValue}
+                    </span>
+                    {blockedCount > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="h-5 text-[9px] font-black px-1.5 animate-pulse bg-destructive shadow-[0_0_10px_-2px_var(--destructive)]"
+                      >
+                        STUCK
+                      </Badge>
                     )}
-                    style={{ width: `${goal.progress}%` }}
-                  />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[10px] font-bold">
+                    <span className="text-muted-foreground">
+                      Overall Momentum
+                    </span>
+                    <span className="text-primary tabular-nums tracking-tight">
+                      {goal.progress}%
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-accent/30 rounded-full overflow-hidden border border-border/10">
+                    <div
+                      className={cn(
+                        "h-full transition-all duration-1000 ease-out shadow-[0_0_10px_-2px_rgba(var(--primary),0.5)]",
+                        goal.status === "blocked"
+                          ? "bg-destructive"
+                          : "bg-primary",
+                      )}
+                      style={{ width: `${goal.progress}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex sm:flex-col items-center justify-between sm:justify-center gap-4 sm:pl-6 sm:border-l border-border/20">
-              <div className="flex -space-x-2">
-                {goalAssignees.map((member) => (
-                  <Avatar
-                    key={member.id}
-                    className="w-7 h-7 border-2 border-background ring-2 ring-transparent group-hover:ring-primary/10 transition-all"
-                  >
-                    <AvatarImage src={member.avatarUrl || ""} />
-                    <AvatarFallback className="text-[8px] font-bold bg-primary/10 text-primary">
-                      {member.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
+              <div className="flex sm:flex-col items-center justify-between sm:justify-center gap-4 sm:pl-6 sm:border-l border-border/20">
+                <div className="flex -space-x-2">
+                  {goalAssignees.map((member) => (
+                    <Avatar
+                      key={member.id}
+                      className="w-7 h-7 border-2 border-background ring-2 ring-transparent group-hover:ring-primary/10 transition-all"
+                    >
+                      <AvatarImage src={member.avatarUrl || ""} />
+                      <AvatarFallback className="text-[8px] font-bold bg-primary/10 text-primary">
+                        {member.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                </div>
+                <GoalCheckInModal goal={goal} />
               </div>
-              <GoalCheckInModal goal={goal} />
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      {/* Crushed Goals Section */}
+      {crushedGoals.length > 0 && (
+        <div className="pt-4 border-t border-border/10">
+          <button
+            onClick={() => setShowCrushed(!showCrushed)}
+            className="flex items-center justify-between w-full py-2 group cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-emerald-500" />
+              </div>
+              <div className="text-left">
+                <span className="text-[12px] font-black text-foreground block uppercase tracking-wider">
+                  Crushed Goals
+                </span>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  {crushedGoals.length} targets successfully hit
+                </span>
+              </div>
+            </div>
+            <div className={cn(
+              "w-8 h-8 rounded-full bg-accent/30 flex items-center justify-center transition-transform",
+              showCrushed ? "rotate-180" : ""
+            )}>
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </button>
+
+          {showCrushed && (
+            <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
+              {crushedGoals.map((goal) => (
+                <div
+                  key={goal.id}
+                  className="glass-card border-emerald-500/20 bg-emerald-500/[0.02] p-4 flex items-center justify-between opacity-80 hover:opacity-100 transition-opacity"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{goal.emoji}</span>
+                    <div>
+                      <h4 className="text-[13px] font-bold text-foreground">{goal.title}</h4>
+                      <p className="text-[10px] text-muted-foreground">Successfully reached on {new Date(goal.updatedAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1.5 py-1 px-3">
+                    <CheckCircle className="w-3 h-3" />
+                    Crushed
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {limit && visibleGoals.length > limit && (
         <Link
-          href={`/org/${orgId}/goals`}
+          href={`/org/${orgId}/goals?filter=in_progress`}
           className="flex items-center justify-center gap-2 py-3 w-full text-xs font-bold text-muted-foreground hover:text-primary transition-colors glass-card border-border/40 group mt-2"
         >
           View All Active Goals

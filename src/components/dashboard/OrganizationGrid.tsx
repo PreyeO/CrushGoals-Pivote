@@ -22,7 +22,7 @@ export function OrganizationGrid({ organizations, showCreateCard = true }: Organ
     return (
         <div className="mt-8">
             <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-0">Your Organizations</h2>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-0">Your Organization</h2>
                 {hasMore && (
                     <button 
                         onClick={() => setShowAll(!showAll)}
@@ -72,7 +72,7 @@ export function OrganizationGrid({ organizations, showCreateCard = true }: Organ
                             </div>
                             <h3 className="font-semibold text-sm mb-1">Create Organization</h3>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                                Set up a new team and start tracking goals together.
+                                Set up a new space and start tracking goals with your organization.
                             </p>
                         </div>
                     </CreateOrgModal>

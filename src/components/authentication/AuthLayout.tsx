@@ -21,9 +21,6 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
 
           <div className="space-y-4">{children}</div>
 
-          <p className="text-center text-xs text-muted-foreground mt-8">
-            By continuing, you agree to our Terms of Service and Privacy Policy.
-          </p>
         </div>
       </div>
 
@@ -47,7 +44,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           </div>
           <blockquote className="space-y-4">
             <p className="text-2xl font-medium leading-tight">
-              CrushGoals transformed how our team executes. No more guessing or
+              CrushGoals transformed how our organization executes. No more guessing or
               endless meetings — just clear goals, ownership, and real
               accountability.
             </p>

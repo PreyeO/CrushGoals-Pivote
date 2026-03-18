@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, Save, Trash2, AlertTriangle, Sparkles } from "lucide-react";
+import { Settings as SettingsIcon, Save, Trash2, AlertTriangle, Sparkles, LogOut, RefreshCw } from "lucide-react";
 import { notFound, useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function OrgSettingsPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params);
@@ -26,7 +27,10 @@ export default function OrgSettingsPage({ params }: { params: Promise<{ orgId: s
     const [name, setName] = useState(org?.name || "");
     const [emoji, setEmoji] = useState(org?.emoji || "");
     const [description, setDescription] = useState(org?.description || "");
+    
     const [isSaving, setIsSaving] = useState(false);
+
+    const updateOrganization = useStore((state) => state.updateOrganization);
 
     // Sync state when org loads
     useEffect(() => {
@@ -42,9 +46,18 @@ export default function OrgSettingsPage({ params }: { params: Promise<{ orgId: s
 
     const handleSave = async () => {
         setIsSaving(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setIsSaving(false);
+        try {
+            await updateOrganization(orgId, {
+                name,
+                emoji,
+                description,
+            });
+            toast.success("Settings saved successfully");
+        } catch (error) {
+            toast.error("Failed to save settings");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -55,7 +68,7 @@ export default function OrgSettingsPage({ params }: { params: Promise<{ orgId: s
                     Organization Settings
                 </h1>
                 <p className="text-[13px] text-muted-foreground mt-1">
-                    Manage your team's workspace and preferences.
+                    Manage your organization's workspace and preferences.
                 </p>
             </header>
 
@@ -123,6 +136,28 @@ export default function OrgSettingsPage({ params }: { params: Promise<{ orgId: s
                         </div>
                         <Button variant="destructive" className="h-10 px-6 text-sm font-bold hover:bg-destructive/90 transition-colors gap-2">
                             <Trash2 className="w-4 h-4" /> Delete Org
+                        </Button>
+                    </div>
+                </section>
+
+                {/* Account & Session */}
+                <section className="glass-card p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                        <LogOut className="w-4 h-4 text-muted-foreground" />
+                        <h2 className="text-sm font-bold uppercase tracking-wider">Account & Session</h2>
+                    </div>
+                    <Separator className="opacity-10" />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <p className="text-[13px] font-semibold">Sign Out</p>
+                            <p className="text-[11px] text-muted-foreground">Sign out of your current session. You will need to log in again to access your organizations.</p>
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => useStore.getState().signOut()}
+                            className="h-10 px-6 text-sm font-bold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all gap-2"
+                        >
+                            <LogOut className="w-4 h-4" /> Sign Out
                         </Button>
                     </div>
                 </section>

@@ -15,6 +15,13 @@ import {
   X,
   BarChart3,
   Mail,
+  Settings,
+  UserCircle,
+  ShieldAlert,
+  CreditCard,
+  Share2,
+  ChevronDown,
+  Plus,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
@@ -24,8 +31,16 @@ import { useShallow } from "zustand/react/shallow";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { LogOut } from "lucide-react";
-import type { Organization, Team } from "@/types";
-import { CreateTeamModal } from "@/components/create-team-modal";
+import type { Organization } from "@/types";
+import { CreateOrgModal } from "@/components/create-org-modal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SidebarProps {
   currentOrgId?: string;
@@ -34,15 +49,15 @@ interface SidebarProps {
 const getOrgNavItems = (orgId: string) => [
   { icon: Building2, label: "Overview", path: `/org/${orgId}` },
   { icon: Target, label: "Goals", path: `/org/${orgId}/goals` },
-  { icon: BarChart3, label: "Reports", path: `/org/${orgId}/reports` },
   { icon: Users, label: "Members", path: `/org/${orgId}/members` },
   { icon: Trophy, label: "Leaderboard", path: `/org/${orgId}/leaderboard` },
-  { icon: Building2, label: "Settings", path: `/org/${orgId}/settings` },
+  { icon: BarChart3, label: "Reports", path: `/org/${orgId}/reports` },
+  { icon: Share2, label: "Integrations", path: `/org/${orgId}/integrations` },
+  { icon: Settings, label: "Settings", path: `/org/${orgId}/settings` },
 ];
 
 export function Sidebar({ currentOrgId }: SidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -54,10 +69,12 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
   }, []);
 
   const orgs = useStore(useShallow((state) => state.organizations));
-  const teams = useStore(useShallow((state) => state.teams));
   const members = useStore(useShallow((state) => state.members));
+  const invitations = useStore(useShallow((state) => state.invitations));
   const user = useStore(useShallow((state) => state.user));
   const signOut = useStore((state) => state.signOut);
+  const collapsed = useStore((state) => state.sidebarCollapsed);
+  const setCollapsed = useStore((state) => state.setSidebarCollapsed);
 
   // Check if user is owner/admin of any organization
   const isOwnerOrAdminAny = members.some(
@@ -80,7 +97,8 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
             isMemberOnly &&
             (item.label === "Settings" ||
               item.label === "Members" ||
-              item.label === "Reports")
+              item.label === "Reports" ||
+              item.label === "Integrations")
           ),
       )
     : [];
@@ -157,74 +175,67 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
         </div>
 
         {/* Org Switcher */}
-        {!collapsed && orgs.length > 0 && (
-          <div className="px-3 mb-1">
-            <div className="space-y-0.5">
-              {orgs.map((org) => (
-                <Link
-                  key={org.id}
-                  href={`/org/${org.id}`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <div
-                    className={cn(
-                      "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all cursor-pointer",
-                      currentOrgId === org.id
-                        ? "bg-accent/80 text-foreground"
-                        : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
-                    )}
-                  >
-                    <span className="text-base">{org.emoji}</span>
-                    <span className="truncate font-medium text-[13px]">
-                      {org.name}
-                    </span>
+        {!collapsed && currentOrg && (
+          <div className="px-3 mb-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all cursor-pointer bg-accent/40 hover:bg-accent/60 text-foreground border border-border/20 shadow-sm group">
+                  <span className="text-lg bg-background/50 w-7 h-7 rounded-lg flex items-center justify-center border border-border/40 shadow-inner">
+                    {currentOrg.emoji}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate font-bold text-[13px] leading-tight">
+                      {currentOrg.name}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-medium opacity-60">
+                      Switch workspace
+                    </p>
                   </div>
-                </Link>
-              ))}
-            </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="w-[230px] bg-background/95 backdrop-blur-xl border-border/40 p-1.5 shadow-2xl" 
+                align="start" 
+                side="bottom"
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 py-2">
+                  Your Organizations
+                </DropdownMenuLabel>
+                {orgs.map((org) => (
+                  <Link key={org.id} href={`/org/${org.id}`}>
+                    <DropdownMenuItem 
+                      className={cn(
+                        "flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer transition-colors mb-0.5",
+                        currentOrgId === org.id ? "bg-primary/10 text-primary" : "hover:bg-accent"
+                      )}
+                    >
+                      <span className="text-base w-6 h-6 flex items-center justify-center">{org.emoji}</span>
+                      <span className="font-semibold text-xs flex-1">{org.name}</span>
+                      {currentOrgId === org.id && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                    </DropdownMenuItem>
+                  </Link>
+                ))}
+                
+                <DropdownMenuSeparator className="my-1.5 opacity-40" />
+                
+                <CreateOrgModal>
+                  <DropdownMenuItem 
+                    onSelect={(e) => e.preventDefault()}
+                    className="flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer text-primary bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all"
+                  >
+                    <div className="w-6 h-6 rounded-md bg-primary/20 flex items-center justify-center">
+                      <Plus className="w-3.5 h-3.5 font-black" />
+                    </div>
+                    <span className="font-bold text-xs uppercase tracking-tight">New Organization</span>
+                  </DropdownMenuItem>
+                </CreateOrgModal>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
 
-        {/* Team Switcher (within current org) */}
-        {!collapsed && resolvedOrgId && (
-          <div className="px-3 mb-1 mt-4">
-            <div className="flex items-center justify-between px-3 mb-2">
-              <p className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.15em]">
-                Teams
-              </p>
-              {!isMemberOnly && resolvedOrgId && (
-                <CreateTeamModal orgId={resolvedOrgId} />
-              )}
-            </div>
-            <div className="space-y-0.5">
-              {teams.length === 0 ? (
-                <p className="px-3 py-2 text-[11px] text-muted-foreground italic opacity-50">
-                  No teams yet
-                </p>
-              ) : (
-                teams.map((team) => (
-                  <Link
-                    key={team.id}
-                    href={`/org/${resolvedOrgId}/team/${team.id}`}
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    <div
-                      className={cn(
-                        "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all cursor-pointer",
-                        pathname.includes(`/team/${team.id}`)
-                          ? "bg-primary/10 text-primary font-bold"
-                          : "text-muted-foreground/70 hover:bg-accent/40 hover:text-foreground",
-                      )}
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
-                      <span className="truncate text-[12px]">{team.name}</span>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </div>
-        )}
 
         <Separator className="mx-4 w-auto opacity-20 my-2" />
 
@@ -241,37 +252,64 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
           )}
 
           {/* Pending invitations indicator */}
-          {pendingInvites.length > 0 && (
-            <Link
-              href={`/invite/${pendingInvites[0].token}`}
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
-            >
-              <Mail className="w-[18px] h-[18px] flex-shrink-0" />
-              {!collapsed && (
-                <span className="flex-1">
-                  {pendingInvites.length === 1
-                    ? "Pending Invite"
-                    : `${pendingInvites.length} Pending Invites`}
-                </span>
-              )}
-              {!collapsed && (
-                <span className="ml-auto text-[10px] font-black bg-amber-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
-                  {pendingInvites.length}
-                </span>
-              )}
-            </Link>
-          )}
+          {(() => {
+            const hasReceived = pendingInvites.length > 0;
+            const myMemberInCurrent = members.find(m => m.userId === user?.id && m.orgId === resolvedOrgId);
+            const isAdminInCurrent = myMemberInCurrent && (myMemberInCurrent.role === 'owner' || myMemberInCurrent.role === 'admin');
+            const hasSent = isAdminInCurrent && resolvedOrgId && invitations.length > 0;
+            
+            if (hasReceived) {
+              const inviteHref = pendingInvites.length === 1
+                ? `/invite/${pendingInvites[0].token}`
+                : `/invitations`;
+              return (
+                <Link
+                  href={inviteHref}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
+                >
+                  <Mail className="w-[18px] h-[18px] flex-shrink-0" />
+                  {!collapsed && (
+                    <span className="flex-1">
+                      {pendingInvites.length === 1
+                        ? "Pending Invite"
+                        : `${pendingInvites.length} Pending Invites`}
+                    </span>
+                  )}
+                  {!collapsed && (
+                    <span className="ml-auto text-[10px] font-black bg-amber-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                      {pendingInvites.length}
+                    </span>
+                  )}
+                </Link>
+              );
+            }
+
+            if (hasSent) {
+              const sentCount = invitations.length;
+              return (
+                <Link
+                  href={`/org/${resolvedOrgId}/members`}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-[oklch(0.70_0.18_155)] bg-[oklch(0.70_0.18_155)]/10 hover:bg-[oklch(0.70_0.18_155)]/20"
+                >
+                  <Mail className="w-[18px] h-[18px] flex-shrink-0" />
+                  {!collapsed && (
+                    <span className="flex-1">
+                      {sentCount === 1
+                        ? "Review Invite"
+                        : `Review Invites (${sentCount})`}
+                    </span>
+                  )}
+                </Link>
+              );
+            }
+
+            return null;
+          })()}
 
           {resolvedOrgId && orgNavItems.length > 0 && (
-            <>
-              <div className="pt-3 pb-1">
-                {!collapsed && (
-                  <p className="px-3 text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.15em]">
-                    {currentOrg?.name || "Team"}
-                  </p>
-                )}
-              </div>
+            <div className="pt-2">
               {orgNavItems.map((item) => (
                 <NavItem
                   key={item.path}
@@ -281,6 +319,43 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
                   isActive={pathname === item.path}
                 />
               ))}
+            </div>
+          )}
+
+          {/* Super Admin Link */}
+          {user?.email === "ayibakep@gmail.com" && (
+            <>
+              <div className="pt-3 pb-1 mt-2">
+                {!collapsed && (
+                  <p className="px-3 text-[10px] font-semibold text-primary/70 uppercase tracking-[0.15em]">
+                    Platform Admin
+                  </p>
+                )}
+              </div>
+              <NavItem
+                href="/admin"
+                icon={LayoutDashboard}
+                label="Overview"
+                isActive={pathname === "/admin"}
+              />
+              <NavItem
+                href="/admin/users"
+                icon={Users}
+                label="Users"
+                isActive={pathname === "/admin/users"}
+              />
+              <NavItem
+                href="/admin/organizations"
+                icon={Building2}
+                label="Organizations"
+                isActive={pathname === "/admin/organizations"}
+              />
+              <NavItem
+                href="/admin/subscriptions"
+                icon={CreditCard}
+                label="Subscriptions"
+                isActive={pathname === "/admin/subscriptions"}
+              />
             </>
           )}
         </nav>
@@ -308,15 +383,6 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
                   </p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 px-3 gap-2 text-[12px]"
-                onClick={() => signOut()}
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Sign Out</span>
-              </Button>
             </div>
           )}
           <Button

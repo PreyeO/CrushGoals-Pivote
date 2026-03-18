@@ -1,50 +1,78 @@
-# 🎯 CrushGoals: V1 Documentation & Project Status
+# 🎯 CrushGoals: The Strategic Execution Platform
 
-CrushGoals V1 is focused on **radical simplicity** and **team accountability**. It removes academic goal frameworks in favor of direct, human-centric tracking that keeps teams aligned without the overhead.
+CrushGoals is built on a single, powerful conviction: **Teams don't fail because they lack tools; they fail because their tools are too complex to use.**
+
+Most project management software forces teams into rigid academic frameworks (OKRs, SMART goals, Agile Sprints) that become a secondary job to maintain. CrushGoals strips away the overhead, focusing on **radical simplicity**, **clear ownership**, and **human accountability**.
 
 ---
 
-## 🚀 Core V1 Features
+## 🌟 The Vision: Radical Simplicity
+CrushGoals is designed to be the "Anti-Project Manager." We prioritize execution over planning and clarity over complexity.
 
-### 🏢 Simple Team Management
-- **Single-Tier Roles**: Just **Owner** and **Member**. No complex permission matrices.
-- **Whole Team Sync**: Instantly assign organization-wide goals with one click.
-- **Privacy by Design**: Secure organization spaces where team strategy stays within the team.
+- **Zero Framework Overhead**: No training required. No 30-page OKR guides. Just "What are we doing, who owns it, and is it on track?"
+- **Accountability by Default**: Every goal has exactly one owner. The platform is built to make progress visible and stagnation impossible to ignore.
+- **Momentum-Driven**: Features like the "Leaderboard" and "Visual Urgency" cues are designed to keep teams moving, not just documenting.
 
-### 🎯 Straightforward Goal Tracking
-- **Framework-Free**: No OKRs or SMART goals. Just "What do we need to achieve?"
-- **Simple Templates**: Quick-start with "Launch a product," "Plan an event," or "Hit a sales target."
-- **Human-Centric Updates**: Every progress update is accompanied by a short note (e.g., "Hit 80 sign-ups, waiting on landing page fix"), replacing sterile activity feeds with real context.
+---
 
-### 🏆 Accountability First
-- **Leaderboard Default**: The main team view is the Standings table, highlighting completion percentages and streaks to foster healthy competition and visibility.
-- **Visual Urgency**: Overdue goals are impossible to ignore, pulsing red with prominent alert badges.
-- **Check-in Prompts**: Automatic weekly nudges — "How's your goal going?" — to combat tool abandonment and maintain momentum.
+## 🏗️ Core Concepts
+
+### 🏢 Organizations
+The top-level container. An organization can be a startup, a school department, a church ministry, or a cross-functional corporate team. 
+- **Privacy First**: Each organization is a siloed space.
+- **Simple Roles**: **Owners** (manage settings/billing) and **Members** (create/owns goals).
+
+### 🎯 Goals
+The heartbeat of the platform. A goal in CrushGoals isn't just a task; it's a commitment with a target and a deadline.
+- **Status Stages**: Not Started → In Progress → Blocked → Done.
+- **Human-Centric Updates**: Progress is tracked with percentages, but context is provided via short, human-readable notes.
+- **Visual Urgency**: Goals that are overdue or stalled pulse with high-contrast alerts to drive immediate action.
+
+### 🏆 Team Standings (Leaderboard)
+Instead of a buried report, "Standings" is the default view. It fosters healthy competition and transparency by showing:
+- **Completion Rates**: Who is delivering most consistently?
+- **Goal Streaks**: Sustained performance over time.
+- **Top Contributors**: Highlighting those driving the most impact.
 
 ---
 
 ## 🏗️ Technical Architecture
 
-### Tech Stack
-- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **State**: [Zustand](https://github.com/pmndrs/zustand)
-- **Forms**: [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/)
+CrushGoals is a high-performance, modern web application built for speed and reliability.
 
-### Design Philosophy
-- **High-Impact Status**: Visual cues (Red for overdue, Green for completion) are prioritized over decorative elements.
-- **Glassmorphism**: A premium, "business-ready" aesthetic that feels modern and professional.
-
----
-
-## 🛠️ Project Status
-
-- [x] **Remove OKR/SMART**: Core types and UI streamlined for V1.
-- [x] **Leaderboard Integration**: Moved to the default organizational view.
-- [x] **Visual Urgency**: Overdue logic and styling implemented in `GoalCard`.
-- [x] **Human Notes**: Progress updates now include contextual comments.
-- [x] **Retention Prompts**: Weekly "How's it going?" nudge added to the dashboard.
+### The Stack
+- **Frontend**: [Next.js 15](https://nextjs.org/) (App Router) with Server Components for ultra-fast initial loads.
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) using a custom "Glassmorphism" design system for a premium, professional feel.
+- **Backend/Auth**: [Supabase](https://supabase.com/) for real-time data sync, secure user management, and Row Level Security (RLS).
+- **Icons**: [Lucide React](https://lucide.dev/) for a clean, consistent visual language.
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand) for lightweight, predictable client-side state.
 
 ---
 
-*Last Updated: February 26, 2026*
+## 🛡️ Platform Administration (Super Admin)
+For the platform owner, CrushGoals provides a powerful **Super Admin Dashboard** to monitor the entire ecosystem.
+
+- **Metric Tracking**: Real-time stats on total users, active organizations, and goal completion rates.
+- **Resource Management**: Deep visibility into organization usage (member counts, goal volume).
+- **User Directory**: Searchable, filtered list of every registered user with real-time sync with Supabase Auth.
+- **System Health**: Monitoring service latency and database status to ensure 24/7 reliability.
+
+---
+
+## 📅 Platform Status & Roadmap
+
+### Current Version: V1 (The "Execution" Release)
+- [x] **Framework-Free Core**: Simplified goal creation and management.
+- [x] **Real-Time Leaderboards**: Live standings for all organizations.
+- [x] **Security Engine**: Robust RLS policies protecting organization data.
+- [x] **Urgency UI**: High-impact visual cues for overdue items.
+
+### Upcoming Features
+- [x] **Integrations Marketplace**: Slack notifications for wins and blockers.
+- [ ] **Microsoft Teams Integration**: Bringing accountability to the MS ecosystem.
+- [ ] **Discord Integration**: High-energy notifications for communities.
+- [ ] **Stripe Professional Billing**: Tiered subscriptions for growing teams.
+- [ ] **Advanced Analytics**: Trend reports for organizational performance.
+
+---
+*Last Updated: March 18, 2026*

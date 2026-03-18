@@ -69,7 +69,7 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
             // 2. Smart Status Logic:
             if (memberStatus === "blocked") {
                 // Mark goal as blocked
-                await updateGoalStatus(goal.id, "blocked");
+                await updateGoalStatus(goal.id, "blocked", note);
             } else if (memberStatus === "completed") {
                 // Mark goal as completed
                 await updateGoalStatus(goal.id, "completed");

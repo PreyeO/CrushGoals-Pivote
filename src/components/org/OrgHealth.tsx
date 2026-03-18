@@ -3,7 +3,7 @@
 import { Heart } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-interface TeamHealthProps {
+interface OrgHealthProps {
     health: {
         goalProgress: number;
         memberEngagement: number;
@@ -11,10 +11,10 @@ interface TeamHealthProps {
     };
 }
 
-export function TeamHealth({ health }: TeamHealthProps) {
+export function OrgHealth({ health }: OrgHealthProps) {
     const items = [
         { label: "Goal Progress", value: health.goalProgress, color: "text-primary" },
-        { label: "Member Engagement", value: health.memberEngagement, color: "text-[oklch(0.70_0.18_155)]" },
+        { label: "Team Engagement", value: health.memberEngagement, color: "text-[oklch(0.70_0.18_155)]" },
         { label: "On-Time Completion", value: health.onTimeCompletion, color: "text-[oklch(0.75_0.15_80)]" },
     ];
 

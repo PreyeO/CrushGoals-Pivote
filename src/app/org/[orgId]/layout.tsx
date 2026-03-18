@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { Sidebar } from "@/components/layout/sidebar";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { notFound } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export default function OrgLayout({
     children,
@@ -19,7 +20,8 @@ export default function OrgLayout({
     const {
         organizations: allOrgs,
         fetchInitialData,
-        isLoading
+        isLoading,
+        sidebarCollapsed
     } = useStore();
 
     const org = allOrgs.find((o) => o.id === orgId);
@@ -39,7 +41,10 @@ export default function OrgLayout({
     return (
         <div className="min-h-screen bg-background">
             <Sidebar currentOrgId={orgId} />
-            <main className="lg:pl-[260px] transition-all duration-300">
+            <main className={cn(
+                "transition-all duration-300",
+                sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]"
+            )}>
                 {isLoading && !org ? (
                     <div className="min-h-[80vh] flex items-center justify-center">
                         <LoadingState fullScreen={false} message="Loading organization..." />

@@ -37,7 +37,7 @@ export function OrgHeader({ org }: OrgHeaderProps) {
               className="border-border/60 hover:bg-accent/60 px-6 h-10 text-xs font-semibold gap-2"
             >
               <UserPlus className="w-4 h-4" />
-              Invite Member
+              Invite Teammate
             </Button>
           </InviteMemberModal>
           <CreateGoalModal orgId={org.id}>
