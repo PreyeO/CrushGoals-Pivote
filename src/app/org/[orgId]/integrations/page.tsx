@@ -403,7 +403,7 @@ export default function IntegrationsPage({ params }: { params: Promise<{ orgId: 
                                                 <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">1</span>
                                                 <div className="space-y-1">
                                                     <h4 className="text-sm font-bold tracking-tight">Add the bot to your group</h4>
-                                                    <p className="text-[12px] text-muted-foreground leading-relaxed">Open Telegram, search for <strong>@CrushGoalsBot</strong> and add it to your team's group chat. It takes 30 seconds.</p>
+                                                            <p className="text-sm">Open Telegram, search for <span className="font-bold text-sky-500">@CrushGoals_Bot</span> and add it to your team's group chat. It takes 30 seconds.</p>
                                                 </div>
                                             </div>
 
