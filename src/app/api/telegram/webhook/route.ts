@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (normalizedText.includes("connect") || normalizedText.includes("conncet")) {
       // Extract code - look for the word that doesn't start with /
       const words = text.split(/\s+/);
-      const codeWord = words.find(w => !w.startsWith("/") && w.length > 2);
+      const codeWord = words.find((w: string) => !w.startsWith("/") && w.length > 2);
       const code = codeWord ? codeWord.replace(/[\[\]]/g, "").trim().toUpperCase() : "";
       
       if (!code) {
