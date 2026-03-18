@@ -21,6 +21,7 @@ export interface Organization {
   lastWeeklySummaryAt?: string;
   telegramBotToken?: string;
   telegramChatId?: string;
+  telegramChatTitle?: string;
   connectCode?: string;
   telegramSettings?: {
     notify_on_completion: boolean;

@@ -456,7 +456,7 @@ export default function IntegrationsPage({ params }: { params: Promise<{ orgId: 
                                                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse" />
                                                     <div className="flex-1">
                                                         <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                                                            Connected — {org.telegramChatTitle || `@Group_${org.telegramChatId.substring(0, 4)}`}
+                                                            Connected — {org.telegramChatTitle || `@Group_${org.telegramChatId?.substring(0, 4) || ""}`}
                                                         </p>
                                                     </div>
                                                     <Button 
