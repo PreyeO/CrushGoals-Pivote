@@ -36,12 +36,14 @@ export async function POST(req: NextRequest) {
 
     const chatId = message.chat.id.toString();
     const text = message.text.trim();
+    const normalizedText = text.toLowerCase();
 
-    // 1. Handle /connect [code]
-    if (text.startsWith("/connect")) {
-      // Extract code and strip any brackets the user might paste
-      const rawCode = text.split(" ")[1] || "";
-      const code = rawCode.replace(/[\[\]]/g, "").trim().toUpperCase();
+    // 1. Handle /connect [code] - Flexible to catch typos like /conncet
+    if (normalizedText.includes("connect") || normalizedText.includes("conncet")) {
+      // Extract code - look for the word that doesn't start with /
+      const words = text.split(/\s+/);
+      const codeWord = words.find(w => !w.startsWith("/") && w.length > 2);
+      const code = codeWord ? codeWord.replace(/[\[\]]/g, "").trim().toUpperCase() : "";
       
       if (!code) {
         await telegramService.sendMessage(chatId, "❔ *Which Organization?* \n\nType `/connect [code]` using the code found in your CrushGoals Integration settings.");
@@ -56,8 +58,6 @@ export async function POST(req: NextRequest) {
         .eq("connect_code", code)
         .maybeSingle();
 
-      console.log("[Telegram Webhook] Query result - org:", org?.id, "| error:", error?.message);
-
       if (error || !org) {
         const { data: allOrgs } = await supabaseAdmin
           .from("organizations")
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         const allCodes = allOrgs?.map((o: any) => o.connect_code).join(", ") || "NONE";
         
         await telegramService.sendMessage(chatId, 
-          `❌ Debug Info:\nCode received: "${code}"\nDB error: ${error?.message || "none"}\nAll codes in DB: ${allCodes}`
+          `❌ *Code Not Found*\n\nBot received: \`${code}\`\n\nValid codes in DB: ${allCodes}\n\nPlease try again with the exactly code from your Integrations page.`
         );
       } else {
         await supabaseAdmin
@@ -87,13 +87,13 @@ export async function POST(req: NextRequest) {
 
     if (!org) {
       if (text.startsWith("/")) {
-        await telegramService.sendMessage(chatId, "⚠️ *Group Not Connected* \n\nType `/connect [code]` to link this group to your CrushGoals organization.");
+        await telegramService.sendMessage(chatId, `⚠️ *Group Not Connected*\n\nCommand received: \`${text}\`\n\nPlease type \`/connect [code]\` using the code from your Integrations page.`);
       }
       return NextResponse.json({ ok: true });
     }
 
     // 3. Handle Other Commands
-    if (text === "/goals" || text.startsWith("/goals@")) {
+    if (normalizedText.startsWith("/goals")) {
       const goals = await goalService.getGoals(org.id);
       const activeGoals = goals.filter((g: any) => g.status !== "completed");
       
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         });
         await telegramService.sendMessage(chatId, msg);
       }
-    } else if (text === "/leaderboard" || text.startsWith("/leaderboard@")) {
+    } else if (normalizedText.startsWith("/leaderboard")) {
       const goals = await goalService.getGoals(org.id);
       const completedGoals = goals.filter((g: any) => g.status === "completed");
       
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
         });
         await telegramService.sendMessage(chatId, msg);
       }
-    } else if (text === "/help" || text.startsWith("/help@")) {
+    } else if (normalizedText.startsWith("/help")) {
       const msg = `📖 *CrushGoals Commands:* \n\n/goals — List all active goals \n/leaderboard — See who's crushing it \n/help — Show this menu \n\n_Tip: You can respond to nudges using the inline buttons!_`;
       await telegramService.sendMessage(chatId, msg);
     }
