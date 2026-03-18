@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Handle /connect [code]
     if (text.startsWith("/connect")) {
-      const code = text.split(" ")[1]?.toUpperCase();
+      const code = text.split(" ")[1]?.replace(/[\[\]\s]/g, "").toUpperCase();
       if (!code) {
         await telegramService.sendMessage(chatId, "❔ *Which Organization?* \n\nType `/connect [code]` using the code found in your CrushGoals Integration settings.");
         return NextResponse.json({ ok: true });
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         .from("organizations")
         .select("*")
         .eq("connect_code", code)
-        .single();
+        .maybeSingle();
 
       console.log("[Telegram Webhook] Query result - org:", org?.id, "| error:", error?.message, error?.code);
 
