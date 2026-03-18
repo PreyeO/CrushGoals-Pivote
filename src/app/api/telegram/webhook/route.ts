@@ -39,7 +39,10 @@ export async function POST(req: NextRequest) {
 
     // 1. Handle /connect [code]
     if (text.startsWith("/connect")) {
-      const code = text.split(" ")[1]?.replace(/[\[\]\s]/g, "").toUpperCase();
+      // Extract code and strip any brackets the user might paste
+      const rawCode = text.split(" ")[1] || "";
+      const code = rawCode.replace("[", "").replace("]", "").trim().toUpperCase();
+      
       if (!code) {
         await telegramService.sendMessage(chatId, "❔ *Which Organization?* \n\nType `/connect [code]` using the code found in your CrushGoals Integration settings.");
         return NextResponse.json({ ok: true });
@@ -53,10 +56,9 @@ export async function POST(req: NextRequest) {
         .eq("connect_code", code)
         .maybeSingle();
 
-      console.log("[Telegram Webhook] Query result - org:", org?.id, "| error:", error?.message, error?.code);
+      console.log("[Telegram Webhook] Query result - org:", org?.id, "| error:", error?.message);
 
       if (error || !org) {
-        // Send debug info to the chat so we can see what's happening
         const { data: allOrgs } = await supabaseAdmin
           .from("organizations")
           .select("id, connect_code");
@@ -81,10 +83,9 @@ export async function POST(req: NextRequest) {
       .from("organizations")
       .select("*")
       .eq("telegram_chat_id", chatId)
-      .single();
+      .maybeSingle();
 
     if (!org) {
-      // If not connected, ignored or prompt to connect
       if (text.startsWith("/")) {
         await telegramService.sendMessage(chatId, "⚠️ *Group Not Connected* \n\nType `/connect [code]` to link this group to your CrushGoals organization.");
       }
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Handle Other Commands
-    if (text === "/goals") {
+    if (text === "/goals" || text.startsWith("/goals@")) {
       const goals = await goalService.getGoals(org.id);
       const activeGoals = goals.filter((g: any) => g.status !== "completed");
       
@@ -105,11 +106,10 @@ export async function POST(req: NextRequest) {
         });
         await telegramService.sendMessage(chatId, msg);
       }
-    } else if (text === "/leaderboard") {
+    } else if (text === "/leaderboard" || text.startsWith("/leaderboard@")) {
       const goals = await goalService.getGoals(org.id);
       const completedGoals = goals.filter((g: any) => g.status === "completed");
       
-      // Basic count by assigned_to
       const board: Record<string, number> = {};
       completedGoals.forEach((g: any) => {
         if (g.assigned_to) board[g.assigned_to] = (board[g.assigned_to] || 0) + 1;
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
         });
         await telegramService.sendMessage(chatId, msg);
       }
-    } else if (text === "/help") {
+    } else if (text === "/help" || text.startsWith("/help@")) {
       const msg = `📖 *CrushGoals Commands:* \n\n/goals — List all active goals \n/leaderboard — See who's crushing it \n/help — Show this menu \n\n_Tip: You can respond to nudges using the inline buttons!_`;
       await telegramService.sendMessage(chatId, msg);
     }
