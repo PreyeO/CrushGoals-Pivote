@@ -102,12 +102,32 @@ export const orgService = {
         };
     },
 
-    async getMembers(orgId: string) {
-        const { data, error } = await getSupabase()
+    async getMembers(orgIdOrIds: string | string[]) {
+        let query = getSupabase()
             .from('org_members')
-            .select('*, profiles(full_name, avatar_url)')
-            .eq('org_id', orgId);
+            .select('*, profiles(full_name, avatar_url)');
 
+        if (Array.isArray(orgIdOrIds)) {
+            query = query.in('org_id', orgIdOrIds);
+        } else {
+            query = query.eq('org_id', orgIdOrIds);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    },
+
+    async getMemberStatuses(orgIdOrIds: string | string[]) {
+        let query = getSupabase().from('member_goal_status').select('*');
+
+        if (Array.isArray(orgIdOrIds)) {
+            query = query.in('org_id', orgIdOrIds);
+        } else {
+            query = query.eq('org_id', orgIdOrIds);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         return data;
     },

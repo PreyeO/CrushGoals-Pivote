@@ -1,116 +1,267 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
+import Link from "next/link";
 import { OrgHeader } from "@/components/org/OrgHeader";
 import { OrgStats } from "@/components/org/OrgStats";
 import { ActiveGoalsList } from "@/components/org/ActiveGoalsList";
 import { LeaderboardTable } from "@/components/org/LeaderboardTable";
-import { MembersInvitesList } from "@/components/org/MembersInvitesList";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { notFound } from "next/navigation";
 import { getTeamHealthScore, getOrgLeaderboard } from "@/lib/store-utils";
 import type { OrgGoal, OrgMember, Organization } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Target, Bell, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  Trophy,
+  Target,
+  AlertCircle,
+  Ban,
+  Clock,
+  ChevronRight,
+} from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: string }> }) {
-    const { orgId } = use(params);
-    const [mounted, setMounted] = useState(false);
-    const [showNudge, setShowNudge] = useState(true);
+export default function OrgDashboardPage({
+  params,
+}: {
+  params: Promise<{ orgId: string }>;
+}) {
+  const { orgId } = use(params);
+  const [mounted, setMounted] = useState(false);
+  const [now] = useState(() => Date.now());
 
-    const goals = useStore(useShallow((state) => state.goals.filter((g: OrgGoal) => g.orgId === orgId)));
-    const membersList = useStore(useShallow((state) => state.members.filter((m: OrgMember) => m.orgId === orgId)));
-    const org = useStore(useShallow((state) => state.organizations.find((o: Organization) => o.id === orgId)));
-    const fetchInitialData = useStore((state) => state.fetchInitialData);
-    const isLoading = useStore((state) => state.isLoading);
+  const goals = useStore(
+    useShallow((state) =>
+      state.goals.filter((g: OrgGoal) => g.orgId === orgId),
+    ),
+  );
+  const membersList = useStore(
+    useShallow((state) =>
+      state.members.filter((m: OrgMember) => m.orgId === orgId),
+    ),
+  );
+  const org = useStore(
+    useShallow((state) =>
+      state.organizations.find((o: Organization) => o.id === orgId),
+    ),
+  );
+  const fetchInitialData = useStore((state) => state.fetchInitialData);
+  const isLoading = useStore((state) => state.isLoading);
 
-    useEffect(() => {
-        setMounted(true);
-        fetchInitialData(orgId);
-    }, [orgId, fetchInitialData]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+    fetchInitialData(orgId);
+  }, [orgId, fetchInitialData]);
 
-    if (!mounted || (isLoading && !org)) return <LoadingState />;
-    if (!org) return notFound();
+  if (!mounted || (isLoading && !org)) return <LoadingState />;
+  if (!org) return notFound();
 
-    const health = getTeamHealthScore(orgId, goals, membersList);
-    const leaderboard = getOrgLeaderboard(orgId, membersList);
+  const health = getTeamHealthScore(orgId, goals, membersList);
+  const leaderboard = getOrgLeaderboard(orgId, membersList);
 
-    const activeGoalsCount = goals.filter((g: OrgGoal) => g.status !== "completed").length;
-    const completedGoalsCount = goals.filter((g: OrgGoal) => g.status === "completed").length;
+  const activeGoalsCount = goals.filter(
+    (g: OrgGoal) => g.status !== "completed",
+  ).length;
+  const completedGoalsCount = goals.filter(
+    (g: OrgGoal) => g.status === "completed",
+  ).length;
 
-    return (
-        <div className="p-5 pt-16 lg:pt-8 lg:p-8 max-w-7xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-                <OrgHeader org={org} />
-            </div>
-
-            {/* Weekly Nudge */}
-            {showNudge && goals.length > 0 && (
-                <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Bell className="w-5 h-5 text-primary animate-bounce" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-bold">Weekly Check-in Time!</p>
-                            <p className="text-xs text-muted-foreground italic">"How's your goal going? Update your progress to keep the team aligned."</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button size="sm" className="text-xs h-8" onClick={() => setShowNudge(false)}>Update Now</Button>
-                        <Button size="sm" variant="ghost" className="text-xs h-8" onClick={() => setShowNudge(false)}>Later</Button>
-                    </div>
-                </div>
-            )}
-
-            <OrgStats
-                activeGoals={activeGoalsCount}
-                completedGoals={completedGoalsCount}
-                memberCount={membersList.length}
-                healthScore={health.overall}
-                healthTrend={health.trend}
-            />
-
-            <Tabs defaultValue="leaderboard" className="w-full space-y-6">
-                <div className="flex items-center justify-between border-b border-border/40 pb-1">
-                    <TabsList className="bg-transparent h-auto p-0 gap-6">
-                        <TabsTrigger
-                            value="leaderboard"
-                            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 pb-3 text-sm font-bold flex items-center gap-2 transition-all"
-                        >
-                            <Trophy className="w-4 h-4" /> Team Standings
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="goals"
-                            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 pb-3 text-sm font-bold flex items-center gap-2 transition-all"
-                        >
-                            <Target className="w-4 h-4" /> Active Goals
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="members"
-                            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 pb-3 text-sm font-bold flex items-center gap-2 transition-all"
-                        >
-                            <Users className="w-4 h-4" /> Team & Invites
-                        </TabsTrigger>
-                    </TabsList>
-                </div>
-
-                <TabsContent value="leaderboard" className="mt-0 animate-in fade-in duration-300">
-                    <LeaderboardTable leaderboard={leaderboard} />
-                </TabsContent>
-
-                <TabsContent value="goals" className="mt-0 animate-in fade-in duration-300">
-                    <ActiveGoalsList orgId={orgId} />
-                </TabsContent>
-
-                <TabsContent value="members" className="mt-0 animate-in fade-in duration-300">
-                    <MembersInvitesList orgId={orgId} />
-                </TabsContent>
-            </Tabs>
-        </div>
+  // ===== Team Pulse Calculations =====
+  const membersWithIssues: {
+    member: OrgMember;
+    behindCount: number;
+    blockedCount: number;
+    overdueCount: number;
+    staleUpdate: boolean;
+  }[] = membersList.map((member) => {
+    const memberGoals = goals.filter((g: OrgGoal) =>
+      g.assignedTo.includes(member.id),
     );
+
+    const behindCount = memberGoals.filter((g: OrgGoal) => {
+      if (g.status === "completed") return false;
+      const start = new Date(g.startDate || g.createdAt).getTime();
+      const end = new Date(g.deadline).getTime();
+      const totalTime = end - start;
+      const elapsed = now - start;
+      const expected =
+        totalTime > 0 ? Math.round((elapsed / totalTime) * 100) : 0;
+      return g.progress < expected - 15;
+    }).length;
+
+    const blockedCount = memberGoals.filter(
+      (g: OrgGoal) => g.status === "blocked",
+    ).length;
+    const overdueCount = memberGoals.filter(
+      (g: OrgGoal) =>
+        g.status !== "completed" && new Date(g.deadline).getTime() < now,
+    ).length;
+
+    // Stale = no goal updates in last 5 days
+    const fiveDaysAgo = now - 5 * 24 * 60 * 60 * 1000;
+    const hasRecentUpdate = memberGoals.some(
+      (g: OrgGoal) => new Date(g.updatedAt).getTime() > fiveDaysAgo,
+    );
+    const staleUpdate = memberGoals.length > 0 && !hasRecentUpdate;
+
+    return { member, behindCount, blockedCount, overdueCount, staleUpdate };
+  });
+
+  const needsAttention = membersWithIssues.filter(
+    (m) =>
+      m.behindCount > 0 ||
+      m.blockedCount > 0 ||
+      m.overdueCount > 0 ||
+      m.staleUpdate,
+  );
+
+  return (
+    <div className="p-5 pt-16 lg:pt-8 lg:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <OrgHeader org={org} />
+      </div>
+
+      <OrgStats
+        activeGoals={activeGoalsCount}
+        completedGoals={completedGoalsCount}
+        memberCount={membersList.length}
+        healthScore={health.overall}
+        healthTrend={health.trend}
+      />
+
+      {needsAttention.length > 0 && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center border border-destructive/20 shadow-[0_0_15px_-5px_var(--destructive)]">
+                <AlertCircle className="w-5 h-5 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
+                  Team Pulse
+                  <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                </h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  {needsAttention.length} {needsAttention.length === 1 ? "member needs" : "members need"} attention
+                </p>
+              </div>
+            </div>
+            
+            {needsAttention.length > 3 && (
+              <Link
+                href={`/org/${orgId}/members`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/30 hover:bg-accent/50 border border-border/40 text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+              >
+                View all members
+                <ChevronRight className="w-3 h-3" />
+              </Link>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {needsAttention
+              .slice(0, 3)
+              .map(
+                ({
+                  member,
+                  behindCount,
+                  blockedCount,
+                  overdueCount,
+                  staleUpdate,
+                }) => (
+                  <Link
+                    key={member.id}
+                    href={`/org/${orgId}/members/${member.id}`}
+                    className="group relative flex flex-col p-4 rounded-2xl glass-card border-border/40 hover:border-primary/40 hover:bg-primary/[0.03] transition-all duration-500 overflow-hidden"
+                  >
+                    {/* Hover Glow Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    <div className="flex items-center gap-3 relative z-10">
+                      <Avatar className="w-10 h-10 border-2 border-background shadow-xl scale-100 group-hover:scale-110 transition-transform duration-500">
+                        <AvatarFallback className="bg-primary/10 text-primary text-[11px] font-black urbanist uppercase">
+                          {member.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-black truncate group-hover:text-primary transition-colors">
+                          {member.name}
+                        </p>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">
+                          Goal Performance
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/20 group-hover:text-primary group-hover:translate-x-1 transition-all duration-500" />
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 mt-4 relative z-10">
+                      {blockedCount > 0 && (
+                        <div className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-destructive text-destructive-foreground shadow-lg shadow-destructive/20 border border-white/10">
+                          <Ban className="w-2.5 h-2.5" /> {blockedCount} Blocked
+                        </div>
+                      )}
+                      {overdueCount > 0 && (
+                        <div className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 transition-colors">
+                          <Clock className="w-2.5 h-2.5" /> {overdueCount} Overdue
+                        </div>
+                      )}
+                      {behindCount > 0 && (
+                        <div className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                          <AlertCircle className="w-2.5 h-2.5" /> {behindCount} Behind
+                        </div>
+                      )}
+                      {staleUpdate && (
+                        <div className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-accent border border-border/40 text-muted-foreground">
+                          <Clock className="w-2.5 h-2.5" /> Stale
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                ),
+              )}
+          </div>
+        </div>
+      )}
+
+      <Tabs defaultValue="leaderboard" className="w-full space-y-6">
+        <div className="flex items-center justify-between border-b border-border/40 pb-1">
+          <TabsList className="bg-transparent h-auto p-0 gap-6">
+            <TabsTrigger
+              value="leaderboard"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 pb-3 text-sm font-bold flex items-center gap-2 transition-all"
+            >
+              <Trophy className="w-4 h-4" /> Team Standings
+            </TabsTrigger>
+            <TabsTrigger
+              value="goals"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 pb-3 text-sm font-bold flex items-center gap-2 transition-all"
+            >
+              <Target className="w-4 h-4" /> Active Goals
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent
+          value="leaderboard"
+          className="mt-0 animate-in fade-in duration-300"
+        >
+          <LeaderboardTable leaderboard={leaderboard} />
+        </TabsContent>
+
+        <TabsContent
+          value="goals"
+          className="mt-0 animate-in fade-in duration-300"
+        >
+          <ActiveGoalsList orgId={orgId} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }

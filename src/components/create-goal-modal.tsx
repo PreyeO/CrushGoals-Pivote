@@ -23,7 +23,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Target, Sparkles, UserPlus, TrendingUp, Info } from "lucide-react";
+import { Plus, Target, Sparkles, UserPlus, TrendingUp, Info, Check, Users } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     Tooltip,
     TooltipContent,
@@ -32,10 +39,11 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { OrgGoal, GoalStatus, GoalPriority } from "@/types";
+import { OrgGoal, GoalStatus, GoalPriority, GoalFrequency } from "@/types";
 import { useState, useMemo } from "react";
 import { GOAL_TEMPLATES } from "@/lib/templates";
 import { useStore } from "@/lib/store";
+import { toast } from "sonner";
 
 const formSchema = z.object({
     title: z.string().min(2, "Title must be at least 2 characters"),
@@ -43,13 +51,14 @@ const formSchema = z.object({
     emoji: z.string().min(1),
     category: z.string().min(2),
     priority: z.enum(["low", "medium", "high"]),
+    frequency: z.enum(["one_time", "daily", "weekly", "monthly"]),
     startDate: z.string().min(1, "Start date is required"),
     deadline: z.string().min(1, "Deadline is required"),
     assigneeIds: z.array(z.string()).min(1, "Please assign this goal to at least one person"),
-    goalType: z.enum(["metric", "milestone"]),
+    goalType: z.enum(["metric", "milestone"]).optional(),
     targetNumber: z.number().min(0.01, "Target must be greater than 0").optional(),
     unit: z.string().optional(),
-    targetValue: z.string().min(1, "Target label is required (e.g. 100 sign-ups)"),
+    targetValue: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -98,10 +107,11 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             emoji: "🎯",
             category: "General",
             priority: "medium" as GoalPriority,
+            frequency: undefined,
             startDate: new Date(now).toISOString().split('T')[0],
             deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             assigneeIds: myMemberId ? [myMemberId] : [],
-            goalType: "metric",
+            goalType: undefined,
             targetValue: "",
             targetNumber: 50,
             unit: "Tasks",
@@ -110,6 +120,11 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
 
     const selectedAssignees = watch("assigneeIds") || [];
     const goalType = watch("goalType");
+    const frequency = watch("frequency");
+    const title = watch("title");
+
+    const hasTitle = title && title.trim().length >= 3;
+    const hasTracking = hasTitle && !!goalType && !!frequency;
 
     const toggleAssignee = (id: string) => {
         if (isMemberOnly) return; // Members can't change assignees
@@ -135,6 +150,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             await addGoal({
                 ...data,
                 orgId,
+                frequency: data.frequency,
                 status: "not_started" as GoalStatus,
                 assignedTo: isMemberOnly ? [myMemberId] : data.assigneeIds,
                 createdBy: user?.id || "unknown",
@@ -143,8 +159,10 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             } as any);
             reset();
             setOpen(false);
+            toast.success("Goal launched successfully! 🚀");
         } catch (error) {
             console.error("Failed to create goal:", error);
+            toast.error("Failed to launch goal. Please try again.");
         }
     };
 
@@ -152,17 +170,28 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
         const template = GOAL_TEMPLATES.find(t => t.id === templateId);
         if (!template) return;
 
-        const isMetric = template.targetNumber !== undefined;
-        const unit = template.unit || (template.title.includes("Outreach") ? "Calls"
-            : template.title.includes("Revenue") ? "USD"
-                : template.title.includes("Support") ? "Rating"
-                    : template.title.includes("Product") ? "Shipped"
-                        : "Tasks");
+        if (template.id === 'tpl-custom') {
+            reset({
+                title: "",
+                description: "",
+                emoji: "🎯",
+                category: "General",
+                priority: "medium",
+                frequency: "one_time",
+                startDate: new Date(now).toISOString().split('T')[0],
+                deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                assigneeIds: myMemberId ? [myMemberId] : [],
+                goalType: "milestone",
+                targetValue: "",
+                targetNumber: 50,
+                unit: "Tasks",
+            });
+            return;
+        }
 
-        const targetNumber = template.targetNumber || (template.title.includes("Outreach") ? 100
-            : template.title.includes("Revenue") ? 10000
-                : template.title.includes("Support") ? 5
-                    : 10);
+        const isMetric = template.targetNumber !== undefined;
+        const unit = template.unit || "Items";
+        const targetNumber = template.targetNumber || 10;
 
         reset({
             title: template.title,
@@ -170,11 +199,12 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             emoji: template.emoji,
             category: template.category,
             priority: template.priority,
+            frequency: template.cadence || "one_time",
             startDate: new Date(now).toISOString().split('T')[0],
             deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             assigneeIds: myMemberId ? [myMemberId] : [],
             goalType: isMetric ? "metric" : "milestone",
-            targetValue: isMetric ? `${targetNumber} ${unit}` : "Launch Feature",
+            targetValue: isMetric ? `${targetNumber} ${unit}` : template.title,
             targetNumber: targetNumber,
             unit: unit,
         });
@@ -191,9 +221,6 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] glass-card border-border/40 backdrop-blur-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                        <Target className="w-6 h-6 text-primary" />
-                    </div>
                     <DialogTitle className="text-xl font-bold">Set Your First Goal</DialogTitle>
                     <DialogDescription className="text-muted-foreground text-xs">
                         {isMemberOnly ? "Set a personal goal to contribute to your team's success." : "Welcome! Let's get your team moving. What is the #1 priority right now?"}
@@ -240,155 +267,211 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label className="text-xs font-semibold uppercase tracking-wider">Goal Type</Label>
-                            <div className="flex p-1 bg-accent/20 rounded-lg border border-border/20">
-                                <button
-                                    type="button"
-                                    onClick={() => setValue("goalType", "milestone")}
-                                    className={cn(
-                                        "flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all",
-                                        goalType === "milestone" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    Milestone
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setValue("goalType", "metric")}
-                                    className={cn(
-                                        "flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all",
-                                        goalType === "metric" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    Metric
-                                </button>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-xs font-semibold uppercase tracking-wider">Category</Label>
-                            <Input {...register("category")} placeholder="e.g. Sales, Product" className="bg-accent/30 border-border/40" />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-4">
-                        <div className="space-y-2 col-span-1">
+                    <div className="flex flex-col sm:grid sm:grid-cols-4 gap-4">
+                        <div className="space-y-2 sm:col-span-1 border-b border-border/10 pb-4 sm:border-0 sm:pb-0">
                             <Label className="text-xs font-semibold uppercase tracking-wider">Emoji</Label>
-                            <Input {...register("emoji")} className="bg-accent/30 border-border/40 text-center text-xl" />
+                            <Input {...register("emoji")} className="bg-accent/30 border-border/40 text-center text-xl sm:text-2xl h-12 sm:h-auto" />
                         </div>
-                        <div className="space-y-2 col-span-3">
+                        <div className="space-y-2 sm:col-span-3">
                             <Label className="text-xs font-semibold uppercase tracking-wider">Goal Title</Label>
-                            <Input {...register("title")} placeholder="e.g. 100 Daily Outreach Calls" className="bg-accent/30 border-border/40" />
+                            <Input {...register("title")} placeholder="e.g. 100 Daily Outreach Calls" className="bg-accent/30 border-border/40 text-sm h-12 sm:h-auto" />
                         </div>
                     </div>
 
-                    {goalType === "metric" ? (
-                        <div className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10 animate-in zoom-in-95 duration-200">
-                            <div className="space-y-2">
-                                <Label className="text-xs font-semibold uppercase tracking-wider">Target #</Label>
-                                <Input
-                                    type="number"
-                                    {...register("targetNumber", { valueAsNumber: true })}
-                                    className="bg-background border-border/40"
-                                />
+                    {hasTitle && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-500">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">Track by</Label>
+                                    <Select value={goalType} onValueChange={(val: "milestone" | "metric") => setValue("goalType", val)}>
+                                        <SelectTrigger className="bg-accent/30 border-border/40 h-11 sm:h-9">
+                                            <SelectValue placeholder="Select style" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="milestone">Check-off</SelectItem>
+                                            <SelectItem value="metric">Target Number</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">Frequency</Label>
+                                    <Select value={frequency} onValueChange={(val: GoalFrequency) => setValue("frequency", val)}>
+                                        <SelectTrigger className="bg-accent/30 border-border/40 h-11 sm:h-9">
+                                            <SelectValue placeholder="Select frequency" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="one_time">One-time</SelectItem>
+                                            <SelectItem value="daily">Daily</SelectItem>
+                                            <SelectItem value="weekly">Weekly</SelectItem>
+                                            <SelectItem value="monthly">Monthly</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs font-semibold uppercase tracking-wider">Unit</Label>
-                                <Input {...register("unit")} placeholder="Chapters" className="bg-background border-border/40" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs font-semibold uppercase tracking-wider">Display As</Label>
-                                <Input {...register("targetValue")} placeholder="e.g. 30 Chapters" className="bg-background border-border/40" />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-2 animte-in fade-in duration-200">
-                            <Label className="text-xs font-semibold uppercase tracking-wider">Target Milestone</Label>
-                            <Input {...register("targetValue")} placeholder="e.g. MVP Launch / Complete Goal" className="bg-accent/30 border-border/40" />
-                        </div>
-                    )}
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label className="text-xs font-semibold uppercase tracking-wider text-primary/80">Start Date</Label>
-                            <Input type="date" {...register("startDate")} className="bg-accent/30 border-border/40" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-xs font-semibold uppercase tracking-wider text-destructive/80">Deadline</Label>
-                            <Input type="date" {...register("deadline")} className="bg-accent/30 border-border/40" />
-                        </div>
-                    </div>
+                            {goalType === "metric" && frequency === "one_time" ? (
+                                <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10 animate-in zoom-in-95 duration-200">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold uppercase tracking-wider">Target #</Label>
+                                        <Input
+                                            type="number"
+                                            {...register("targetNumber", { valueAsNumber: true })}
+                                            className="bg-background border-border/40 h-11 sm:h-9"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold uppercase tracking-wider">Unit</Label>
+                                        <Input {...register("unit")} placeholder="Chapters" className="bg-background border-border/40 h-11 sm:h-9" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold uppercase tracking-wider">Display As</Label>
+                                        <Input {...register("targetValue")} placeholder="e.g. 30 Chapters" className="bg-background border-border/40 h-11 sm:h-9" />
+                                    </div>
+                                </div>
+                            ) : frequency !== "one_time" ? (
+                                <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 animate-in fade-in duration-200">
+                                    <div className="mt-2">
+                                        <Label className="text-xs font-semibold uppercase tracking-wider">Target Milestone</Label>
+                                        <Input {...register("targetValue")} placeholder={`e.g. ${frequency === "daily" ? "Daily standup" : frequency === "weekly" ? "Weekly report" : "Monthly review"}`} className="bg-background border-border/40 mt-1" />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 animate-in fade-in duration-200">
+                                    <Label className="text-xs font-semibold uppercase tracking-wider">Target Milestone</Label>
+                                    <Input {...register("targetValue")} placeholder="e.g. MVP Launch / Complete Goal" className="bg-accent/30 border-border/40" />
+                                </div>
+                            )}
 
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <Label className="text-xs font-semibold uppercase tracking-wider">
-                                {isMemberOnly ? "Assigned To" : "Assign To"}
-                            </Label>
-                            {!isMemberOnly && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={toggleWholeTeam}
-                                    className={cn(
-                                        "h-7 text-[10px] px-2 gap-1.5 border border-border/20",
-                                        selectedAssignees.length === members.length && "bg-primary/10 text-primary border-primary/20"
-                                    )}
-                                >
-                                    <Sparkles className="w-3 h-3" />
-                                    Whole Team
-                                </Button>
+                            {hasTracking && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-500">
+                                    <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold uppercase tracking-wider text-primary/80">Start Date</Label>
+                                            <Input type="date" {...register("startDate")} className="bg-accent/30 border-border/40 h-11 sm:h-9" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold uppercase tracking-wider text-destructive/80">Deadline</Label>
+                                            <Input type="date" {...register("deadline")} className="bg-accent/30 border-border/40 h-11 sm:h-9" />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-xs font-semibold uppercase tracking-wider">
+                                                {isMemberOnly ? "Assigned To" : "Assign To"}
+                                            </Label>
+                                            {!isMemberOnly && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={toggleWholeTeam}
+                                                    className={cn(
+                                                        "h-7 text-[10px] px-2 gap-1.5 border border-border/20",
+                                                        selectedAssignees.length === members.length && "bg-primary/10 text-primary border-primary/20"
+                                                    )}
+                                                >
+                                                    <Users className="w-3 h-3" />
+                                                    Whole Team
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <div className="flex items-center">
+                                                {selectedAssignees.slice(0, 6).map((id, i) => {
+                                                    const m = members.find(m => m.id === id);
+                                                    if (!m) return null;
+                                                    return (
+                                                        <button
+                                                            key={id}
+                                                            type="button"
+                                                            onClick={() => !isMemberOnly && toggleAssignee(id)}
+                                                            title={m.name}
+                                                            className={cn(
+                                                                "relative w-8 h-8 rounded-full border-2 border-background transition-transform hover:scale-110 hover:z-10",
+                                                                i > 0 && "-ml-2"
+                                                            )}
+                                                            style={{ zIndex: i }}
+                                                        >
+                                                            <Avatar className="w-full h-full">
+                                                                <AvatarFallback className="text-[9px] bg-primary/20 text-primary font-bold uppercase">
+                                                                    {m.name.split(" ").map(n => n[0]).join("")}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            {!isMemberOnly && (
+                                                                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-destructive/80 text-white text-[7px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition">✕</span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                                {selectedAssignees.length > 6 && (
+                                                    <div className="relative -ml-2 w-8 h-8 rounded-full bg-accent border-2 border-background flex items-center justify-center text-[9px] font-bold text-muted-foreground z-10">
+                                                        +{selectedAssignees.length - 6}
+                                                    </div>
+                                                )}
+                                                {selectedAssignees.length === 0 && (
+                                                    <span className="text-xs text-muted-foreground/60 italic">No one assigned yet</span>
+                                                )}
+                                            </div>
+
+                                            {!isMemberOnly && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-8 gap-1.5 text-[11px] border-dashed border-border/40 text-muted-foreground hover:text-foreground"
+                                                        >
+                                                            <UserPlus className="w-3.5 h-3.5" />
+                                                            Add Assignee
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="start" className="w-52 glass-card border-border/40">
+                                                        <ScrollArea className="max-h-52">
+                                                            {members.map((member) => {
+                                                                const isSelf = member.id === myMemberId;
+                                                                const isSelected = selectedAssignees.includes(member.id);
+                                                                return (
+                                                                    <DropdownMenuItem
+                                                                        key={member.id}
+                                                                        onSelect={(e) => { e.preventDefault(); toggleAssignee(member.id); }}
+                                                                        className="flex items-center gap-2 cursor-pointer"
+                                                                    >
+                                                                        <Avatar className="w-6 h-6 shrink-0">
+                                                                            <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase">
+                                                                                {member.name.split(" ").map(n => n[0]).join("")}
+                                                                            </AvatarFallback>
+                                                                        </Avatar>
+                                                                        <span className="flex-1 text-xs truncate">{isSelf ? `${member.name} (You)` : member.name}</span>
+                                                                        {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                                                                    </DropdownMenuItem>
+                                                                );
+                                                            })}
+                                                        </ScrollArea>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <Label className="text-xs font-semibold uppercase tracking-wider">Notes <span className="text-muted-foreground/60">(Optional)</span></Label>
+                                        </div>
+                                        <Textarea {...register("description")} placeholder="Add more context or links here..." className="bg-accent/30 border-border/40 min-h-[60px] sm:min-h-[80px] text-sm" />
+                                    </div>
+
+                                    <DialogFooter className="pt-4 mt-4 border-t border-border/10">
+                                        <Button type="submit" disabled={isSubmitting} className="w-full h-11 text-sm font-bold">
+                                            {isSubmitting ? "Launching..." : "Launch Goal"}
+                                        </Button>
+                                    </DialogFooter>
+                                </div>
                             )}
                         </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {members.map((member) => {
-                                const isSelf = member.id === myMemberId;
-                                const isSelected = selectedAssignees.includes(member.id);
-
-                                if (isMemberOnly && !isSelf) return null;
-
-                                return (
-                                    <button
-                                        key={member.id}
-                                        type="button"
-                                        onClick={() => toggleAssignee(member.id)}
-                                        disabled={isMemberOnly}
-                                        className={cn(
-                                            "flex items-center gap-2 p-2 rounded-lg border text-left transition-all",
-                                            isSelected
-                                                ? "bg-primary/10 border-primary/30 ring-1 ring-primary/30"
-                                                : "bg-accent/20 border-border/20 hover:bg-accent/40",
-                                            isMemberOnly ? "cursor-default" : "cursor-pointer"
-                                        )}
-                                    >
-                                        <Avatar className="w-6 h-6 border-2 border-background">
-                                            <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase">
-                                                {member.name.split(" ").map(n => n[0]).join("")}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-[10px] font-bold truncate leading-none mb-0.5">
-                                                {isSelf ? "Myself" : member.name.split(" ")[0]}
-                                            </p>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider">Description</Label>
-                        <Textarea {...register("description")} placeholder="Add more context here..." className="bg-accent/30 border-border/40 min-h-[80px]" />
-                    </div>
-
-                    <DialogFooter>
-                        <Button type="submit" disabled={isSubmitting} className="w-full h-11 text-sm font-bold">
-                            {isSubmitting ? "Launching..." : "Launch Goal"}
-                        </Button>
-                    </DialogFooter>
+                    )}
                 </form>
             </DialogContent>
         </Dialog>

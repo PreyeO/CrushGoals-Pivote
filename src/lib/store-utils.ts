@@ -47,6 +47,25 @@ export function getGoalAssignees(goal: OrgGoal, members: OrgMember[]): OrgMember
     return goal.assignedTo.map((id) => members.find((m) => m.id === id)).filter(Boolean) as OrgMember[];
 }
 
+export function sortGoals(goals: OrgGoal[]): OrgGoal[] {
+    return [...goals].sort((a, b) => {
+        // 1. Status Priority
+        const priority: Record<string, number> = {
+            blocked: 0,
+            in_progress: 1,
+            not_started: 2,
+            completed: 3
+        };
+
+        if (priority[a.status] !== priority[b.status]) {
+            return priority[a.status] - priority[b.status];
+        }
+
+        // 2. Recency (Newest first)
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+}
+
 /**
  * Filter goals based on user role and assignment.
  * - Owners/Admins see all goals in the org.
@@ -54,9 +73,12 @@ export function getGoalAssignees(goal: OrgGoal, members: OrgMember[]): OrgMember
  */
 export function getVisibleGoals(goals: OrgGoal[], myMember: OrgMember | undefined): OrgGoal[] {
     if (!myMember) return [];
-    if (myMember.role === 'owner' || myMember.role === 'admin') {
-        return goals;
+    
+    let filtered = goals;
+    if (myMember.role !== 'owner' && myMember.role !== 'admin') {
+        // Standard members only see goals they are explicitly assigned to
+        filtered = goals.filter(g => g.assignedTo.includes(myMember.id));
     }
-    // Standard members only see goals they are explicitly assigned to
-    return goals.filter(g => g.assignedTo.includes(myMember.id));
+
+    return sortGoals(filtered);
 }
