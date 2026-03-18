@@ -3,7 +3,7 @@ import { Layers, Users, BarChart3, Trophy, Shield, Clock } from "lucide-react";
 export const heroData = {
   badge: "Built for Team Performance",
   headline: {
-    part1: "Align Your People.",
+    part1: "Align Your Team.",
     part2: "Execute With Clarity.",
   },
   subhead:

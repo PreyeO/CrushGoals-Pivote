@@ -15,6 +15,7 @@ import { goalService } from "./services/goals";
 import { orgService } from "./services/orgs";
 import { inviteService } from "./services/invites";
 import { slackService } from "./services/slack";
+import { telegramService } from "./services/telegram";
 
 export interface AppState {
   organizations: Organization[];
@@ -535,6 +536,18 @@ export const useStore = create<AppState>((set, get) => ({
             ).catch(err => console.error("Slack notify error:", err));
         }
 
+        if (org?.telegramChatId && org.telegramSettings?.notify_on_completion && updatedGoal.progress >= 100 && oldGoal && oldGoal.progress < 100) {
+          const userName = state.user?.name || "Someone";
+          fetch('/api/telegram/notify', {
+            method: 'POST',
+            body: JSON.stringify({ 
+              chatId: org.telegramChatId, 
+              method: 'sendGoalCompletion', 
+              args: [userName, updatedGoal] 
+            })
+          }).catch(err => console.error("Telegram proxy error:", err));
+        }
+
         return {
           goals: newGoals,
           members: syncMemberStats(
@@ -566,15 +579,38 @@ export const useStore = create<AppState>((set, get) => ({
 
         // Trigger Slack Notifications
         const org = state.organizations.find(o => o.id === updatedGoal.orgId);
-        if (org?.slackWebhookUrl && oldGoal) {
+        if (oldGoal) {
           const userName = state.user?.name || "Someone";
           
-          if (status === "completed" && oldGoal.status !== "completed" && org.slackSettings?.notify_on_completion) {
-            slackService.sendGoalCompletion(org.slackWebhookUrl, userName, updatedGoal)
-              .catch(e => console.error("Slack notify error:", e));
-          } else if (status === "blocked" && oldGoal.status !== "blocked" && org.slackSettings?.notify_on_blocked) {
-            slackService.sendGoalBlocked(org.slackWebhookUrl, userName, updatedGoal, reason || "No reason provided")
-              .catch(e => console.error("Slack notify error:", e));
+          // Slack
+          if (org?.slackWebhookUrl) {
+            if (status === "completed" && oldGoal.status !== "completed" && org.slackSettings?.notify_on_completion) {
+              slackService.sendGoalCompletion(org.slackWebhookUrl, userName, updatedGoal)
+                .catch(e => console.error("Slack notify error:", e));
+            } else if (status === "blocked" && oldGoal.status !== "blocked" && org.slackSettings?.notify_on_blocked) {
+              slackService.sendGoalBlocked(org.slackWebhookUrl, userName, updatedGoal, reason || "No reason provided")
+                .catch(e => console.error("Slack notify error:", e));
+            }
+          }
+
+          // Telegram (Secure Proxy)
+          if (org?.telegramChatId) {
+            const sendNotify = async (method: string, args: any[]) => {
+              try {
+                await fetch('/api/telegram/notify', {
+                  method: 'POST',
+                  body: JSON.stringify({ chatId: org.telegramChatId, method, args })
+                });
+              } catch (e) {
+                console.error(`Telegram proxy error (${method}):`, e);
+              }
+            };
+
+            if (status === "completed" && oldGoal.status !== "completed" && org.telegramSettings?.notify_on_completion) {
+              sendNotify('sendGoalCompletion', [userName, updatedGoal]);
+            } else if (status === "blocked" && oldGoal.status !== "blocked" && org.telegramSettings?.notify_on_blocked) {
+              sendNotify('sendGoalBlocked', [userName, updatedGoal, reason || "No reason provided"]);
+            }
           }
         }
 
@@ -772,7 +808,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (get().isCheckingNotifications) return;
 
     const org = get().organizations.find(o => o.id === orgId);
-    if (!org?.slackWebhookUrl) return;
+    if (!org?.slackWebhookUrl && !org?.telegramBotToken) return;
 
     const now = new Date();
     const isMonday = now.getDay() === 1;
@@ -788,7 +824,7 @@ export const useStore = create<AppState>((set, get) => ({
       );
 
       if (shouldSendSummary) {
-        // Optimistically update to prevent duplicates from other components
+        // Optimistically update
         set((state) => ({
           organizations: state.organizations.map(o => 
             o.id === orgId ? { ...o, lastWeeklySummaryAt: now.toISOString() } : o
@@ -800,31 +836,54 @@ export const useStore = create<AppState>((set, get) => ({
         const blocked = orgGoals.filter(g => g.status === 'blocked').length;
         const active = orgGoals.length - crushed - blocked;
 
-        await slackService.sendWeeklySummary(org.slackWebhookUrl, crushed, active, blocked);
+        if (org.slackWebhookUrl) {
+          await slackService.sendWeeklySummary(org.slackWebhookUrl, crushed, active, blocked);
+        }
+        if (org.telegramChatId) {
+          fetch('/api/telegram/notify', {
+            method: 'POST',
+            body: JSON.stringify({ 
+              chatId: org.telegramChatId, 
+              method: 'sendWeeklySummary', 
+              args: [crushed, active, blocked] 
+            })
+          }).catch(err => console.error("Telegram proxy error:", err));
+        }
         await orgService.updateOrganization(orgId, { lastWeeklySummaryAt: now.toISOString() });
       }
 
       // 2. Stale Goal Nudge (Daily check, once per 24h)
-      const shouldCheckStale = org.slackSettings?.notify_on_stale && (
+      const shouldCheckStaleSlack = org.slackWebhookUrl && org.slackSettings?.notify_on_stale && (
         !org.lastSlackNudgeAt || 
         new Date(org.lastSlackNudgeAt).getTime() < now.getTime() - 24 * 60 * 60 * 1000 // 24 hours
       );
 
-      if (shouldCheckStale) {
-        // Optimistically update to prevent duplicates
+      const shouldCheckStaleTelegram = org.telegramChatId && org.telegramSettings?.notify_on_stale && (
+        !org.lastTelegramNudgeAt || 
+        new Date(org.lastTelegramNudgeAt).getTime() < now.getTime() - 24 * 60 * 60 * 1000 // 24 hours
+      );
+
+      if (shouldCheckStaleSlack || shouldCheckStaleTelegram) {
+        // Optimistically update
         set((state) => ({
-          organizations: state.organizations.map(o => 
-            o.id === orgId ? { ...o, lastSlackNudgeAt: now.toISOString() } : o
-          )
+          organizations: state.organizations.map(o => {
+            if (o.id !== orgId) return o;
+            const update: any = {};
+            if (shouldCheckStaleSlack) update.lastSlackNudgeAt = now.toISOString();
+            if (shouldCheckStaleTelegram) update.lastTelegramNudgeAt = now.toISOString();
+            return { ...o, ...update };
+          })
         }));
 
-        const thresholdDays = org.slackSettings?.stale_threshold_days || 7;
+        const slackThreshold = org.slackSettings?.stale_threshold_days || 7;
+        const telegramThreshold = org.telegramSettings?.stale_threshold_days || 7;
+        
         const orgGoals = get().goals.filter(g => g.orgId === orgId && g.status !== 'completed');
         
-        const staleGoals = orgGoals.filter(g => {
+        const getStaleFor = (threshold: number) => orgGoals.filter(g => {
           const lastUpdate = new Date(g.updatedAt);
           const daysSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24);
-          return daysSinceUpdate >= thresholdDays;
+          return daysSinceUpdate >= threshold;
         }).map(g => {
           const owner = get().members.find(m => g.assignedTo.includes(m.id));
           return {
@@ -834,9 +893,27 @@ export const useStore = create<AppState>((set, get) => ({
           };
         });
 
-        if (staleGoals.length > 0) {
-          await slackService.sendStaleNudge(org.slackWebhookUrl, staleGoals);
+        if (shouldCheckStaleSlack) {
+          const staleSlack = getStaleFor(slackThreshold);
+          if (staleSlack.length > 0) {
+            await slackService.sendStaleNudge(org.slackWebhookUrl!, staleSlack);
+          }
           await orgService.updateOrganization(orgId, { lastSlackNudgeAt: now.toISOString() });
+        }
+
+        if (shouldCheckStaleTelegram) {
+          const staleTelegram = getStaleFor(telegramThreshold);
+          if (staleTelegram.length > 0) {
+            fetch('/api/telegram/notify', {
+              method: 'POST',
+              body: JSON.stringify({ 
+                chatId: org.telegramChatId!, 
+                method: 'sendStaleNudge', 
+                args: [staleTelegram] 
+              })
+            }).catch(err => console.error("Telegram proxy error:", err));
+          }
+          await orgService.updateOrganization(orgId, { lastTelegramNudgeAt: now.toISOString() });
         }
       }
     } catch (err) {
