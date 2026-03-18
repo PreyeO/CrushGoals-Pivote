@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     if (text.startsWith("/connect")) {
       // Extract code and strip any brackets the user might paste
       const rawCode = text.split(" ")[1] || "";
-      const code = rawCode.replace("[", "").replace("]", "").trim().toUpperCase();
+      const code = rawCode.replace(/[\[\]]/g, "").trim().toUpperCase();
       
       if (!code) {
         await telegramService.sendMessage(chatId, "❔ *Which Organization?* \n\nType `/connect [code]` using the code found in your CrushGoals Integration settings.");
