@@ -364,10 +364,10 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
         <div className="flex-shrink-0 p-3 space-y-2">
           <Separator className="opacity-15" />
           {!collapsed && user && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-accent/30">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="bg-primary/15 text-primary text-[11px] font-bold">
+            <Link href={`/org/${resolvedOrgId}/account`} className="flex flex-col gap-2 group cursor-pointer hover:bg-accent/40 rounded-xl transition-all">
+              <div className="flex items-center gap-2.5 px-3 py-2.5">
+                <Avatar className="w-8 h-8 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                  <AvatarFallback className="bg-primary/15 text-primary text-[11px] font-black uppercase">
                     {user.name
                       .split(" ")
                       .map((n) => n[0])
@@ -375,15 +375,15 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium truncate">
+                  <p className="text-[13px] font-bold truncate group-hover:text-primary transition-colors">
                     {user.name}
                   </p>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {user.email}
+                  <p className="text-[10px] text-muted-foreground truncate opacity-60">
+                    My Account
                   </p>
                 </div>
               </div>
-            </div>
+            </Link>
           )}
           <Button
             variant="ghost"
