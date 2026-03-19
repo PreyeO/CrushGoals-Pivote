@@ -34,6 +34,14 @@ export interface Organization {
   lastTelegramNudgeAt?: string;
 }
 
+export interface Profile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  telegram_user_id?: string | null;
+  telegram_link_code?: string | null;
+}
+
 export type OrgRole = "owner" | "admin" | "member";
 export type GoalStatus = "not_started" | "in_progress" | "blocked" | "completed";
 export type GoalPriority = "high" | "medium" | "low";
