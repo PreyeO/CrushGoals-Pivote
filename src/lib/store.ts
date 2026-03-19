@@ -10,6 +10,7 @@ import {
   MemberGoalStatus,
   MemberGoalStatusValue,
   DailyCheckIn,
+  Profile,
 } from "@/types";
 import { goalService } from "./services/goals";
 import { orgService } from "./services/orgs";
@@ -27,12 +28,12 @@ export interface AppState {
   activities: ActivityItem[];
   memberGoalStatuses: MemberGoalStatus[];
   dailyCheckins: DailyCheckIn[];
-  user: {
+  user: ({
     id: string;
     name: string;
     email: string;
     avatarUrl: string | null;
-  } | null;
+  } & { profile?: Profile | null }) | null;
   isLoading: boolean;
   isCheckingNotifications: boolean;
   error: string | null;
@@ -231,6 +232,7 @@ export const useStore = create<AppState>((set, get) => ({
               authUser.email?.split("@")[0] ||
               "User",
             avatarUrl: authUser.profile?.avatar_url || null,
+            profile: authUser.profile,
           },
         });
       }
