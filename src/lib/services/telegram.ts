@@ -86,6 +86,28 @@ export const telegramService = {
     }
   },
 
+  async setCommands() {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) return;
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commands: [
+            { command: 'goals', description: 'Show all team goals' },
+            { command: 'leaderboard', description: 'Who\'s crushing it?' },
+            { command: 'help', description: 'Show the command guide' }
+          ]
+        }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Telegram setMyCommands error:', error);
+      throw error;
+    }
+  },
+
   async sendWelcome(chatId: string) {
     const text = `👋 *CrushGoals is connected\\!* \n\nYou'll now get notified when goals are *crushed* 🎯, *blocked* 🚨, or need a *momentum boost* ⚡\\.\n\nType /goals to see all active goals\\.`;
     return this.sendMessage(chatId, text);
@@ -93,26 +115,26 @@ export const telegramService = {
 
   async sendGoalCompletion(chatId: string, memberName: string, goal: any, streakCount?: number) {
     const streakText = streakCount && streakCount >= 3 
-      ? `\n🔥 *${memberName} is on a ${streakCount}\\-goal streak\\!*` 
+      ? `\n\n🔥 ${memberName} is on a ${streakCount}-goal streak!` 
       : "";
-    const text = `🎉 *YAAY\\! ${memberName}* just CRUSHED *'${goal.title}'*\\! 🎯${streakText}`;
+    const text = `🏆 MISSION ACCOMPLISHED!\n\n${memberName} just crushed "${goal.title}". This is how we win!${streakText}`;
     return this.sendMessage(chatId, text);
   },
 
   async sendGoalBlocked(chatId: string, memberName: string, goal: any, reason: string) {
-    const text = `🚨 *GOAL BLOCKED* 🚨\n\n👤 *${memberName}* just flagged *'${goal.title}'* as blocked\\.\n\n> *Reason:* ${this.escapeMarkdown(reason)}\n\nSomeone jump in and help\\! 🤝`;
+    const text = `⚠️ ATTENTION TEAM\n\n${memberName} is facing a challenge with "${goal.title}". Let's jump in and help solve this! 🤝\n\nReason: ${this.escapeMarkdown(reason)}`;
     return this.sendMessage(chatId, text);
   },
 
   async sendNewGoalNotification(chatId: string, goal: any, memberNames: string[]) {
     const names = memberNames.length > 0 ? memberNames.join(", ") : "Team";
-    const text = `🆕 *NEW GOAL CREATED\\!* \n\n🎯 *${goal.title}* \n👤 Assigned to: *${names}*\n\nLet's get after it\\! 🚀`;
+    const text = `🎯 NEW OBJECTIVE\n\n"${goal.title}" has been set for ${names}. Let's get after it! 🚀`;
     return this.sendMessage(chatId, text);
   },
 
   async sendCheckInNotification(chatId: string, memberName: string, goalTitle: string, note?: string) {
-    const noteText = note ? `\n\n> *Note:* ${this.escapeMarkdown(note)}` : "";
-    const text = `⚡ *${memberName}* just checked in for: \n*'${goalTitle}'*${noteText} \n\nKeep it up\\! 🔥`;
+    const noteText = note ? `\n\nNote: ${this.escapeMarkdown(note)}` : "";
+    const text = `🚀 ${memberName} is making moves!\n\nProgress updated for "${goalTitle}". Keep the momentum going! 🔥${noteText}`;
     return this.sendMessage(chatId, text);
   },
 

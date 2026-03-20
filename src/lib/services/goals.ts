@@ -114,10 +114,14 @@ export const goalService = {
     }
   },
 
-  async updateStatus(goalId: string, status: GoalStatus) {
+  async updateStatus(goalId: string, status: GoalStatus, reason?: string) {
     const { error } = await getSupabase()
       .from("goals")
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({ 
+        status, 
+        reason: status === 'blocked' ? reason : (status === 'completed' ? null : undefined), 
+        updated_at: new Date().toISOString() 
+      })
       .eq("id", goalId);
     if (error) throw error;
   },

@@ -140,6 +140,7 @@ const cleanGoalData = (goal: any): OrgGoal => {
     comments: [],
     createdAt: goal.created_at,
     updatedAt: goal.updated_at,
+    reason: goal.reason,
   };
 };
 
@@ -494,6 +495,14 @@ export const useStore = create<AppState>((set, get) => ({
         }).catch(err => console.error("Telegram notify error:", err));
       }
 
+      // Slack Notification
+      if (org?.slackWebhookUrl && org.slackSettings?.notify_on_creation) {
+        const assigneeNames = (cleanedGoal.assignedTo || [])
+            .map(id => state.members.find(m => m.id === id)?.name || "Someone");
+        slackService.sendNewGoalNotification(org.slackWebhookUrl, cleanedGoal, assigneeNames)
+            .catch(err => console.error("Slack notify error:", err));
+      }
+
       set((state) => {
         const newGoals = [cleanedGoal, ...state.goals];
         return {
@@ -547,12 +556,15 @@ export const useStore = create<AppState>((set, get) => ({
         // Handle Slack Win Notification on 100% Progress
         const org = state.organizations.find(o => o.id === updatedGoal.orgId);
         const oldGoal = state.goals.find(g => g.id === goalId);
+        const member = state.members.find(m => updatedGoal.assignedTo.includes(m.id));
+        const streakCount = member?.currentStreak || 0;
         
         if (org?.slackWebhookUrl && org.slackSettings?.notify_on_completion && updatedGoal.progress >= 100 && oldGoal && oldGoal.progress < 100) {
             slackService.sendGoalCompletion(
               org.slackWebhookUrl, 
               state.user?.name || "Someone", 
-              updatedGoal
+              updatedGoal,
+              streakCount
             ).catch(err => console.error("Slack notify error:", err));
         }
 
@@ -563,7 +575,7 @@ export const useStore = create<AppState>((set, get) => ({
             body: JSON.stringify({ 
               chatId: org.telegramChatId, 
               method: 'sendGoalCompletion', 
-              args: [userName, updatedGoal] 
+              args: [userName, updatedGoal, streakCount] 
             })
           }).catch(err => console.error("Telegram proxy error:", err));
         }
@@ -590,7 +602,12 @@ export const useStore = create<AppState>((set, get) => ({
         const oldGoal = state.goals.find(g => g.id === goalId);
         const newGoals = state.goals.map((g) =>
           g.id === goalId
-            ? { ...g, status, updatedAt: new Date().toISOString() }
+            ? { 
+                ...g, 
+                status, 
+                reason: status === 'blocked' ? reason : (status === 'completed' ? undefined : g.reason),
+                updatedAt: new Date().toISOString() 
+              }
             : g,
         );
 
@@ -605,7 +622,9 @@ export const useStore = create<AppState>((set, get) => ({
           // Slack
           if (org?.slackWebhookUrl) {
             if (status === "completed" && oldGoal.status !== "completed" && org.slackSettings?.notify_on_completion) {
-              slackService.sendGoalCompletion(org.slackWebhookUrl, userName, updatedGoal)
+              const member = state.members.find(m => updatedGoal.assignedTo.includes(m.id));
+              const streakCount = member?.currentStreak || 0;
+              slackService.sendGoalCompletion(org.slackWebhookUrl, userName, updatedGoal, streakCount)
                 .catch(e => console.error("Slack notify error:", e));
             } else if (status === "blocked" && oldGoal.status !== "blocked" && org.slackSettings?.notify_on_blocked) {
               slackService.sendGoalBlocked(org.slackWebhookUrl, userName, updatedGoal, reason || "No reason provided")
@@ -627,7 +646,9 @@ export const useStore = create<AppState>((set, get) => ({
             };
 
             if (status === "completed" && oldGoal.status !== "completed" && org.telegramSettings?.notify_on_completion) {
-              sendNotify('sendGoalCompletion', [userName, updatedGoal]);
+              const member = state.members.find(m => updatedGoal.assignedTo.includes(m.id));
+              const streakCount = member?.currentStreak || 0;
+              sendNotify('sendGoalCompletion', [userName, updatedGoal, streakCount]);
             } else if (status === "blocked" && oldGoal.status !== "blocked" && org.telegramSettings?.notify_on_blocked) {
               sendNotify('sendGoalBlocked', [userName, updatedGoal, reason || "No reason provided"]);
             }
@@ -777,6 +798,15 @@ export const useStore = create<AppState>((set, get) => ({
             args: [userName, goal?.title || "Goal", note] 
           })
         }).catch(err => console.error("Telegram notify error:", err));
+      }
+
+      // Slack Notification
+      if (org?.slackWebhookUrl && org.slackSettings?.notify_on_checkin) {
+        const userName = state.user?.name || "Someone";
+        import("@/lib/services/slack").then(({ slackService }) => {
+            slackService.sendCheckInNotification(org.slackWebhookUrl!, userName, goal?.title || "Goal", note)
+                .catch(err => console.error("Slack notify error:", err));
+        });
       }
     }
   },

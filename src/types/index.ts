@@ -15,7 +15,10 @@ export interface Organization {
     notify_on_blocked: boolean;
     notify_on_stale: boolean;
     notify_on_streaks: boolean;
+    notify_on_creation: boolean;
+    notify_on_checkin: boolean;
     stale_threshold_days: number;
+    allow_commands?: boolean;
   };
   lastSlackNudgeAt?: string;
   lastWeeklySummaryAt?: string;
@@ -100,6 +103,7 @@ export interface OrgGoal {
   createdBy: string;
   assignedTo: string[]; // member IDs
   progress: number; // Computed 0-100 progress
+  reason?: string; // Reason for blockage
   comments: GoalComment[];
   createdAt: string;
   updatedAt: string;

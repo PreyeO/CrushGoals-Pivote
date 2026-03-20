@@ -27,14 +27,14 @@ export const slackService = {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "👋 *CrushGoals is connected!*"
+          text: "👋 CrushGoals is connected!"
         }
       },
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "You'll now get notified when goals are *crushed* 🎯, *blocked* 🚨, or need a *momentum boost* ⚡."
+          text: "You'll now get notified when goals are crushed 🎯, blocked 🚨, or need a momentum boost ⚡."
         }
       },
       {
@@ -50,9 +50,9 @@ export const slackService = {
     return this.sendMessage(webhookUrl, blocks);
   },
 
-  async sendGoalCompletion(webhookUrl: string, memberName: string, goal: OrgGoal, streakCount?: number) {
+  async sendGoalCompletion(webhookUrl: string, memberName: string, goal: any, streakCount?: number) {
     const streakText = streakCount && streakCount >= 3 
-      ? `\n🔥 *${memberName} is on a ${streakCount}-goal streak!*` 
+      ? `\n\n🔥 ${memberName} is on a ${streakCount}-goal streak!` 
       : "";
 
     const blocks = [
@@ -60,7 +60,7 @@ export const slackService = {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `🎯 *${memberName}* just crushed *'${goal.title}'*! 🔥${streakText}`
+          text: `🏆 MISSION ACCOMPLISHED!\n\n${memberName} just crushed "${goal.title}". This is how we win! 🔥${streakText}`
         }
       },
       {
@@ -79,7 +79,7 @@ export const slackService = {
     return this.sendMessage(webhookUrl, blocks);
   },
 
-  async sendGoalBlocked(webhookUrl: string, memberName: string, goal: OrgGoal, reason: string) {
+  async sendGoalBlocked(webhookUrl: string, memberName: string, goal: any, reason: string) {
     const blocks = [
       {
         type: "header",
@@ -93,14 +93,14 @@ export const slackService = {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `👤 *${memberName}* is stuck on *'${goal.title}'*.`
+          text: `⚠️ ATTENTION TEAM\n\n${memberName} is facing a challenge with "${goal.title}". Let's jump in and help solve this! 🤝`
         }
       },
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `> *Reason:* ${reason}`
+          text: `> Reason: ${reason}`
         }
       },
       {
@@ -108,9 +108,55 @@ export const slackService = {
         elements: [
           {
             type: "mrkdwn",
-            text: "🚨 *Someone jump in and help resolve this!* 🤝"
+            text: "Someone jump in and help resolve this! 🤝"
           }
         ]
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: "Powered by <https://crushgoals.app|CrushGoals>"
+          }
+        ]
+      }
+    ];
+    return this.sendMessage(webhookUrl, blocks);
+  },
+
+  async sendNewGoalNotification(webhookUrl: string, goal: any, memberNames: string[]) {
+    const names = memberNames.length > 0 ? memberNames.join(", ") : "Team";
+    const blocks = [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `🎯 NEW OBJECTIVE\n\n"${goal.title}" has been set for ${names}. Let's get after it! 🚀`
+        }
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: "Powered by <https://crushgoals.app|CrushGoals>"
+          }
+        ]
+      }
+    ];
+    return this.sendMessage(webhookUrl, blocks);
+  },
+
+  async sendCheckInNotification(webhookUrl: string, memberName: string, goalTitle: string, note?: string) {
+    const noteText = note ? `\n\nNote: ${note}` : "";
+    const blocks = [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `🚀 ${memberName} is making moves!\n\nProgress updated for "${goalTitle}". Keep the momentum going! 🔥${noteText}`
+        }
       },
       {
         type: "context",
@@ -154,7 +200,7 @@ export const slackService = {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `🎯 *${g.title}*\n  _Assigned to_ *${g.memberName}* — ${g.days} days since last update`
+          text: `🎯 ${g.title}\n  Assigned to ${g.memberName} — ${g.days} days since last update`
         }
       });
     });
@@ -186,15 +232,15 @@ export const slackService = {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "*Last week's performance overview:*"
+          text: "Last week's performance overview:"
         }
       },
       {
         type: "section",
         fields: [
-          { type: "mrkdwn", text: `*✅ Crushed:* ${crushedCount}` },
-          { type: "mrkdwn", text: `*🏗️ Active:* ${inProgressCount}` },
-          { type: "mrkdwn", text: `*🚨 Blocked:* ${blockedCount}` }
+          { type: "mrkdwn", text: `✅ Crushed: ${crushedCount}` },
+          { type: "mrkdwn", text: `🏗️ Active: ${inProgressCount}` },
+          { type: "mrkdwn", text: `🚨 Blocked: ${blockedCount}` }
         ]
       },
       {

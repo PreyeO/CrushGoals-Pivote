@@ -47,15 +47,13 @@ export default function OrgDashboardPage({
       state.organizations.find((o: Organization) => o.id === orgId),
     ),
   );
-  const fetchInitialData = useStore((state) => state.fetchInitialData);
   const isLoading = useStore((state) => state.isLoading);
   const user = useStore((state) => state.user);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
-    fetchInitialData(orgId);
-  }, [orgId, fetchInitialData]);
+    // Data fetching removed here; handled by parent OrgLayout to prevent flickers
+  }, [orgId]);
 
   if (!mounted || (isLoading && !org)) return <LoadingState />;
   if (!org) return notFound();
@@ -138,31 +136,19 @@ export default function OrgDashboardPage({
 
       {isAdminOrOwner && needsAttention.length > 0 && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center border border-destructive/20 shadow-[0_0_15px_-5px_var(--destructive)]">
-                <AlertCircle className="w-5 h-5 text-destructive" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold tracking-tight flex items-center gap-2">
-                  Pulse
-                  <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                </h3>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  {needsAttention.length} {needsAttention.length === 1 ? "member needs" : "members need"} attention
-                </p>
-              </div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center border border-destructive/20 shadow-[0_0_15px_-5px_var(--destructive)]">
+              <AlertCircle className="w-5 h-5 text-destructive" />
             </div>
-            
-            {needsAttention.length > 3 && (
-              <Link
-                href={`/org/${orgId}/members`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/30 hover:bg-accent/50 border border-border/40 text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
-              >
-                View all members
-                <ChevronRight className="w-3 h-3" />
-              </Link>
-            )}
+            <div>
+              <h3 className="text-sm font-bold tracking-tight flex items-center gap-2">
+                Pulse
+                <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />
+              </h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                {needsAttention.length} {needsAttention.length === 1 ? "member needs" : "members need"} attention
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -231,6 +217,18 @@ export default function OrgDashboardPage({
                 ),
               )}
           </div>
+
+          {needsAttention.length > 3 && (
+            <div className="flex justify-center pt-2">
+              <Link
+                href={`/org/${orgId}/members`}
+                className="group flex items-center gap-2.5 px-6 py-2.5 rounded-2xl bg-destructive/5 hover:bg-destructive/10 border border-destructive/10 text-[11px] font-black uppercase tracking-[0.1em] text-destructive transition-all hover:scale-[1.02] shadow-sm"
+              >
+                View All Needs Attention ({needsAttention.length})
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          )}
         </div>
       )}
 

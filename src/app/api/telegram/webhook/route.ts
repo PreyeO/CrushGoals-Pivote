@@ -53,37 +53,7 @@ export async function POST(req: NextRequest) {
     const text = message.text.trim();
     const normalizedText = text.toLowerCase();
 
-    // 2. Handle /start, /connect, and /link
-    if (normalizedText.startsWith("/link")) {
-      const code = text.split(/\s+/)[1]?.toUpperCase();
-      if (!code) {
-        await telegramService.sendMessage(chatId, "🔗 To link your profile, type:\n\n/link [your_code]\n\nYou can find your link code in Account Settings.");
-        return NextResponse.json({ ok: true });
-      }
-
-      const telegramUserId = message.from.id.toString();
-      const { data: profile, error: linkError } = await supabaseAdmin
-        .from("profiles")
-        .select("id, full_name")
-        .eq("telegram_link_code", code)
-        .maybeSingle();
-
-      if (linkError || !profile) {
-        await telegramService.sendMessage(chatId, `❌ Invalid or expired link code: "${code}". Please generate a new one in Account Settings.`);
-      } else {
-        await supabaseAdmin
-          .from("profiles")
-          .update({ 
-            telegram_user_id: telegramUserId,
-            telegram_link_code: null 
-          })
-          .eq("id", profile.id);
-        
-        await telegramService.sendMessage(chatId, `✅ Success! Linked to profile: *${profile.full_name}*\n\nYou can now use /mystatus, /done, and /blocked!`);
-      }
-      return NextResponse.json({ ok: true });
-    }
-
+    // 2. Handle /connect
     if (normalizedText.startsWith("/connect")) {
       const words = text.split(/\s+/);
       const code = words[1]?.replace(/[\[\]]/g, "").trim().toUpperCase();
@@ -100,7 +70,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // --- UNIQUE CONNECTION LOGIC ---
+      // Ensure this group isn't linked to another org
       await supabaseAdmin
         .from("organizations")
         .update({ telegram_chat_id: null, telegram_chat_title: null })
@@ -122,7 +92,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // 3. Command logic with Admin Access (RLS bypass)
+    // 3. Command logic for linked organizations
     const { data: org, error: lookupError } = await supabaseAdmin
       .from("organizations")
       .select("*")
@@ -136,25 +106,6 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({ ok: true });
     }
-
-    // Lookup linked user for personalized commands
-    const telegramUserId = (message?.from?.id || body?.callback_query?.from?.id)?.toString();
-    const { data: linkedProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("*")
-      .eq("telegram_user_id", telegramUserId)
-      .maybeSingle();
-
-    // Resolve member ID for the linked user in this specific organization
-    const { data: linkedMember } = linkedProfile 
-      ? await supabaseAdmin.from("org_members")
-          .select("id")
-          .eq("org_id", org.id)
-          .eq("user_id", linkedProfile.id)
-          .maybeSingle()
-      : { data: null };
-
-    const memberId = linkedMember?.id;
 
     // 4. Handle Commands
     if (normalizedText.startsWith("/goals")) {
@@ -172,13 +123,13 @@ export async function POST(req: NextRequest) {
         
         const memberNameMap = Object.fromEntries(orgMembersWithProfiles?.map((m: any) => [m.id, m.profiles?.full_name || "Someone"]) || []);
 
-        let msg = "*🎯 Active Goals:*\n\n";
+        let msg = "🎯 Active Goals:\n\n";
         goals.forEach((g: any, i: number) => { 
             const assignees = Array.isArray(g.assigned_to) ? g.assigned_to : [];
             const names = assignees.map((id: string) => memberNameMap[id] || "Someone").join(", ");
-            const assigneeText = names ? ` — _${names}_` : "";
+            const assigneeText = names ? ` — ${names}` : "";
             
-            msg += `${i + 1}. *${g.title}*${assigneeText}\n`; 
+            msg += `${i + 1}. ${g.title}${assigneeText}\n\n`; 
         });
         await telegramService.sendMessage(chatId, msg);
       }
@@ -196,7 +147,7 @@ export async function POST(req: NextRequest) {
       const sorted = Object.entries(board).sort((a,b) => b[1]-a[1]);
       
       if (sorted.length === 0) {
-        await telegramService.sendMessage(chatId, "🏆 *Leaderboard* \n\nNo goals crushed yet. Who's going first? 🚀");
+        await telegramService.sendMessage(chatId, "🏆 Leaderboard \n\nNo goals crushed yet. Who's going first? 🚀");
       } else {
         const { data: orgMembersWithProfiles } = await supabaseAdmin
             .from("org_members")
@@ -208,41 +159,16 @@ export async function POST(req: NextRequest) {
         
         const memberNameMap = Object.fromEntries(orgMembersWithProfiles?.map((m: any) => [m.id, m.profiles?.full_name || "Someone"]) || []);
 
-        let msg = "🏆 *Crush Leaderboard*\n\n";
+        let msg = "🏆 Crush Leaderboard:\n\n";
         sorted.forEach(([mId, c], i) => { 
             const name = memberNameMap[mId] || `Member ${mId.substring(0,4)}`;
             const medal = i === 0 ? "🥇 " : (i === 1 ? "🥈 " : (i === 2 ? "🥉 " : "• "));
-            msg += `${medal}${name} — *${c} crushed*\n`; 
-        });
-        await telegramService.sendMessage(chatId, msg);
-      }
-    } else if (normalizedText.startsWith("/mystatus")) {
-      if (!linkedProfile || !memberId) {
-        await telegramService.sendMessage(chatId, "👤 *My Status*\n\nLink your profile in settings to see your summary! Type /link for instructions.");
-        return NextResponse.json({ ok: true });
-      }
-
-      const { data: myGoals } = await supabaseAdmin.from("goals")
-        .select("*")
-        .eq("org_id", org.id)
-        .contains("assigned_to", [memberId])
-        .neq("status", "completed");
-
-      if (!myGoals || myGoals.length === 0) {
-        await telegramService.sendMessage(chatId, `👤 *My Status: ${linkedProfile.full_name}*\n\nYou have no active goals in this org! Time to pick up something new? 🎯`);
-      } else {
-        const blocked = myGoals.filter(g => g.status === 'blocked').length;
-        let msg = `👤 *My Status: ${linkedProfile.full_name}*\n\n`;
-        msg += `🎯 Active: *${myGoals.length}*\n`;
-        msg += `🚨 Blocked: *${blocked}*\n\n`;
-        msg += `*Your Goals:*\n`;
-        myGoals.forEach((g, i) => {
-            msg += `${i + 1}. ${g.title}${g.status === 'blocked' ? ' (BLOCKED)' : ''}\n`;
+            msg += `${medal}${name} — ${c} crushed\n`; 
         });
         await telegramService.sendMessage(chatId, msg);
       }
     } else if (normalizedText.startsWith("/help")) {
-      await telegramService.sendMessage(chatId, "📖 *Command Guide*\n\n/goals - Show all team goals\n/leaderboard - Who's crushing it?\n/mystatus - Your active goals\n/link - Connect your account\n/help - Show this guide");
+      await telegramService.sendMessage(chatId, "📖 Command Guide:\n\n/goals - Show all team goals\n/leaderboard - Who's crushing it?\n/help - Show this guide");
     }
 
     return NextResponse.json({ ok: true });
