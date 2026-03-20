@@ -5,7 +5,7 @@ const FLW_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { amount, email, name, tier, tx_ref, callback_url } = body;
+    const { amount, email, name, tier, tx_ref, callback_url, currency = "USD" } = body;
 
     const response = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         tx_ref,
         amount,
-        currency: "NGN",
+        currency,
         redirect_url: callback_url,
         customer: {
           email,

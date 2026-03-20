@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Zap, CreditCard } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -12,14 +12,17 @@ const PLANS = [
     {
         id: "free",
         name: "Free",
-        price: "₦0",
+        price: "$0",
         period: "forever",
-        description: "Perfect for getting started",
+        description: "For small teams getting started",
         features: [
             "1 Organization",
-            "10 Members per org",
-            "15 Active goals",
-            "Basic reporting",
+            "Up to 10 members",
+            "15 active goals",
+            "Progress reports & analytics",
+            "Leaderboard",
+            "Export PDF / CSV",
+            "Email notifications",
         ],
         buttonText: "Current Plan",
         disabled: true,
@@ -29,15 +32,18 @@ const PLANS = [
     {
         id: "pro",
         name: "Pro",
-        price: "₦10,000",
+        price: "$8",
         period: "per month",
-        description: "For growing teams",
+        description: "For growing teams who need more",
         features: [
             "3 Organizations",
-            "25 Members per org",
+            "Up to 25 members per org",
             "Unlimited goals",
-            "Slack & Telegram Integration",
-            "Advanced Analytics",
+            "Slack & Telegram notifications",
+            "Leaderboard",
+            "Progress reports & analytics",
+            "Export PDF / CSV",
+            "Priority Support",
         ],
         buttonText: "Upgrade to Pro",
         disabled: false,
@@ -49,15 +55,17 @@ const PLANS = [
     {
         id: "business",
         name: "Business",
-        price: "₦25,000",
+        price: "$19",
         period: "per month",
-        description: "For established businesses",
+        description: "For organizations at scale",
         features: [
             "Unlimited Organizations",
             "Unlimited Members",
             "Unlimited Goals",
-            "Priority Support",
+            "Advanced analytics",
+            "Team health score",
             "Everything in Pro",
+            "Dedicated support",
         ],
         buttonText: "Go Business",
         disabled: false,
@@ -66,19 +74,38 @@ const PLANS = [
     },
 ];
 
-export function PricingPlans({ showHeader = true }: { showHeader?: boolean }) {
+export function PricingPlans({ 
+    showHeader = true, 
+    highlightPlan 
+}: { 
+    showHeader?: boolean;
+    highlightPlan?: string;
+}) {
     const [loading, setLoading] = useState<string | null>(null);
     const user = useStore((state) => state.user);
     const currentTier = user?.subscriptionTier || "free";
+
+    // Auto-scroll to pricing if a plan is highlighted
+    useEffect(() => {
+        if (highlightPlan) {
+            const el = document.getElementById('pricing-plans-section');
+            if (el) {
+                setTimeout(() => {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 500);
+            }
+        }
+    }, [highlightPlan]);
 
     const handleUpgrade = async (planId: string) => {
         if (planId === currentTier) return;
         
         setLoading(planId);
         try {
-            const amount = planId === 'pro' ? 10000 : 25000;
+            const amount = planId === 'pro' ? 8 : 19;
             const data = await flutterwaveService.initializePayment({
                 amount,
+                currency: 'USD',
                 email: user?.email || '',
                 name: user?.name || 'User',
                 tier: planId as any,
@@ -99,7 +126,7 @@ export function PricingPlans({ showHeader = true }: { showHeader?: boolean }) {
     };
 
     return (
-        <div className="w-full">
+        <div className="w-full" id="pricing-plans-section">
             {showHeader && (
                 <div className="text-center mb-10">
                     <h2 className="text-3xl font-black tracking-tight flex items-center justify-center gap-3 mb-3">
@@ -115,6 +142,8 @@ export function PricingPlans({ showHeader = true }: { showHeader?: boolean }) {
             <div className="grid sm:grid-cols-3 gap-6">
                 {PLANS.map((plan) => {
                     const isCurrent = plan.id === currentTier;
+                    const isHighlighted = highlightPlan === plan.id;
+
                     return (
                         <div
                             key={plan.id}
@@ -123,12 +152,13 @@ export function PricingPlans({ showHeader = true }: { showHeader?: boolean }) {
                                 plan.border,
                                 plan.gradient,
                                 plan.glow,
-                                plan.recommended && "ring-2 ring-primary/50 ring-offset-4 ring-offset-background"
+                                plan.recommended && !isHighlighted && "ring-2 ring-primary/50 ring-offset-4 ring-offset-background",
+                                isHighlighted && "ring-4 ring-primary ring-offset-8 ring-offset-background scale-[1.05] z-10"
                             )}
                         >
-                            {plan.recommended && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-lg">
-                                    Most Popular
+                            {(plan.recommended || isHighlighted) && (
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap">
+                                    {isHighlighted ? "Selected Plan" : "Most Popular"}
                                 </div>
                             )}
 
@@ -155,12 +185,12 @@ export function PricingPlans({ showHeader = true }: { showHeader?: boolean }) {
                             <Button
                                 onClick={() => handleUpgrade(plan.id)}
                                 disabled={isCurrent || plan.disabled || loading === plan.id}
-                                variant={plan.recommended ? "default" : "outline"}
+                                variant={(plan.recommended || isHighlighted) ? "default" : "outline"}
                                 className={cn(
                                     "w-full h-11 rounded-2xl font-bold tracking-tight transition-all",
-                                    plan.recommended && "gradient-primary text-white border-0 hover:opacity-90",
+                                    (plan.recommended || isHighlighted) && "gradient-primary text-white border-0 hover:opacity-90",
                                     isCurrent && "bg-primary/10 text-primary border-primary/20",
-                                    !plan.recommended && !isCurrent && "border-border/60 hover:bg-accent/60"
+                                    !plan.recommended && !isCurrent && !isHighlighted && "border-border/60 hover:bg-accent/60"
                                 )}
                             >
                                 {loading === plan.id ? (
