@@ -41,6 +41,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface SidebarProps {
   currentOrgId?: string;
@@ -233,17 +234,44 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
                 
                 <DropdownMenuSeparator className="my-1.5 opacity-40" />
                 
-                <CreateOrgModal>
-                  <DropdownMenuItem 
-                    onSelect={(e) => e.preventDefault()}
-                    className="flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer text-primary bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all"
-                  >
-                    <div className="w-6 h-6 rounded-md bg-primary/20 flex items-center justify-center">
-                      <Plus className="w-3.5 h-3.5 font-black" />
-                    </div>
-                    <span className="font-bold text-xs uppercase tracking-tight">New Organization</span>
-                  </DropdownMenuItem>
-                </CreateOrgModal>
+                {/* Org Limit Gating */}
+                {(() => {
+                  const tier = user?.subscriptionTier || "free";
+                  const orgLimit = tier === "free" ? 1 : tier === "pro" ? 3 : Infinity;
+                  const isLimitReached = orgs.length >= orgLimit;
+                  
+                  return (
+                    <CreateOrgModal disabled={isLimitReached}>
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          if (isLimitReached) {
+                            e.preventDefault();
+                            toast.error(`You have reached the ${tier} limit of ${orgLimit} ${orgLimit === 1 ? 'organization' : 'organizations'}. Upgrade to create more.`);
+                          } else {
+                            e.preventDefault();
+                          }
+                        }}
+                        disabled={isLimitReached}
+                        className={cn(
+                          "flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer transition-all",
+                          isLimitReached 
+                            ? "opacity-50 grayscale cursor-not-allowed bg-muted text-muted-foreground"
+                            : "text-primary bg-primary/5 hover:bg-primary/10 border border-primary/10"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-6 h-6 rounded-md flex items-center justify-center",
+                          isLimitReached ? "bg-muted-foreground/20" : "bg-primary/20"
+                        )}>
+                          <Plus className="w-3.5 h-3.5 font-black" />
+                        </div>
+                        <span className="font-bold text-xs uppercase tracking-tight">
+                          {isLimitReached ? "Limit Reached (Upgrade)" : "New Organization"}
+                        </span>
+                      </DropdownMenuItem>
+                    </CreateOrgModal>
+                  );
+                })()}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

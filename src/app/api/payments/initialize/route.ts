@@ -7,6 +7,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { amount, email, name, tier, tx_ref, callback_url, currency = "USD" } = body;
 
+    const PLAN_IDS = {
+      pro: process.env.FLUTTERWAVE_PLAN_ID_PRO,
+      business: process.env.FLUTTERWAVE_PLAN_ID_BUSINESS
+    };
+
     const response = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
       headers: {
@@ -17,6 +22,7 @@ export async function POST(request: Request) {
         tx_ref,
         amount,
         currency,
+        payment_plan: (PLAN_IDS as any)[tier],
         redirect_url: callback_url,
         customer: {
           email,
@@ -27,7 +33,7 @@ export async function POST(request: Request) {
         },
         customizations: {
           title: `CrushGoals ${tier.toUpperCase()} Subscription`,
-          description: `Upgrade to ${tier} plan`,
+          description: `Recurring ${tier} plan subscription`,
           logo: "https://hello.crushgoals.app/logo.png",
         },
       }),
