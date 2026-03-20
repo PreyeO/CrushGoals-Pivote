@@ -476,6 +476,24 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const newGoal = await goalService.createGoal(goalData);
       const cleanedGoal = cleanGoalData(newGoal);
+
+      // Telegram Notification
+      const state = get();
+      const org = state.organizations.find(o => o.id === cleanedGoal.orgId);
+      if (org?.telegramChatId && org.telegramSettings?.notify_on_creation) {
+        const assigneeNames = (cleanedGoal.assignedTo || [])
+          .map(id => state.members.find(m => m.id === id)?.name || "Someone");
+        
+        fetch('/api/telegram/notify', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            chatId: org.telegramChatId, 
+            method: 'sendNewGoalNotification', 
+            args: [cleanedGoal, assigneeNames] 
+          })
+        }).catch(err => console.error("Telegram notify error:", err));
+      }
+
       set((state) => {
         const newGoals = [cleanedGoal, ...state.goals];
         return {
@@ -744,6 +762,22 @@ export const useStore = create<AppState>((set, get) => ({
             : state.members,
         };
       });
+
+      // Telegram Notification
+      const state = get();
+      const goal = state.goals.find(g => g.id === goalId);
+      const org = state.organizations.find(o => o.id === goal?.orgId);
+      if (org?.telegramChatId && org.telegramSettings?.notify_on_checkin) {
+        const userName = state.user?.name || "Someone";
+        fetch('/api/telegram/notify', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            chatId: org.telegramChatId, 
+            method: 'sendCheckInNotification', 
+            args: [userName, goal?.title || "Goal", note] 
+          })
+        }).catch(err => console.error("Telegram notify error:", err));
+      }
     }
   },
 
