@@ -8,7 +8,7 @@ export interface Organization {
   memberCount: number;
   goalCount: number;
   completionRate: number;
-  plan: "free" | "plus" | "enterprise";
+  plan: "free" | "pro" | "business";
   slackWebhookUrl?: string;
   slackSettings?: {
     notify_on_completion: boolean;
@@ -43,6 +43,7 @@ export interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  subscription_tier: "free" | "pro" | "business";
   telegram_user_id?: string | null;
   telegram_link_code?: string | null;
 }

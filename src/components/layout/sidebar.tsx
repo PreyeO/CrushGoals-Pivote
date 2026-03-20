@@ -106,11 +106,12 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
     ? getOrgNavItems(resolvedOrgId).filter(
         (item) =>
           !(
-            isMemberOnly &&
-            (item.label === "Settings" ||
-              item.label === "Members" ||
-              item.label === "Reports" ||
-              item.label === "Integrations")
+            (isMemberOnly &&
+              (item.label === "Settings" ||
+                item.label === "Members" ||
+                item.label === "Reports" ||
+                item.label === "Integrations")) ||
+            (currentOrg?.plan === "free" && item.label === "Integrations")
           ),
       )
     : [];

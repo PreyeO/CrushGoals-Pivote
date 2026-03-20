@@ -8,7 +8,7 @@ export const authService = {
 
         const { data: profile } = await getSupabase()
             .from('profiles')
-            .select('id, full_name, avatar_url, telegram_user_id, telegram_link_code')
+            .select('id, full_name, avatar_url, subscription_tier, telegram_user_id, telegram_link_code')
             .eq('id', user.id)
             .maybeSingle();
 

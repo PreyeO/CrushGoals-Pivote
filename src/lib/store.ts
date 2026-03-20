@@ -33,6 +33,7 @@ export interface AppState {
     name: string;
     email: string;
     avatarUrl: string | null;
+    subscriptionTier: "free" | "pro" | "business";
   } & { profile?: Profile | null }) | null;
   isLoading: boolean;
   isCheckingNotifications: boolean;
@@ -233,6 +234,7 @@ export const useStore = create<AppState>((set, get) => ({
               authUser.email?.split("@")[0] ||
               "User",
             avatarUrl: authUser.profile?.avatar_url || null,
+            subscriptionTier: authUser.profile?.subscription_tier || 'free',
             profile: authUser.profile,
           },
         });

@@ -20,6 +20,9 @@ export function DashboardHeader({
   showCreateOrg = true,
 }: DashboardHeaderProps) {
   const user = useStore((state) => state.user);
+  const tier = user?.subscriptionTier || "free";
+  const orgLimit = tier === "free" ? 1 : tier === "pro" ? 3 : Infinity;
+  const isLimitReached = organizations.length >= orgLimit;
 
   return (
     <header className="mb-8 animate-fade-in flex flex-col sm:flex-row sm:items-end justify-between gap-6">
@@ -39,10 +42,13 @@ export function DashboardHeader({
 
       <div className="flex items-center gap-3">
         {showCreateOrg && (
-          <CreateOrgModal>
-            <Button className="gradient-primary text-white border-0 shadow-lg shadow-primary/20 h-10 px-5 font-bold tracking-tight gap-2">
+          <CreateOrgModal disabled={isLimitReached}>
+            <Button 
+              disabled={isLimitReached}
+              className="gradient-primary text-white border-0 shadow-lg shadow-primary/20 h-10 px-5 font-bold tracking-tight gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Plus className="w-4 h-4" />
-              Create Organization
+              {isLimitReached ? "Limit Reached" : "Create Organization"}
             </Button>
           </CreateOrgModal>
         )}
