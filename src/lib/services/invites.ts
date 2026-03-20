@@ -32,7 +32,9 @@ export const inviteService = {
         }
 
         // Generate a shareable link
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        const baseUrl = typeof window !== 'undefined' 
+            ? (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin)
+            : (process.env.NEXT_PUBLIC_SITE_URL || '');
         const inviteLink = `${baseUrl}/invite/${token}`;
 
         // Send email via Server Action (to keep secrets on the server)
@@ -74,11 +76,23 @@ export const inviteService = {
     },
 
     async getInvitations(orgId: string) {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        // Auto-expire any stale pending invitations for this org
+        await getSupabase()
+            .from('invitations')
+            .update({ status: 'expired' })
+            .eq('org_id', orgId)
+            .eq('status', 'pending')
+            .lt('created_at', sevenDaysAgo.toISOString());
+
         const { data, error } = await getSupabase()
             .from('invitations')
             .select('*')
             .eq('org_id', orgId)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+            .gte('created_at', sevenDaysAgo.toISOString());
 
         if (error) throw error;
         return data;
@@ -160,13 +174,35 @@ export const inviteService = {
     },
 
     async getPendingForEmail(email: string) {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        // Auto-expire stale invitations for this email
+        await getSupabase()
+            .from('invitations')
+            .update({ status: 'expired' })
+            .eq('email', email)
+            .eq('status', 'pending')
+            .lt('created_at', sevenDaysAgo.toISOString());
+
         const { data, error } = await getSupabase()
             .from('invitations')
             .select('*')
             .eq('email', email)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+            .gte('created_at', sevenDaysAgo.toISOString());
 
         if (error) throw error;
         return data ?? [];
+    },
+
+    async rejectInvitation(token: string) {
+        const { error } = await getSupabase()
+            .from('invitations')
+            .update({ status: 'rejected' })
+            .eq('token', token)
+            .eq('status', 'pending');
+
+        if (error) throw error;
     }
 };

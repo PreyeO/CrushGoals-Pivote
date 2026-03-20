@@ -55,6 +55,7 @@ export interface AppState {
     role: OrgRole,
   ) => Promise<{ link: string; emailError?: string }>;
   cancelInvitation: (inviteId: string) => Promise<void>;
+  rejectInvitation: (token: string) => Promise<void>;
   addGoal: (
     goal: Omit<
       OrgGoal,
@@ -68,6 +69,7 @@ export interface AppState {
   ) => Promise<void>;
   updateGoalStatus: (goalId: string, status: GoalStatus, reason?: string) => Promise<void>;
   deleteGoal: (goalId: string, orgId: string) => Promise<void>;
+  deleteOrganization: (orgId: string) => Promise<void>;
   fetchMemberStatuses: (goalId: string) => Promise<void>;
   upsertMemberStatus: (
     goalId: string,
@@ -471,6 +473,33 @@ export const useStore = create<AppState>((set, get) => ({
       }));
     } catch (err: any) {
       set({ error: err.message });
+    }
+  },
+
+  rejectInvitation: async (token) => {
+    try {
+      await inviteService.rejectInvitation(token);
+      set((state) => ({
+        pendingInvitations: state.pendingInvitations.filter((i) => i.token !== token),
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    }
+  },
+
+  deleteOrganization: async (orgId) => {
+    try {
+      await orgService.deleteOrganization(orgId);
+      set((state) => ({
+        organizations: state.organizations.filter((o) => o.id !== orgId),
+        goals: state.goals.filter((g) => g.orgId !== orgId),
+        members: state.members.filter((m) => m.orgId !== orgId),
+        invitations: state.invitations.filter((i) => i.orgId !== orgId),
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
     }
   },
 
