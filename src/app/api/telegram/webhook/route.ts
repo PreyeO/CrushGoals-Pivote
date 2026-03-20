@@ -146,22 +146,40 @@ export async function POST(req: NextRequest) {
       .eq("telegram_user_id", telegramUserId)
       .maybeSingle();
 
+    // Resolve member ID for the linked user in this specific organization
+    const { data: linkedMember } = linkedProfile 
+      ? await supabaseAdmin.from("org_members")
+          .select("id")
+          .eq("org_id", org.id)
+          .eq("user_id", linkedProfile.id)
+          .maybeSingle()
+      : { data: null };
+
+    const memberId = linkedMember?.id;
+
     // 4. Handle Commands
     if (normalizedText.startsWith("/goals")) {
       const { data: goals } = await supabaseAdmin.from("goals").select("*").eq("org_id", org.id).neq("status", "completed");
       if (!goals || goals.length === 0) {
         await telegramService.sendMessage(chatId, "🙌 No active goals! You're all caught up.");
       } else {
-        let msg = "🎯 *Active Goals:*\n\n";
-        // Fetch all unique assignees to get their names
-        const allAssigneeIds = Array.from(new Set(goals.flatMap(g => Array.isArray(g.assigned_to) ? g.assigned_to : [])));
-        const { data: profiles } = await supabaseAdmin.from("profiles").select("id, full_name").in("id", allAssigneeIds);
-        const nameMap = Object.fromEntries(profiles?.map(p => [p.id, p.full_name]) || []);
+        // Fetch all unique member IDs in the organization to resolve names
+        // This is safer as it gets all members including their user/profile info
+        const { data: orgMembersWithProfiles } = await supabaseAdmin
+            .from("org_members")
+            .select(`
+                id,
+                profiles:user_id (full_name)
+            `)
+            .eq("org_id", org.id);
+        
+        const memberNameMap = Object.fromEntries(orgMembersWithProfiles?.map((m: any) => [m.id, m.profiles?.full_name || "Someone"]) || []);
 
+        let msg = "🎯 *Active Goals:*\n\n";
         goals.forEach((g: any) => { 
             const statusEmoji = g.status === 'blocked' ? '🚨' : (g.status === 'in_progress' ? '🏗️' : '⚪');
             const assignees = Array.isArray(g.assigned_to) ? g.assigned_to : [];
-            const names = assignees.map((id: string) => nameMap[id] || "Someone").join(", ");
+            const names = assignees.map((id: string) => memberNameMap[id] || "Someone").join(", ");
             const assigneeText = names ? `\n   └ 👤 ${names}` : "";
             
             msg += `${statusEmoji} *${g.title}*${assigneeText}\n`; 
@@ -174,8 +192,8 @@ export async function POST(req: NextRequest) {
       
       comp?.forEach((g: any) => { 
         const assignees = Array.isArray(g.assigned_to) ? g.assigned_to : [];
-        assignees.forEach((uId: string) => {
-            board[uId] = (board[uId] || 0) + 1;
+        assignees.forEach((mId: string) => {
+            board[mId] = (board[mId] || 0) + 1;
         });
       });
 
@@ -184,21 +202,27 @@ export async function POST(req: NextRequest) {
       if (sorted.length === 0) {
         await telegramService.sendMessage(chatId, "🏆 *Leaderboard* \n\nNo goals crushed yet. Who's going first? 🚀");
       } else {
-        // Fetch profiles for names
-        const userIds = sorted.map(s => s[0]);
-        const { data: profiles } = await supabaseAdmin.from("profiles").select("id, full_name").in("id", userIds);
-        const nameMap = Object.fromEntries(profiles?.map(p => [p.id, p.full_name]) || []);
+        // Resolve names for member IDs
+        const { data: orgMembersWithProfiles } = await supabaseAdmin
+            .from("org_members")
+            .select(`
+                id,
+                profiles:user_id (full_name)
+            `)
+            .eq("org_id", org.id);
+        
+        const memberNameMap = Object.fromEntries(orgMembersWithProfiles?.map((m: any) => [m.id, m.profiles?.full_name || "Someone"]) || []);
 
         let msg = "🏆 *Crush Leaderboard*\n\n";
-        sorted.forEach(([u, c], i) => { 
-            const name = nameMap[u] || `User ${u.substring(0,4)}`;
+        sorted.forEach(([mId, c], i) => { 
+            const name = memberNameMap[mId] || `Member ${mId.substring(0,4)}`;
             const medal = i === 0 ? "🥇 " : (i === 1 ? "🥈 " : (i === 2 ? "🥉 " : "• "));
             msg += `${medal}${name} — *${c} crushed*\n`; 
         });
         await telegramService.sendMessage(chatId, msg);
       }
     } else if (normalizedText.startsWith("/mystatus")) {
-      if (!linkedProfile) {
+      if (!linkedProfile || !memberId) {
         await telegramService.sendMessage(chatId, "👤 *My Status*\n\nLink your profile in settings to see your summary! Type /link for instructions.");
         return NextResponse.json({ ok: true });
       }
@@ -206,7 +230,7 @@ export async function POST(req: NextRequest) {
       const { data: myGoals } = await supabaseAdmin.from("goals")
         .select("*")
         .eq("org_id", org.id)
-        .contains("assigned_to", [linkedProfile.id])
+        .contains("assigned_to", [memberId])
         .neq("status", "completed");
 
       if (!myGoals || myGoals.length === 0) {
@@ -224,7 +248,7 @@ export async function POST(req: NextRequest) {
         await telegramService.sendMessage(chatId, msg);
       }
     } else if (normalizedText.startsWith("/done") || normalizedText.startsWith("/blocked")) {
-      if (!linkedProfile) {
+      if (!linkedProfile || !memberId) {
         await telegramService.sendMessage(chatId, "⚡ *Quick Update*\n\nLink your profile first to update goals directly! Type /link for help.");
         return NextResponse.json({ ok: true });
       }
@@ -233,7 +257,7 @@ export async function POST(req: NextRequest) {
       const { data: myGoals } = await supabaseAdmin.from("goals")
         .select("*")
         .eq("org_id", org.id)
-        .contains("assigned_to", [linkedProfile.id])
+        .contains("assigned_to", [memberId])
         .neq("status", "completed");
 
       if (!myGoals || myGoals.length === 0) {

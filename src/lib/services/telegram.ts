@@ -95,12 +95,12 @@ export const telegramService = {
     const streakText = streakCount && streakCount >= 3 
       ? `\n🔥 *${memberName} is on a ${streakCount}\\-goal streak\\!*` 
       : "";
-    const text = `🎯 *${memberName}* just crushed *'${goal.title}'*\\! 🔥${streakText}`;
+    const text = `🎉 *YAAY\\! ${memberName}* just CRUSHED *'${goal.title}'*\\! 🎯${streakText}`;
     return this.sendMessage(chatId, text);
   },
 
   async sendGoalBlocked(chatId: string, memberName: string, goal: OrgGoal, reason: string) {
-    const text = `🚨 *Goal Blocked* 🚨\n\n👤 *${memberName}* is stuck on *'${goal.title}'*\\.\n\n> *Reason:* ${reason}\n\nSomeone jump in and help\\! 🤝`;
+    const text = `🚨 *GOAL BLOCKED* 🚨\n\n👤 *${memberName}* just flagged *'${goal.title}'* as blocked\\.\n\n> *Reason:* ${this.escapeMarkdown(reason)}\n\nSomeone jump in and help\\! 🤝`;
     return this.sendMessage(chatId, text);
   },
 
