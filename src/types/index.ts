@@ -8,14 +8,17 @@ export interface Organization {
   memberCount: number;
   goalCount: number;
   completionRate: number;
-  plan: "free" | "plus" | "enterprise";
+  plan: "free" | "pro" | "business";
   slackWebhookUrl?: string;
   slackSettings?: {
     notify_on_completion: boolean;
     notify_on_blocked: boolean;
     notify_on_stale: boolean;
     notify_on_streaks: boolean;
+    notify_on_creation: boolean;
+    notify_on_checkin: boolean;
     stale_threshold_days: number;
+    allow_commands?: boolean;
   };
   lastSlackNudgeAt?: string;
   lastWeeklySummaryAt?: string;
@@ -40,6 +43,7 @@ export interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  subscription_tier: "free" | "pro" | "business";
   telegram_user_id?: string | null;
   telegram_link_code?: string | null;
 }
@@ -100,6 +104,7 @@ export interface OrgGoal {
   createdBy: string;
   assignedTo: string[]; // member IDs
   progress: number; // Computed 0-100 progress
+  reason?: string; // Reason for blockage
   comments: GoalComment[];
   createdAt: string;
   updatedAt: string;

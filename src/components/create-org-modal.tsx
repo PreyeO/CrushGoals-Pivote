@@ -32,9 +32,10 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface CreateOrgModalProps {
   children?: React.ReactNode;
+  disabled?: boolean;
 }
 
-export function CreateOrgModal({ children }: CreateOrgModalProps) {
+export function CreateOrgModal({ children, disabled }: CreateOrgModalProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const addOrganization = useStore((state) => state.addOrganization);

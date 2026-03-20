@@ -44,7 +44,14 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
     const [open, setOpen] = useState(false);
     const [inviteLink, setInviteLink] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    
+    const organizations = useStore((state) => state.organizations);
+    const currentOrg = organizations.find(o => o.id === orgId);
     const sendInvitation = useStore((state) => state.sendInvitation);
+
+    const plan = currentOrg?.plan || "free";
+    const memberLimit = plan === "free" ? 10 : plan === "pro" ? 25 : Infinity;
+    const isLimitReached = (currentOrg?.memberCount || 0) >= memberLimit;
 
     const {
         register,
@@ -99,10 +106,14 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
+        <DialogTrigger asChild disabled={isLimitReached}>
                 {children || (
-                    <Button className="gradient-primary text-white border-0 hover:opacity-90 gap-2 h-9 text-[13px] font-semibold">
-                        <UserPlus className="w-4 h-4" /> Invite Teammate
+                    <Button 
+                        disabled={isLimitReached}
+                        className="gradient-primary text-white border-0 hover:opacity-90 gap-2 h-9 text-[13px] font-semibold disabled:opacity-50"
+                    >
+                        <UserPlus className="w-4 h-4" /> 
+                        {isLimitReached ? "Limit Reached" : "Invite Teammate"}
                     </Button>
                 )}
             </DialogTrigger>

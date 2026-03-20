@@ -81,6 +81,8 @@ export default function IntegrationsPage({ params }: { params: Promise<{ orgId: 
         notify_on_blocked: true,
         notify_on_stale: true,
         notify_on_streaks: true,
+        notify_on_creation: true,
+        notify_on_checkin: true,
         stale_threshold_days: 5
     });
 
@@ -105,9 +107,30 @@ export default function IntegrationsPage({ params }: { params: Promise<{ orgId: 
     useEffect(() => {
         if (org) {
             setSlackWebhookUrl(org.slackWebhookUrl || "");
-            if (org.slackSettings) setSlackSettings(org.slackSettings);
+            if (org.slackSettings) {
+                setSlackSettings({
+                    notify_on_completion: org.slackSettings.notify_on_completion ?? true,
+                    notify_on_blocked: org.slackSettings.notify_on_blocked ?? true,
+                    notify_on_stale: org.slackSettings.notify_on_stale ?? true,
+                    notify_on_streaks: org.slackSettings.notify_on_streaks ?? true,
+                    notify_on_creation: org.slackSettings.notify_on_creation ?? true,
+                    notify_on_checkin: org.slackSettings.notify_on_checkin ?? true,
+                    stale_threshold_days: org.slackSettings.stale_threshold_days || 5,
+                });
+            }
             
-            if (org.telegramSettings) setTelegramSettings(org.telegramSettings);
+            if (org.telegramSettings) {
+                setTelegramSettings({
+                    notify_on_completion: org.telegramSettings.notify_on_completion ?? true,
+                    notify_on_blocked: org.telegramSettings.notify_on_blocked ?? true,
+                    notify_on_stale: org.telegramSettings.notify_on_stale ?? true,
+                    notify_on_streaks: org.telegramSettings.notify_on_streaks ?? true,
+                    notify_on_creation: org.telegramSettings.notify_on_creation ?? true,
+                    notify_on_checkin: org.telegramSettings.notify_on_checkin ?? true,
+                    stale_threshold_days: org.telegramSettings.stale_threshold_days || 5,
+                    allow_commands: org.telegramSettings.allow_commands ?? true,
+                });
+            }
             setTelegramChatId(org.telegramChatId || "");
         }
     }, [org]);
@@ -356,6 +379,8 @@ export default function IntegrationsPage({ params }: { params: Promise<{ orgId: 
                                     <h3 className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2"><Bell className="w-4 h-4" /> Events</h3>
                                     <div className="space-y-3">
                                         {[
+                                            { id: 'notify_on_creation', label: 'New Goals' },
+                                            { id: 'notify_on_checkin', label: 'Daily Check-ins' },
                                             { id: 'notify_on_completion', label: 'Goal Wins' },
                                             { id: 'notify_on_blocked', label: 'Blockers' },
                                             { id: 'notify_on_stale', label: 'Stale Nudges' },

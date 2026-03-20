@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, Save, Trash2, AlertTriangle, Sparkles, LogOut, RefreshCw } from "lucide-react";
 import { notFound, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { SubscriptionModal } from "@/components/SubscriptionModal";
+import { CreditCard, Zap } from "lucide-react";
 
 export default function OrgSettingsPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params);
@@ -119,6 +121,64 @@ export default function OrgSettingsPage({ params }: { params: Promise<{ orgId: s
                             {isSaving ? "Saving..." : "Save Changes"}
                             <Save className="w-4 h-4 ml-2" />
                         </Button>
+                    </div>
+                </section>
+
+                {/* Subscription & Billing Section */}
+                <section className="glass-card p-6 space-y-6 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                        <Zap className="w-24 h-24 text-primary fill-primary" />
+                    </div>
+                    
+                    <h2 className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-primary" /> Subscription & Billing
+                    </h2>
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-primary/5 p-6 rounded-3xl border border-primary/10">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Current Plan</p>
+                                <div className="px-2 py-0.5 rounded-full bg-primary text-white text-[9px] font-black uppercase tracking-widest">
+                                    {useStore.getState().user?.subscriptionTier || "Free"}
+                                </div>
+                            </div>
+                            <h3 className="text-xl font-bold tracking-tight">
+                                {useStore.getState().user?.subscriptionTier === 'business' ? "Business Plan" : 
+                                 useStore.getState().user?.subscriptionTier === 'pro' ? "Pro Plan" : "Free Plan"}
+                            </h3>
+                            <p className="text-[11px] text-muted-foreground mt-1 max-w-sm">
+                                {useStore.getState().user?.subscriptionTier === 'free' 
+                                    ? "Upgrade to unlock Slack/Telegram integrations and remove limits." 
+                                    : "You're currently on a premium plan. Thank you for supporting CrushGoals!"}
+                            </p>
+                        </div>
+                        <SubscriptionModal>
+                            <Button className="gradient-primary text-white border-0 h-11 px-8 font-bold tracking-tight glow-primary">
+                                <Zap className="w-4 h-4 mr-2" />
+                                Upgrade Plan
+                            </Button>
+                        </SubscriptionModal>
+                    </div>
+
+                    <div className="grid sm:grid-cols-3 gap-4">
+                        <div className="p-4 rounded-2xl bg-accent/20 border border-border/40">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Organizations</p>
+                            <p className="text-lg font-bold">
+                                {useStore.getState().organizations.length} <span className="text-[11px] font-normal text-muted-foreground">/ {useStore.getState().user?.subscriptionTier === 'free' ? '1' : useStore.getState().user?.subscriptionTier === 'pro' ? '3' : '∞'}</span>
+                            </p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-accent/20 border border-border/40">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Members</p>
+                            <p className="text-lg font-bold">
+                                {org.memberCount} <span className="text-[11px] font-normal text-muted-foreground">/ {useStore.getState().user?.subscriptionTier === 'free' ? '10' : useStore.getState().user?.subscriptionTier === 'pro' ? '25' : '∞'}</span>
+                            </p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-accent/20 border border-border/40">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Active Goals</p>
+                            <p className="text-lg font-bold">
+                                {org.goalCount} <span className="text-[11px] font-normal text-muted-foreground">/ {useStore.getState().user?.subscriptionTier === 'free' ? '15' : '∞'}</span>
+                            </p>
+                        </div>
                     </div>
                 </section>
 

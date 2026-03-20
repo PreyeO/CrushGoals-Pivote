@@ -87,6 +87,16 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
     const user = useStore((state) => state.user);
 
     const members = allMembers.filter(m => m.orgId === orgId);
+    const organizations = useStore((state) => state.organizations);
+    const currentOrg = organizations.find(o => o.id === orgId);
+    const allGoals = useStore((state) => state.goals);
+    
+    const orgGoals = allGoals.filter(g => g.orgId === orgId);
+    const activeGoals = orgGoals.filter(g => g.status !== 'completed');
+    const plan = currentOrg?.plan || "free";
+    const goalLimit = plan === "free" ? 15 : Infinity;
+    const isLimitReached = activeGoals.length >= goalLimit;
+
     const myMember = members.find(m => m.userId === user?.id);
     const myMemberId = myMember?.id || "";
     const isMemberOnly = myMember?.role === "member";
@@ -212,10 +222,15 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger asChild disabled={isLimitReached}>
                 {children || (
-                    <Button variant="outline" className="gap-2 border-primary/30 text-primary hover:bg-primary/10">
-                        <Plus className="w-4 h-4" /> New Goal
+                    <Button 
+                        variant="outline" 
+                        disabled={isLimitReached}
+                        className="gap-2 border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-50"
+                    >
+                        <Plus className="w-4 h-4" /> 
+                        {isLimitReached ? "Goal Limit Reached" : "New Goal"}
                     </Button>
                 )}
             </DialogTrigger>

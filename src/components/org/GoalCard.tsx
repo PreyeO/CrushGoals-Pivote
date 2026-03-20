@@ -319,9 +319,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             <Ban className="w-3 h-3" /> Blocked
           </p>
           <p className="text-[11px] text-destructive/80 italic">
-            {goal.comments
-              .find((c) => c.content.includes("🚩 BLOCKED:"))
-              ?.content?.replace("🚩 BLOCKED:", "") || "Waiting on resolution"}
+            {goal.reason || "Waiting on resolution"}
           </p>
         </div>
       )}

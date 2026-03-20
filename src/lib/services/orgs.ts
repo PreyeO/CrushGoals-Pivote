@@ -17,13 +17,14 @@ export const orgService = {
 
         const orgIds = membershipData.map((m: any) => m.org_id);
 
-        // Fetch orgs with member and goal counts
+        // Fetch orgs with member and goal counts and owner's tier
         const { data, error } = await getSupabase()
             .from('organizations')
             .select(`
                 *,
                 memberCount:org_members(count),
-                goalCount:goals(count)
+                goalCount:goals(count),
+                owner:profiles!owner_id(subscription_tier)
             `)
             .in('id', orgIds);
 
@@ -31,6 +32,7 @@ export const orgService = {
 
         return data.map((org: any) => ({
             ...org,
+            plan: org.owner?.subscription_tier || "free",
             memberCount: org.memberCount?.[0]?.count || 0,
             goalCount: org.goalCount?.[0]?.count || 0,
             completionRate: 0,

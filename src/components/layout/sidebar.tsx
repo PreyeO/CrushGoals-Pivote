@@ -56,17 +56,25 @@ const getOrgNavItems = (orgId: string) => [
   { icon: Settings, label: "Settings", path: `/org/${orgId}/settings` },
 ];
 
-export function Sidebar({ currentOrgId }: SidebarProps) {
+export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [lastOrgId, setLastOrgId] = useState<string | null>(null);
+
+  // Extract orgId from URL if present
+  const urlOrgId = pathname.split("/org/")[1]?.split("/")[0];
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true);
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
+    setMounted(true);
+    if (urlOrgId) {
+      localStorage.setItem("lastActiveOrgId", urlOrgId);
+      setLastOrgId(urlOrgId);
+    } else {
+      const saved = localStorage.getItem("lastActiveOrgId");
+      if (saved) setLastOrgId(saved);
+    }
+  }, [urlOrgId]);
 
   const orgs = useStore(useShallow((state) => state.organizations));
   const members = useStore(useShallow((state) => state.members));
@@ -81,24 +89,29 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
     (m) => m.userId === user?.id && (m.role === "owner" || m.role === "admin"),
   );
 
-  const resolvedOrgId = currentOrgId || orgs[0]?.id;
+  const resolvedOrgId = urlOrgId || propOrgId || lastOrgId || orgs[0]?.id;
   const currentOrg = orgs.find((o: Organization) => o.id === resolvedOrgId);
   const myMember = members.find(
     (m) => m.userId === user?.id && m.orgId === resolvedOrgId,
   );
 
-  // Permission Fix: Default to member-only if myMember isn't loaded yet to prevent flashes of restricted UI
-  const isMemberOnly = !myMember || myMember.role === "member";
+  // Permission Fix: Don't downgrade admins/owners during transitions
+  // If we don't have myMember for THIS org yet, but we know they are an admin ANYWHERE, 
+  // we keep the tools visible to prevent flickering "lag"
+  const isMemberOnly = myMember 
+    ? myMember.role === "member" 
+    : !isOwnerOrAdminAny;
 
   const orgNavItems = resolvedOrgId
     ? getOrgNavItems(resolvedOrgId).filter(
         (item) =>
           !(
-            isMemberOnly &&
-            (item.label === "Settings" ||
-              item.label === "Members" ||
-              item.label === "Reports" ||
-              item.label === "Integrations")
+            (isMemberOnly &&
+              (item.label === "Settings" ||
+                item.label === "Members" ||
+                item.label === "Reports" ||
+                item.label === "Integrations")) ||
+            (currentOrg?.plan === "free" && item.label === "Integrations")
           ),
       )
     : [];
@@ -208,12 +221,12 @@ export function Sidebar({ currentOrgId }: SidebarProps) {
                     <DropdownMenuItem 
                       className={cn(
                         "flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer transition-colors mb-0.5",
-                        currentOrgId === org.id ? "bg-primary/10 text-primary" : "hover:bg-accent"
+                        urlOrgId === org.id ? "bg-primary/10 text-primary" : "hover:bg-accent"
                       )}
                     >
                       <span className="text-base w-6 h-6 flex items-center justify-center">{org.emoji}</span>
                       <span className="font-semibold text-xs flex-1">{org.name}</span>
-                      {currentOrgId === org.id && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                      {urlOrgId === org.id && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
                     </DropdownMenuItem>
                   </Link>
                 ))}

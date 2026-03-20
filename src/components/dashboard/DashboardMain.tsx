@@ -6,7 +6,6 @@ import { useShallow } from "zustand/react/shallow";
 import { DashboardHeader } from "./DashboardHeader";
 import { DashboardStats } from "./DashboardStats";
 import { OrganizationGrid } from "./OrganizationGrid";
-import { QuickActions } from "./QuickActions";
 import { DashboardGoals } from "./DashboardGoals";
 import { Organization, OrgMember, OrgGoal } from "@/types";
 import { Zap, ShieldAlert, AlertCircle, Ban, Clock, ChevronRight } from "lucide-react";
@@ -220,7 +219,6 @@ export function DashboardMain() {
       <DashboardGoals />
 
       <OrganizationGrid organizations={organizations} showCreateCard={false} />
-      <QuickActions organizations={organizations} />
     </div>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import dynamic from "next/dynamic";
 import { useStore } from "@/lib/store";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { cn } from "@/lib/utils";
 import { CreateOrgModal } from "@/components/create-org-modal";
+import { toast } from "sonner";
 
 const DashboardMain = dynamic(
   () =>
@@ -20,6 +21,27 @@ const DashboardMain = dynamic(
 export default function DashboardPage() {
   const { sidebarCollapsed, fetchInitialData, isLoading, user, organizations, members, pendingInvitations } = useStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    const tier = searchParams.get("tier");
+    
+    if (payment === "success") {
+      toast.success(`Success! Your account has been upgraded to ${tier?.toUpperCase()}.`, {
+        description: "You now have access to all premium features.",
+        duration: 5000,
+      });
+      // Clear URL params
+      router.replace("/dashboard");
+    } else if (payment === "failed") {
+      toast.error("Payment failed. Please try again or contact support.");
+      router.replace("/dashboard");
+    } else if (payment === "error") {
+      toast.error("An error occurred during payment verification.");
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     let mounted = true;
