@@ -5,19 +5,34 @@ import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Mail, Building2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Mail, Building2, ArrowRight, CheckCircle2, X } from "lucide-react";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { toast } from "sonner";
 
 export default function InvitationsPage() {
     const [mounted, setMounted] = useState(false);
     const fetchInitialData = useStore((state) => state.fetchInitialData);
     const isLoading = useStore((state) => state.isLoading);
     const pendingInvites = useStore(useShallow((state) => state.pendingInvitations));
+    const rejectInvitation = useStore((state) => state.rejectInvitation);
+    const [decliningToken, setDecliningToken] = useState<string | null>(null);
 
     useEffect(() => {
         setMounted(true);
         fetchInitialData();
     }, [fetchInitialData]);
+
+    const handleDecline = async (token: string) => {
+        setDecliningToken(token);
+        try {
+            await rejectInvitation(token);
+            toast.success("Invitation declined.");
+        } catch (err: any) {
+            toast.error(err.message || "Failed to decline invitation.");
+        } finally {
+            setDecliningToken(null);
+        }
+    };
 
     if (!mounted || isLoading) return <LoadingState message="Loading invitations..." />;
 
@@ -47,9 +62,8 @@ export default function InvitationsPage() {
                 ) : (
                     <div className="space-y-3 animate-fade-in-up">
                         {pendingInvites.map((invite) => (
-                            <Link
+                            <div
                                 key={invite.id}
-                                href={`/invite/${invite.token}`}
                                 className="group flex items-center justify-between p-5 rounded-2xl glass-card border-border/40 hover:border-amber-500/40 hover:bg-amber-500/[0.03] transition-all duration-300"
                             >
                                 <div className="flex items-center gap-4">
@@ -65,14 +79,28 @@ export default function InvitationsPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <Button
-                                    size="sm"
-                                    className="gradient-primary text-white border-0 text-xs font-bold gap-1.5 h-9 px-4 shrink-0"
-                                >
-                                    Review
-                                    <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                                </Button>
-                            </Link>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleDecline(invite.token)}
+                                        disabled={decliningToken === invite.token}
+                                        className="text-xs font-bold gap-1.5 h-9 px-3 text-destructive/60 border-destructive/20 hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                    >
+                                        <X className="w-3 h-3" />
+                                        {decliningToken === invite.token ? "..." : "Decline"}
+                                    </Button>
+                                    <Link href={`/invite/${invite.token}`}>
+                                        <Button
+                                            size="sm"
+                                            className="gradient-primary text-white border-0 text-xs font-bold gap-1.5 h-9 px-4 shrink-0"
+                                        >
+                                            Review
+                                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 )}

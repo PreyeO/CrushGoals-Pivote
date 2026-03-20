@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Mail,
   ArrowRight,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -28,9 +29,11 @@ export default function InvitationPage({
   const [invitation, setInvitation] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchInitialData = useStore((state) => state.fetchInitialData);
+  const rejectInvitation = useStore((state) => state.rejectInvitation);
 
   useEffect(() => {
     // Fetch user session first to ensure UI reflects auth state
@@ -83,6 +86,20 @@ export default function InvitationPage({
       toast.error(err.message || "Failed to accept invitation.");
     } finally {
       setIsAccepting(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    setIsDeclining(true);
+    try {
+      await rejectInvitation(token);
+      toast.success("Invitation declined.");
+      router.push(user ? "/dashboard" : "/");
+    } catch (err: any) {
+      console.error("Decline invite error:", err);
+      toast.error(err.message || "Failed to decline invitation.");
+    } finally {
+      setIsDeclining(false);
     }
   };
 
@@ -164,27 +181,45 @@ export default function InvitationPage({
                 Get Started
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <p className="text-[11px] text-muted-foreground">
-                Already have an account?{" "}
+              <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
                 <Link
                   href={`/auth/login?returnUrl=/invite/${token}`}
                   className="text-primary hover:underline"
                 >
                   Log in here
                 </Link>
-              </p>
+                <span>·</span>
+                <button
+                  onClick={handleDecline}
+                  disabled={isDeclining}
+                  className="text-destructive/70 hover:text-destructive hover:underline transition-colors cursor-pointer"
+                >
+                  {isDeclining ? "Declining..." : "Decline Invite"}
+                </button>
+              </div>
             </div>
           ) : (
-            <Button
-              onClick={handleAccept}
-              disabled={isAccepting}
-              className="w-full h-14 rounded-2xl gradient-primary text-white font-black tracking-tight text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all disabled:opacity-50 group"
-            >
-              {isAccepting ? "Joining..." : "Accept & Join"}
-              {!isAccepting && (
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              )}
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={handleAccept}
+                disabled={isAccepting}
+                className="w-full h-14 rounded-2xl gradient-primary text-white font-black tracking-tight text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all disabled:opacity-50 group"
+              >
+                {isAccepting ? "Joining..." : "Accept & Join"}
+                {!isAccepting && (
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                )}
+              </Button>
+              <Button
+                onClick={handleDecline}
+                disabled={isDeclining}
+                variant="outline"
+                className="w-full h-11 rounded-2xl text-sm font-semibold text-destructive/70 border-destructive/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
+              >
+                {isDeclining ? "Declining..." : "Decline Invitation"}
+                <X className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           )}
         </div>
 

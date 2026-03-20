@@ -194,5 +194,47 @@ export const orgService = {
             lastTelegramNudgeAt: result.last_telegram_nudge_at,
             createdAt: result.created_at || new Date().toISOString()
         };
+    },
+
+    async deleteOrganization(orgId: string) {
+        const { data: { user } } = await getSupabase().auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        // Verify the user is the owner
+        const { data: membership } = await getSupabase()
+            .from('org_members')
+            .select('role')
+            .eq('org_id', orgId)
+            .eq('user_id', user.id)
+            .single();
+
+        if (!membership || membership.role !== 'owner') {
+            throw new Error("Only the organization owner can delete it.");
+        }
+
+        // Delete in order: invitations, member_goal_status, daily_check_ins, goals, org_members, org
+        await getSupabase().from('invitations').delete().eq('org_id', orgId);
+        await getSupabase().from('member_goal_status').delete().eq('org_id', orgId);
+        
+        // Get goal IDs for this org to delete check-ins
+        const { data: goals } = await getSupabase()
+            .from('goals')
+            .select('id')
+            .eq('org_id', orgId);
+        
+        if (goals && goals.length > 0) {
+            const goalIds = goals.map((g: any) => g.id);
+            await getSupabase().from('daily_check_ins').delete().in('goal_id', goalIds);
+        }
+        
+        await getSupabase().from('goals').delete().eq('org_id', orgId);
+        await getSupabase().from('org_members').delete().eq('org_id', orgId);
+        
+        const { error } = await getSupabase()
+            .from('organizations')
+            .delete()
+            .eq('id', orgId);
+
+        if (error) throw error;
     }
 };

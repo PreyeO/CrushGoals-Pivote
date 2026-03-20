@@ -11,6 +11,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 export function SignUpForm() {
   const searchParams = useSearchParams();
   const invitedEmail = searchParams.get("email");
+  const [validInvite, setValidInvite] = useState(!!invitedEmail);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState(invitedEmail || "");
@@ -21,10 +22,28 @@ export function SignUpForm() {
   const router = useRouter();
   const supabase = createClient();
 
-  // Sync email if invitedEmail changes (rare but good for robustness)
+  // Validate that the invited email actually has a pending invite
   useEffect(() => {
     if (invitedEmail) {
       setEmail(invitedEmail);
+      // Check if invite is still valid
+      const checkInvite = async () => {
+        try {
+          const { data } = await supabase
+            .from('invitations')
+            .select('id')
+            .eq('email', invitedEmail)
+            .eq('status', 'pending')
+            .limit(1);
+          if (!data || data.length === 0) {
+            // Invite expired/deleted/canceled - unlock email
+            setValidInvite(false);
+          }
+        } catch {
+          setValidInvite(false);
+        }
+      };
+      checkInvite();
     }
   }, [invitedEmail]);
 
@@ -35,11 +54,12 @@ export function SignUpForm() {
 
     const returnUrl = searchParams.get("returnUrl");
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback${returnUrl ? `?next=${encodeURIComponent(returnUrl)}` : ""}`,
+        emailRedirectTo: `${siteUrl}/auth/callback${returnUrl ? `?next=${encodeURIComponent(returnUrl)}` : "?next=/auth/login"}`,
         data: {
           full_name: fullName,
         },
@@ -79,12 +99,12 @@ export function SignUpForm() {
           type="email"
           placeholder="name@company.com"
           required
-          disabled={!!invitedEmail}
+          disabled={validInvite}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={`bg-accent/20 border-border/40 h-11 ${invitedEmail ? "opacity-60 cursor-not-allowed" : ""}`}
+          className={`bg-accent/20 border-border/40 h-11 ${validInvite ? "opacity-60 cursor-not-allowed" : ""}`}
         />
-        {invitedEmail && (
+        {validInvite && (
           <p className="text-[10px] text-primary font-bold uppercase tracking-widest opacity-70">
             Invited Email (Locked)
           </p>
