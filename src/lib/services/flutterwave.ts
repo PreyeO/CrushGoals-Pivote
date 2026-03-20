@@ -7,6 +7,7 @@ export interface PaymentData {
   email: string;
   name: string;
   tier: "pro" | "business";
+  currency?: string;
   tx_ref: string;
   callback_url: string;
 }

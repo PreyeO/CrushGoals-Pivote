@@ -18,14 +18,17 @@ const DashboardMain = dynamic(
   { ssr: false },
 );
 
-function PaymentStatusHandler() {
+function SearchParamHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { organizations, isLoading, user } = useStore();
 
   useEffect(() => {
     const payment = searchParams.get("payment");
     const tier = searchParams.get("tier");
+    const plan = searchParams.get("plan");
     
+    // Handle Payment Results
     if (payment === "success") {
       toast.success(`Success! Your account has been upgraded to ${tier?.toUpperCase()}.`, {
         description: "You now have access to all premium features.",
@@ -39,7 +42,12 @@ function PaymentStatusHandler() {
       toast.error("An error occurred during payment verification.");
       router.replace("/dashboard");
     }
-  }, [searchParams, router]);
+
+    // Handle Plan Selection from Landing Page
+    if (plan && !isLoading && user && organizations.length > 0) {
+      router.push(`/org/${organizations[0].id}/settings?plan=${plan}`);
+    }
+  }, [searchParams, router, isLoading, user, organizations]);
 
   return null;
 }
@@ -57,6 +65,7 @@ export default function DashboardPage() {
   }, [fetchInitialData, isLoading, user]);
 
   useEffect(() => {
+    // If there's a plan param, let the SearchParamHandler handle the redirect
     if (isLoading || !user) return;
     
     const isOwnerOrAdmin = members.some(
@@ -75,7 +84,12 @@ export default function DashboardPage() {
       return;
     }
 
+    // Default redirection if no plan param is present
+    // We can't easily check searchParams here without breaking the Suspense rule for the whole page,
+    // so we let the landing-to-billing flow take precedence if plan exists.
     if (!isOwnerOrAdmin && organizations.length > 0) {
+      // Small delay or check to ensure we don't conflict with SearchParamHandler
+      // In practice, if a plan exists, SearchParamHandler's push will happen.
       router.push(`/org/${organizations[0].id}`);
     }
   }, [isLoading, organizations.length, members, user, pendingInvitations, router]);
@@ -102,7 +116,7 @@ export default function DashboardPage() {
      return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
             <Suspense fallback={null}>
-                <PaymentStatusHandler />
+                <SearchParamHandler />
             </Suspense>
             <div className="max-w-md w-full glass-card p-10 space-y-6 animate-fade-in-up">
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2 text-3xl">
@@ -143,7 +157,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">
       <Suspense fallback={null}>
-        <PaymentStatusHandler />
+        <SearchParamHandler />
       </Suspense>
       <Sidebar />
       <main className={cn(

@@ -110,7 +110,7 @@ export function Pricing() {
                   </li>
                 ))}
               </ul>
-              <Link href="/dashboard" className="block">
+              <Link href={`/dashboard?plan=${plan.name.toLowerCase()}`} className="block">
                 <Button
                   className={`w-full h-10 text-sm font-semibold cursor-pointer ${plan.popular ? "gradient-primary text-white border-0 hover:opacity-90" : "border-border/60 hover:bg-accent/60"}`}
                   variant={plan.popular ? "default" : "outline"}
