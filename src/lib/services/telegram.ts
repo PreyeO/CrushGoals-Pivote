@@ -1,4 +1,5 @@
 import { OrgGoal } from "@/types";
+import { WeeklySummary } from "./reportService";
 
 // Use standard server-side token for security
 
@@ -147,8 +148,32 @@ export const telegramService = {
     return this.sendMessage(chatId, text);
   },
 
-  async sendWeeklySummary(chatId: string, crushedCount: number, inProgressCount: number, blockedCount: number) {
-    const text = `🚀 *Weekly Summary*\n\n✅ *Crushed:* ${crushedCount}\n🏗️ *Active:* ${inProgressCount}\n🚨 *Blocked:* ${blockedCount}`;
-    return this.sendMessage(chatId, text);
+  async sendWeeklySummary(chatId: string, summary: WeeklySummary) {
+    let text = `🚀 *Weekly Victory Summary*\n\n`;
+    text += `Last week was massive\\! Performance overview:\n\n`;
+    text += `✅ *Crushed:* ${summary.crushedCount}\n`;
+    text += `🏗️ *Active:* ${summary.activeCount}\n`;
+    text += `🚨 *Blocked:* ${summary.blockedCount}\n`;
+    text += `📈 *Avg\\. Progress:* ${summary.avgProgress}%\n\n`;
+    
+    if (summary.topPerformers.length > 0) {
+      text += `🔥 *Top Performers*\n`;
+      summary.topPerformers.forEach(p => {
+        text += `• *${this.escapeMarkdown(p.name)}* crushed ${p.completed} ${p.completed === 1 ? 'goal' : 'goals'}\\!\n`;
+      });
+      text += `\n`;
+    }
+    
+    if (summary.blockedCount > 0) {
+      text += `🚨 *Top Blockers*\n`;
+      summary.blockedReasons.forEach(r => {
+        text += `• ${this.escapeMarkdown(r)}\n`;
+      });
+      text += `_Someone jump in and help\\!_ 🤝\n`;
+    }
+    
+    return this.sendMessage(chatId, text, {
+      inline_keyboard: [[{ text: "View Dashboard 🎯", url: "https://crushgoals.app" }]]
+    });
   }
 };

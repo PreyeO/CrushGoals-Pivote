@@ -15,6 +15,7 @@ import {
 import { goalService } from "./services/goals";
 import { orgService } from "./services/orgs";
 import { inviteService } from "./services/invites";
+import { reportService } from "./services/reportService";
 import { slackService } from "./services/slack";
 import { telegramService } from "./services/telegram";
 
@@ -929,12 +930,11 @@ export const useStore = create<AppState>((set, get) => ({
         }));
 
         const orgGoals = get().goals.filter(g => g.orgId === orgId);
-        const crushed = orgGoals.filter(g => g.status === 'completed').length;
-        const blocked = orgGoals.filter(g => g.status === 'blocked').length;
-        const active = orgGoals.length - crushed - blocked;
+        const members = get().members.filter(m => m.orgId === orgId);
+        const summary = reportService.getWeeklySummary(orgId, orgGoals, members);
 
         if (org.slackWebhookUrl) {
-          await slackService.sendWeeklySummary(org.slackWebhookUrl, crushed, active, blocked);
+          await slackService.sendWeeklySummary(org.slackWebhookUrl, summary);
         }
         if (org.telegramChatId) {
           fetch('/api/telegram/notify', {
@@ -942,7 +942,7 @@ export const useStore = create<AppState>((set, get) => ({
             body: JSON.stringify({ 
               chatId: org.telegramChatId, 
               method: 'sendWeeklySummary', 
-              args: [crushed, active, blocked] 
+              args: [summary] 
             })
           }).catch(err => console.error("Telegram proxy error:", err));
         }
