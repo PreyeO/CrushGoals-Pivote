@@ -28,6 +28,8 @@ export interface Organization {
     notify_on_blocked: boolean;
     notify_on_stale: boolean;
     notify_on_streaks: boolean;
+    notify_on_creation: boolean;
+    notify_on_checkin: boolean;
     stale_threshold_days: number;
     allow_commands: boolean;
   };

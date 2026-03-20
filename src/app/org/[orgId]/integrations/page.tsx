@@ -90,6 +90,8 @@ export default function IntegrationsPage({ params }: { params: Promise<{ orgId: 
         notify_on_blocked: true,
         notify_on_stale: true,
         notify_on_streaks: true,
+        notify_on_creation: true,
+        notify_on_checkin: true,
         stale_threshold_days: 5,
         allow_commands: true
     });
@@ -491,6 +493,8 @@ export default function IntegrationsPage({ params }: { params: Promise<{ orgId: 
                                         
                                         <div className="space-y-3">
                                             {[
+                                                { id: 'notify_on_creation', label: 'New goals', desc: 'When a new goal is created' },
+                                                { id: 'notify_on_checkin', label: 'Daily check-ins', desc: 'When someone updates progress' },
                                                 { id: 'notify_on_completion', label: 'Goal crushed', desc: 'When someone completes a goal' },
                                                 { id: 'notify_on_blocked', label: 'Goal blocked', desc: "When someone flags they're stuck" },
                                                 { id: 'notify_on_stale', label: 'Stale goals', desc: 'Goals with no update after 5 days' },

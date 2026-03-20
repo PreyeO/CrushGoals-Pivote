@@ -91,7 +91,7 @@ export const telegramService = {
     return this.sendMessage(chatId, text);
   },
 
-  async sendGoalCompletion(chatId: string, memberName: string, goal: OrgGoal, streakCount?: number) {
+  async sendGoalCompletion(chatId: string, memberName: string, goal: any, streakCount?: number) {
     const streakText = streakCount && streakCount >= 3 
       ? `\n🔥 *${memberName} is on a ${streakCount}\\-goal streak\\!*` 
       : "";
@@ -99,8 +99,20 @@ export const telegramService = {
     return this.sendMessage(chatId, text);
   },
 
-  async sendGoalBlocked(chatId: string, memberName: string, goal: OrgGoal, reason: string) {
+  async sendGoalBlocked(chatId: string, memberName: string, goal: any, reason: string) {
     const text = `🚨 *GOAL BLOCKED* 🚨\n\n👤 *${memberName}* just flagged *'${goal.title}'* as blocked\\.\n\n> *Reason:* ${this.escapeMarkdown(reason)}\n\nSomeone jump in and help\\! 🤝`;
+    return this.sendMessage(chatId, text);
+  },
+
+  async sendNewGoalNotification(chatId: string, goal: any, memberNames: string[]) {
+    const names = memberNames.length > 0 ? memberNames.join(", ") : "Team";
+    const text = `🆕 *NEW GOAL CREATED\\!* \n\n🎯 *${goal.title}* \n👤 Assigned to: *${names}*\n\nLet's get after it\\! 🚀`;
+    return this.sendMessage(chatId, text);
+  },
+
+  async sendCheckInNotification(chatId: string, memberName: string, goalTitle: string, note?: string) {
+    const noteText = note ? `\n\n> *Note:* ${this.escapeMarkdown(note)}` : "";
+    const text = `⚡ *${memberName}* just checked in for: \n*'${goalTitle}'*${noteText} \n\nKeep it up\\! 🔥`;
     return this.sendMessage(chatId, text);
   },
 
