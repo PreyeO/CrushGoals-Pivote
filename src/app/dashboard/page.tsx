@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import dynamic from "next/dynamic";
@@ -18,10 +18,9 @@ const DashboardMain = dynamic(
   { ssr: false },
 );
 
-export default function DashboardPage() {
-  const { sidebarCollapsed, fetchInitialData, isLoading, user, organizations, members, pendingInvitations } = useStore();
-  const router = useRouter();
+function PaymentStatusHandler() {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   useEffect(() => {
     const payment = searchParams.get("payment");
@@ -32,7 +31,6 @@ export default function DashboardPage() {
         description: "You now have access to all premium features.",
         duration: 5000,
       });
-      // Clear URL params
       router.replace("/dashboard");
     } else if (payment === "failed") {
       toast.error("Payment failed. Please try again or contact support.");
@@ -42,6 +40,13 @@ export default function DashboardPage() {
       router.replace("/dashboard");
     }
   }, [searchParams, router]);
+
+  return null;
+}
+
+export default function DashboardPage() {
+  const { sidebarCollapsed, fetchInitialData, isLoading, user, organizations, members, pendingInvitations } = useStore();
+  const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
@@ -96,6 +101,9 @@ export default function DashboardPage() {
   if (organizations.length === 0) {
      return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+            <Suspense fallback={null}>
+                <PaymentStatusHandler />
+            </Suspense>
             <div className="max-w-md w-full glass-card p-10 space-y-6 animate-fade-in-up">
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2 text-3xl">
                     👋
@@ -134,6 +142,9 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">
+      <Suspense fallback={null}>
+        <PaymentStatusHandler />
+      </Suspense>
       <Sidebar />
       <main className={cn(
           "transition-all duration-300",
