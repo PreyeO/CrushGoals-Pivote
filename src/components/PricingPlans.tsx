@@ -109,7 +109,7 @@ export function PricingPlans({
                 email: user?.email || '',
                 name: user?.name || 'User',
                 tier: planId as any,
-                tx_ref: `sub_${Date.now()}_${user?.id?.substring(0, 8)}`,
+                tx_ref: `sub_${Date.now()}_${user?.id}`,
                 callback_url: `${window.location.origin}/api/payments/verify`,
             });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useStore, AppState } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { DashboardHeader } from "./DashboardHeader";
@@ -11,8 +11,31 @@ import { Organization, OrgMember, OrgGoal } from "@/types";
 import { Zap, ShieldAlert, AlertCircle, Ban, Clock, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 export function DashboardMain() {
+  const searchParams = useSearchParams();
+  const fetchInitialData = useStore((state) => state.fetchInitialData);
+  
+  // Payment Success Refresh
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    const tier = searchParams.get("tier");
+    
+    if (paymentStatus === "success") {
+      toast.success(`Welcome to the ${tier || 'Pro'} plan! Unlocking your features now...`);
+      // Force refresh data to show new tier immediately
+      fetchInitialData();
+      
+      // Clean up URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    } else if (paymentStatus === "error") {
+      toast.error("There was an issue processing your payment. Please contact support.");
+    }
+  }, [searchParams, fetchInitialData]);
+
   const organizations = useStore(
     useShallow((state: AppState) => state.organizations),
   );

@@ -43,44 +43,51 @@ export const paymentProcessor = {
             return { success: true, alreadyProcessed: true, tier };
         }
 
-        // 3. Update User Subscription Tier
-        // We'll update the profile where ID matches the user with this email
-        // Or if profiles has an email column, update directly.
-        // Let's try both to be safe: first find the profile ID.
-        const { data: profileToUpdate, error: lookupError } = await supabase
-            .from("profiles")
-            .select("id")
-            .eq("email", email)
-            .maybeSingle();
+        // 3. Robust User Identification & Upgrade
+        // We've updated the tx_ref format to include the full user ID: sub_TIMESTAMP_USERID
+        const parts = tx_ref.split('_');
+        const extractedUserId = parts.length >= 3 ? parts[2] : null;
 
-        let targetId = profileToUpdate?.id;
-
-        if (!targetId || lookupError) {
-            // Fallback: This might be from an older schema where profiles don't have email.
-            // But we have the email from Flutterwave. 
-            // We'll trust the email and update any profile that matches the user email.
-            // This assumes profiles.id is auth.users.id.
-            // We'll try to update by email first.
-            const { error: updateByEmailError, count } = await supabase
-                .from("profiles")
-                .update({ subscription_tier: tier })
-                .eq("email", email);
-            
-            if (updateByEmailError || count === 0) {
-                console.error("Failed to update profile by email, trying ID lookup...", updateByEmailError);
-                // If that failed, we could try to find the user ID from auth.users, 
-                // but service role key is needed for that. We have it.
-                return { success: false, error: "Could not find profile for email: " + email };
-            }
-        } else {
+        if (extractedUserId) {
+            console.log(`[Payment] Upgrading by ID: ${extractedUserId} to tier: ${tier}`);
             const { error: profileError } = await supabase
                 .from("profiles")
                 .update({ subscription_tier: tier })
-                .eq("id", targetId);
+                .eq("id", extractedUserId);
 
             if (profileError) {
-                console.error("Profile update error:", profileError);
+                console.error("[Payment] Profile update by ID error:", profileError);
                 throw profileError;
+            }
+        } else {
+            // Fallback for older transactions: Find profile by email.
+            console.log(`[Payment] ID not in ref, falling back to email: ${email}`);
+            const { data: profileToUpdate, error: lookupError } = await supabase
+                .from("profiles")
+                .select("id")
+                .eq("email", email)
+                .maybeSingle();
+
+            let targetId = profileToUpdate?.id;
+
+            if (!targetId || lookupError) {
+                // Final fallback: try update directly by email on assumption it exists.
+                const { error: updateByEmailError, count } = await supabase
+                    .from("profiles")
+                    .update({ subscription_tier: tier })
+                    .eq("email", email);
+                
+                if (updateByEmailError || count === 0) {
+                    console.error("[Payment] Failed to find profile via email lookup fallback.", updateByEmailError);
+                    return { success: false, error: "Could not identify user for upgrade." };
+                }
+            } else {
+                const { error: profileError } = await supabase
+                    .from("profiles")
+                    .update({ subscription_tier: tier })
+                    .eq("id", targetId);
+
+                if (profileError) throw profileError;
             }
         }
 
