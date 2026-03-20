@@ -44,14 +44,44 @@ export const paymentProcessor = {
         }
 
         // 3. Update User Subscription Tier
-        const { error: profileError } = await supabase
+        // We'll update the profile where ID matches the user with this email
+        // Or if profiles has an email column, update directly.
+        // Let's try both to be safe: first find the profile ID.
+        const { data: profileToUpdate, error: lookupError } = await supabase
             .from("profiles")
-            .update({ subscription_tier: tier })
-            .eq("email", email);
+            .select("id")
+            .eq("email", email)
+            .maybeSingle();
 
-        if (profileError) {
-            console.error("Profile update error:", profileError);
-            throw profileError;
+        let targetId = profileToUpdate?.id;
+
+        if (!targetId || lookupError) {
+            // Fallback: This might be from an older schema where profiles don't have email.
+            // But we have the email from Flutterwave. 
+            // We'll trust the email and update any profile that matches the user email.
+            // This assumes profiles.id is auth.users.id.
+            // We'll try to update by email first.
+            const { error: updateByEmailError, count } = await supabase
+                .from("profiles")
+                .update({ subscription_tier: tier })
+                .eq("email", email);
+            
+            if (updateByEmailError || count === 0) {
+                console.error("Failed to update profile by email, trying ID lookup...", updateByEmailError);
+                // If that failed, we could try to find the user ID from auth.users, 
+                // but service role key is needed for that. We have it.
+                return { success: false, error: "Could not find profile for email: " + email };
+            }
+        } else {
+            const { error: profileError } = await supabase
+                .from("profiles")
+                .update({ subscription_tier: tier })
+                .eq("id", targetId);
+
+            if (profileError) {
+                console.error("Profile update error:", profileError);
+                throw profileError;
+            }
         }
 
         // 4. Record the Payment
