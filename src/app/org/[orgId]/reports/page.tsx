@@ -34,10 +34,13 @@ import { notFound } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { OrgGoal, OrgMember } from "@/types";
+import { reportService } from "@/lib/services/reportService";
+import { toast } from "sonner";
 
 export default function OrgReportsPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params);
     const [mounted, setMounted] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const [filterPeriod, setFilterPeriod] = useState<"month" | "quarter" | "year" | "all">("month");
     const fetchInitialData = useStore((state) => state.fetchInitialData);
     const isLoading = useStore((state) => state.isLoading);
@@ -69,6 +72,32 @@ export default function OrgReportsPage({ params }: { params: Promise<{ orgId: st
         setMounted(true);
         fetchInitialData(orgId);
     }, [orgId, fetchInitialData]);
+
+    const handleDownloadCSV = () => {
+        if (!goals.length) {
+            toast.error("No data available to export for this period.");
+            return;
+        }
+
+        try {
+            setIsExporting(true);
+            const csv = reportService.generateCSV(goals);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `crushgoals_report_${org?.name.toLowerCase().replace(/\s+/g, '_')}_${filterPeriod}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success("CSV report downloaded successfully!");
+        } catch (error) {
+            console.error("Export failed:", error);
+            toast.error("Failed to generate CSV report.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     if (!mounted || (isLoading && !org)) return <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse">Loading Reports...</div>;
     if (!org) return notFound();
@@ -169,8 +198,14 @@ export default function OrgReportsPage({ params }: { params: Promise<{ orgId: st
                             <SelectItem value="all">All Time</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" className="h-9 text-[11px] font-bold gap-2 bg-accent/20 border-border/40">
-                        <FileText className="w-3.5 h-3.5" /> CSV
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        disabled={isExporting}
+                        onClick={handleDownloadCSV}
+                        className="h-9 text-[11px] font-bold gap-2 bg-accent/20 border-border/40"
+                    >
+                        <FileText className="w-3.5 h-3.5" /> {isExporting ? "Exporting..." : "CSV"}
                     </Button>
                     <Button className="gradient-primary text-white border-0 h-9 px-6 text-[11px] font-bold glow-primary-sm gap-2">
                         <Download className="w-3.5 h-3.5" /> Export PDF
@@ -304,4 +339,3 @@ export default function OrgReportsPage({ params }: { params: Promise<{ orgId: st
         </div>
     );
 }
-

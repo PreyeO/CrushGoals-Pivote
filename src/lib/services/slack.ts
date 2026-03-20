@@ -1,4 +1,5 @@
 import { OrgGoal, OrgMember } from "@/types";
+import { WeeklySummary } from "./reportService";
 
 export const slackService = {
   async sendMessage(webhookUrl: string, blocks: any[]) {
@@ -218,13 +219,13 @@ export const slackService = {
     return this.sendMessage(webhookUrl, blocks);
   },
 
-  async sendWeeklySummary(webhookUrl: string, crushedCount: number, inProgressCount: number, blockedCount: number) {
-    const blocks = [
+  async sendWeeklySummary(webhookUrl: string, summary: WeeklySummary) {
+    const blocks: any[] = [
       {
         type: "header",
         text: {
           type: "plain_text",
-          text: "🚀 Team Crush Summary",
+          text: "🚀 Weekly Victory Summary",
           emoji: true
         }
       },
@@ -232,27 +233,52 @@ export const slackService = {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "Last week's performance overview:"
+          text: `Last week was massive! Here's the performance overview for your team:`
         }
       },
       {
         type: "section",
         fields: [
-          { type: "mrkdwn", text: `✅ Crushed: ${crushedCount}` },
-          { type: "mrkdwn", text: `🏗️ Active: ${inProgressCount}` },
-          { type: "mrkdwn", text: `🚨 Blocked: ${blockedCount}` }
-        ]
-      },
-      {
-        type: "context",
-        elements: [
-          {
-            type: "mrkdwn",
-            text: "Powered by <https://crushgoals.app|CrushGoals>"
-          }
+          { type: "mrkdwn", text: `*✅ Crushed:* ${summary.crushedCount}` },
+          { type: "mrkdwn", text: `*🏗️ Active:* ${summary.activeCount}` },
+          { type: "mrkdwn", text: `*🚨 Blocked:* ${summary.blockedCount}` },
+          { type: "mrkdwn", text: `*📈 Avg. Progress:* ${summary.avgProgress}%` }
         ]
       }
     ];
+
+    if (summary.topPerformers.length > 0) {
+      blocks.push({ type: "divider" });
+      blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: "*🔥 Top Performers*\n" + summary.topPerformers.map(p => `• *${p.name}* crushed ${p.completed} ${p.completed === 1 ? 'goal' : 'goals'}!`).join("\n")
+        }
+      });
+    }
+
+    if (summary.blockedCount > 0) {
+      blocks.push({ type: "divider" });
+      blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*🚨 Top Blockers*\n${summary.blockedReasons.map(r => `• ${r}`).join("\n")}\n_Someone jump in and help resolve these!_ 🤝`
+        }
+      });
+    }
+
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: "Powered by <https://crushgoals.app|CrushGoals>"
+        }
+      ]
+    });
+
     return this.sendMessage(webhookUrl, blocks);
   }
 };
