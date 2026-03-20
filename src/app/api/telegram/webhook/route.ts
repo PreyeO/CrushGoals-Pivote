@@ -16,16 +16,31 @@ export async function POST(req: NextRequest) {
     if (body.callback_query) {
       const callback = body.callback_query;
       const chatId = callback.message.chat.id.toString();
+      const telegramUserId = callback.from.id.toString();
       const data = callback.data;
 
-      if (data.startsWith("crush:")) {
+      // Identify the user
+      const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("telegram_user_id", telegramUserId).maybeSingle();
+      const userName = profile?.full_name || callback.from.first_name || "Someone";
+
+      if (data.startsWith("crush:") || data.startsWith("block:")) {
         const goalId = data.split(":")[1];
-        await supabaseAdmin.from("goals").update({ status: "completed", updated_at: new Date().toISOString() }).eq("id", goalId);
-        await telegramService.sendMessage(chatId, "🎯 WIN CONFIRMED! \n\nGreat job on crushing that goal!");
-      } else if (data.startsWith("block:")) {
-        const goalId = data.split(":")[1];
-        await supabaseAdmin.from("goals").update({ status: "blocked", updated_at: new Date().toISOString() }).eq("id", goalId);
-        await telegramService.sendMessage(chatId, "🚨 BLOCKED ALERT! \n\nGoal marked as blocked. Support will jump in.");
+        const isCrush = data.startsWith("crush:");
+        
+        // Fetch goal info first
+        const { data: goal } = await supabaseAdmin.from("goals").select("title").eq("id", goalId).maybeSingle();
+        const goalTitle = goal?.title || "a goal";
+        
+        await supabaseAdmin.from("goals").update({ 
+          status: isCrush ? "completed" : "blocked", 
+          updated_at: new Date().toISOString() 
+        }).eq("id", goalId);
+        
+        if (isCrush) {
+          await telegramService.sendMessage(chatId, `🎯 *WIN CONFIRMED!*\n\n${userName} just CRUSHED: *${goalTitle}*! 🔥`);
+        } else {
+          await telegramService.sendMessage(chatId, `🚨 *BLOCKED ALERT!*\n\n${userName} flagged *${goalTitle}* as blocked. Support needed! 🆘`);
+        }
       }
       return NextResponse.json({ ok: true });
     }
@@ -138,9 +153,18 @@ export async function POST(req: NextRequest) {
         await telegramService.sendMessage(chatId, "🙌 No active goals! You're all caught up.");
       } else {
         let msg = "🎯 *Active Goals:*\n\n";
+        // Fetch all unique assignees to get their names
+        const allAssigneeIds = Array.from(new Set(goals.flatMap(g => Array.isArray(g.assigned_to) ? g.assigned_to : [])));
+        const { data: profiles } = await supabaseAdmin.from("profiles").select("id, full_name").in("id", allAssigneeIds);
+        const nameMap = Object.fromEntries(profiles?.map(p => [p.id, p.full_name]) || []);
+
         goals.forEach((g: any) => { 
             const statusEmoji = g.status === 'blocked' ? '🚨' : (g.status === 'in_progress' ? '🏗️' : '⚪');
-            msg += `${statusEmoji} *${g.title}*\n`; 
+            const assignees = Array.isArray(g.assigned_to) ? g.assigned_to : [];
+            const names = assignees.map((id: string) => nameMap[id] || "Someone").join(", ");
+            const assigneeText = names ? `\n   └ 👤 ${names}` : "";
+            
+            msg += `${statusEmoji} *${g.title}*${assigneeText}\n`; 
         });
         await telegramService.sendMessage(chatId, msg);
       }
