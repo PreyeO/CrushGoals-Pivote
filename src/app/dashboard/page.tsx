@@ -18,39 +18,6 @@ const DashboardMain = dynamic(
   { ssr: false },
 );
 
-function SearchParamHandler() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const { organizations, isLoading, user } = useStore();
-
-  useEffect(() => {
-    const payment = searchParams.get("payment");
-    const tier = searchParams.get("tier");
-    const plan = searchParams.get("plan");
-    
-    // Handle Payment Results
-    if (payment === "success") {
-      toast.success(`Success! Your account has been upgraded to ${tier?.toUpperCase()}.`, {
-        description: "You now have access to all premium features.",
-        duration: 5000,
-      });
-      router.replace("/dashboard");
-    } else if (payment === "failed") {
-      toast.error("Payment failed. Please try again or contact support.");
-      router.replace("/dashboard");
-    } else if (payment === "error") {
-      toast.error("An error occurred during payment verification.");
-      router.replace("/dashboard");
-    }
-
-    // Handle Plan Selection from Landing Page
-    if (plan && !isLoading && user && organizations.length > 0) {
-      router.push(`/org/${organizations[0].id}/settings?plan=${plan}`);
-    }
-  }, [searchParams, router, isLoading, user, organizations]);
-
-  return null;
-}
 
 export default function DashboardPage() {
   const { sidebarCollapsed, fetchInitialData, isLoading, user, organizations, members, pendingInvitations } = useStore();
@@ -115,9 +82,6 @@ export default function DashboardPage() {
   if (organizations.length === 0) {
      return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-            <Suspense fallback={null}>
-                <SearchParamHandler />
-            </Suspense>
             <div className="max-w-md w-full glass-card p-10 space-y-6 animate-fade-in-up">
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2 text-3xl">
                     👋
@@ -156,9 +120,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">
-      <Suspense fallback={null}>
-        <SearchParamHandler />
-      </Suspense>
       <Sidebar />
       <main className={cn(
           "transition-all duration-300",

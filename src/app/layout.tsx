@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next"
+import { PaymentStatusHandler } from "@/components/PaymentStatusHandler";
 
 export default function RootLayout({
   children,
@@ -31,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased`}>
+        <PaymentStatusHandler />
         <main>{children}</main>
         <Toaster richColors position="top-right" />
         <Analytics />
