@@ -511,37 +511,39 @@ export default function IntegrationsPage({ params }: { params: Promise<{ orgId: 
                                 </div>
 
                                 {/* Right Column: Preferences */}
-                                <div className="space-y-8">
-                                    <div className="space-y-4">
-                                        <h3 className="text-sm font-bold uppercase tracking-widest text-sky-500 flex items-center gap-2"><Settings2 className="w-4 h-4" /> Notification Preferences</h3>
-                                        <p className="text-sm font-medium mb-4">What should we notify your team about?</p>
+                                    <div className="space-y-6">
+                                        <h3 className="text-sm font-bold uppercase tracking-widest text-sky-500 flex items-center gap-2"><Bell className="w-4 h-4" /> Events</h3>
+                                        <p className="text-[11px] font-medium text-muted-foreground">What should we notify your Telegram group about?</p>
                                         
                                         <div className="space-y-3">
                                             {[
-                                                { id: 'notify_on_creation', label: 'New goals', desc: 'When a new goal is created' },
-                                                { id: 'notify_on_checkin', label: 'Daily check-ins', desc: 'When someone updates progress' },
-                                                { id: 'notify_on_completion', label: 'Goal crushed', desc: 'When someone completes a goal' },
-                                                { id: 'notify_on_blocked', label: 'Goal blocked', desc: "When someone flags they're stuck" },
-                                                { id: 'notify_on_stale', label: 'Stale goals', desc: 'Goals with no update after 5 days' },
-                                                { id: 'notify_on_streaks', label: 'Weekly digest', desc: 'Monday morning summary of all goals' },
+                                                { id: 'notify_on_creation', label: 'New Goals' },
+                                                { id: 'notify_on_checkin', label: 'Daily Check-ins' },
+                                                { id: 'notify_on_completion', label: 'Goal Wins' },
+                                                { id: 'notify_on_blocked', label: 'Blockers' },
+                                                { id: 'notify_on_stale', label: 'Stale Nudges' },
+                                                { id: 'notify_on_streaks', label: 'Streaks' },
                                             ].map((event) => (
                                                 <div 
                                                     key={event.id} 
-                                                    className="p-4 rounded-2xl border bg-white/50 border-border/40 flex flex-col justify-center cursor-pointer transition-colors hover:bg-muted/50" 
+                                                    className="p-4 rounded-2xl border bg-white/50 border-border/40 flex items-center gap-4 cursor-pointer transition-colors hover:bg-muted/50" 
                                                     onClick={() => setTelegramSettings({...telegramSettings, [event.id]: !(telegramSettings as any)[event.id]} as any)}
                                                 >
-                                                    <div className="flex items-center gap-4">
-                                                        <Checkbox 
-                                                            checked={(telegramSettings as any)[event.id]} 
-                                                            className="h-5 w-5 data-[state=checked]:bg-sky-500 data-[state=checked]:border-sky-500" 
-                                                        />
-                                                        <div>
-                                                            <Label className="text-sm font-bold cursor-pointer">{event.label}</Label>
-                                                            <p className="text-[12px] text-muted-foreground mt-0.5">{event.desc}</p>
-                                                        </div>
-                                                    </div>
+                                                    <Checkbox 
+                                                        checked={(telegramSettings as any)[event.id]} 
+                                                        className="h-5 w-5 data-[state=checked]:bg-sky-500 data-[state=checked]:border-sky-500" 
+                                                    />
+                                                    <Label className="text-xs font-bold whitespace-nowrap cursor-pointer">{event.label}</Label>
                                                 </div>
                                             ))}
+                                        </div>
+
+                                        <div className="space-y-4 pt-4 border-t border-border/40">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-sky-500 flex items-center gap-2"><AlertCircle className="w-4 h-4" /> Stale Threshold</h3>
+                                            <div className="bg-background/40 p-5 rounded-2xl border border-border/20 space-y-4">
+                                                <Slider min={1} max={14} step={1} value={[telegramSettings.stale_threshold_days]} onValueChange={([v]) => setTelegramSettings({...telegramSettings, stale_threshold_days: v})} />
+                                                <p className="text-[10px] text-center text-muted-foreground italic">Nudge after {telegramSettings.stale_threshold_days} days.</p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -571,7 +573,6 @@ export default function IntegrationsPage({ params }: { params: Promise<{ orgId: 
                                     </div>
                                 </div>
                             </div>
-                        </div>
                     </div>
                 </div>
             )}

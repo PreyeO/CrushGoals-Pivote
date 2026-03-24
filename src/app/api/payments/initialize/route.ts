@@ -12,6 +12,13 @@ export async function POST(request: Request) {
       business: process.env.FLUTTERWAVE_PLAN_ID_BUSINESS
     };
 
+    const planId = (PLAN_IDS as any)[tier];
+    const numericPlanId = planId ? parseInt(planId) : undefined;
+
+    console.log("Initializing payment:", { tier, amount, email });
+    console.log("Using Plan IDs:", PLAN_IDS);
+    console.log("Selected Plan ID:", numericPlanId);
+
     const response = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
       headers: {
@@ -20,9 +27,9 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         tx_ref,
-        amount,
+        amount, // Keep amount as fallback/first charge
         currency,
-        payment_plan: (PLAN_IDS as any)[tier],
+        payment_plan: numericPlanId,
         redirect_url: callback_url,
         customer: {
           email,
@@ -40,6 +47,7 @@ export async function POST(request: Request) {
     });
 
     const data = await response.json();
+    console.log("Flutterwave response:", data);
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

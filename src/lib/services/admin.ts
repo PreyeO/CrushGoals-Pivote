@@ -16,11 +16,22 @@ export interface PlatformStats {
     totalOrgs: number;
     totalGoals: number;
     billing: {
-        freeTrialUsers: number;
-        proUsers: number;
-        enterpriseUsers: number;
+        free: number;
+        pro: number;
+        business: number;
         mrr: number; // Monthly Recurring Revenue
     };
+}
+
+export interface RecentPayment {
+    id: string;
+    email: string;
+    amount: number;
+    currency: string;
+    status: string;
+    tier: string;
+    created_at: string;
+    userName?: string;
 }
 
 export const adminService = {
@@ -32,47 +43,92 @@ export const adminService = {
 
         const supabase = await createServerClient();
 
-        // 1. Get User Count (from profiles table)
-        const { count: userCount, error: userError } = await supabase
+        // 1. Get User Count
+        const { count: userCount } = await supabase
             .from('profiles')
             .select('*', { count: 'exact', head: true });
 
-        if (userError) throw new Error("Failed to fetch user count: " + userError.message);
-
-        // 2. Get Org Count
-        const { count: orgCount, error: orgError } = await supabase
-            .from('organizations')
-            .select('*', { count: 'exact', head: true });
-
-        if (orgError) throw new Error("Failed to fetch org count: " + orgError.message);
-
-        // 3. Get Goals Count
-        const { count: goalCount, error: goalError } = await supabase
+        // 2. Get Goal Count
+        const { count: goalCount } = await supabase
             .from('goals')
             .select('*', { count: 'exact', head: true });
 
-        if (goalError) throw new Error("Failed to fetch goals count: " + goalError.message);
+        // 3. Get Organization Plan Distribution
+        const { data: orgPlans } = await supabase
+            .from('organizations')
+            .select('plan');
 
-        // 4. Mock Billing Data (since we haven't implemented Stripe yet)
-        // In a real app, this would come from a Stripe integration or a subscriptions table
-        const totalU = userCount || 0;
-        const freeTrialCount = Math.floor(totalU * 0.8) > 0 ? Math.floor(totalU * 0.8) : totalU; // 80% on free trial
-        const proCount = Math.floor(totalU * 0.15); // 15% on pro
-        const enterpriseCount = totalU - freeTrialCount - proCount; // 5% on enterprise
+        const plans = {
+            free: 0,
+            pro: 0,
+            business: 0
+        };
 
-        const mrr = (proCount * 12) + (enterpriseCount * 99); // $12/mo for pro, $99/mo for enterprise
+        if (orgPlans) {
+            orgPlans.forEach(org => {
+                const p = (org.plan || 'free').toLowerCase();
+                if (p === 'pro') plans.pro++;
+                else if (p === 'business') plans.business++;
+                else plans.free++;
+            });
+        }
+
+        // 4. Calculate Actual MRR from Payments
+        // We sum successful payments in the last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: recentPayments } = await supabase
+            .from('payments')
+            .select('amount')
+            .eq('status', 'successful')
+            .gte('created_at', thirtyDaysAgo.toISOString());
+
+        const mrr = recentPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
         return {
             totalUsers: userCount || 0,
-            totalOrgs: orgCount || 0,
+            totalOrgs: orgPlans?.length || 0,
             totalGoals: goalCount || 0,
             billing: {
-                freeTrialUsers: freeTrialCount,
-                proUsers: proCount,
-                enterpriseUsers: enterpriseCount,
+                free: plans.free,
+                pro: plans.pro,
+                business: plans.business,
                 mrr: mrr
             }
         };
+    },
+
+    async getRecentPayments(limit = 10): Promise<RecentPayment[]> {
+        const isAdmin = await isSuperAdmin();
+        if (!isAdmin) throw new Error("Unauthorized");
+
+        const supabase = await createServerClient();
+
+        const { data: payments, error } = await supabase
+            .from('payments')
+            .select(`
+                *,
+                profiles:user_id(full_name)
+            `)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error("Error fetching payments:", error);
+            return [];
+        }
+
+        return (payments || []).map((p: any) => ({
+            id: p.id,
+            email: p.email,
+            amount: p.amount,
+            currency: p.currency,
+            status: p.status,
+            tier: p.tier,
+            created_at: p.created_at,
+            userName: p.profiles?.full_name
+        }));
     },
 
     async getPlatformUsers(searchTerm?: string) {

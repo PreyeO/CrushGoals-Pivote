@@ -175,5 +175,18 @@ export const telegramService = {
     return this.sendMessage(chatId, text, {
       inline_keyboard: [[{ text: "View Dashboard 🎯", url: "https://crushgoals.app" }]]
     });
+  },
+
+  async sendDailyGingering(chatId: string) {
+    const messages = [
+      "Rise and shine\\! ☀️ Another day to crush your goals and move the needle\\. Let's get after it\\! 🚀",
+      "Focus determines reality\\. 🎯 What's the one thing you're crushing today?",
+      "Consistency is the secret sauce\\. 🔥 Keep that momentum high, team\\!",
+      "New day, new opportunities to win\\. Let's make every move count\\! ⚡",
+      "Small wins lead to massive victories\\. 🏆 Brick by brick, goal by goal\\."
+    ];
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+    const text = `⚡ *DAILY GINGERING*\n\n${randomMessage}\n\nCheck your dashboard: https://crushgoals.app`;
+    return this.sendMessage(chatId, text);
   }
 };

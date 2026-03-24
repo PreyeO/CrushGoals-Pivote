@@ -19,9 +19,10 @@ export default async function AdminPage() {
 }
 
 async function AdminDataFetcher() {
-    const [stats, activity] = await Promise.all([
+    const [stats, activity, payments] = await Promise.all([
         adminService.getPlatformStats(),
-        adminService.getRecentActivity()
+        adminService.getRecentActivity(),
+        adminService.getRecentPayments()
     ]);
-    return <AdminDashboard stats={stats} activity={activity} />;
+    return <AdminDashboard stats={stats} activity={activity} payments={payments} />;
 }

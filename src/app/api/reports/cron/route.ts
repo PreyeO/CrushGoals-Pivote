@@ -53,46 +53,89 @@ export async function GET(request: Request) {
         continue;
       }
 
-      // Standardize member data (matching OrgMember interface)
+      // Standardize member data
       const members: OrgMember[] = (membersRes.data as any[]).map(m => ({
         ...m,
         name: m.profiles?.full_name || "Unknown",
         avatarUrl: m.profiles?.avatar_url
       }));
 
-      // 3. Generate Summary
-      const summary = reportService.getWeeklySummary(org.id, goalsRes.data as OrgGoal[], members);
+      const now = new Date();
+      const hour = now.getHours();
+      const orgGoals = (goalsRes.data as any[]).map(g => ({
+        ...g,
+        updatedAt: g.updated_at,
+        progress: g.current_value // Simplified for CRON context
+      }));
 
-      // 4. Deliver
-      let slackSent = false;
-      let telegramSent = false;
+      // 3. Weekly Summary (Monday morning)
+      const isMonday = now.getDay() === 1;
+      const shouldSendSummary = isMonday && hour >= 8 && hour < 12 && (
+        !org.last_weekly_summary_at || 
+        new Date(org.last_weekly_summary_at).getTime() < now.getTime() - 24 * 60 * 60 * 1000 * 6
+      );
 
-      if (hasSlack && org.slack_settings?.notify_on_summary !== false) {
-        try {
-          await slackService.sendWeeklySummary(org.slack_webhook_url, summary);
-          slackSent = true;
-        } catch (e) {
-            console.error(`[Cron] Slack send failed for ${org.name}:`, e);
-        }
+      if (shouldSendSummary && org.settings?.notify_on_summary !== false) {
+          const summary = reportService.getWeeklySummary(org.id, orgGoals as any[], members);
+          if (hasSlack) await slackService.sendWeeklySummary(org.slack_webhook_url, summary).catch(e => console.error("Slack summary fail", e));
+          if (hasTelegram) await telegramService.sendWeeklySummary(org.telegram_chat_id, summary).catch(e => console.error("Telegram summary fail", e));
+          
+          await supabase.from("organizations").update({ last_weekly_summary_at: now.toISOString() }).eq("id", org.id);
+          results.push({ org: org.name, type: 'weekly_summary' });
       }
 
-      if (hasTelegram && org.telegram_settings?.notify_on_summary !== false) {
-        try {
-          await telegramService.sendWeeklySummary(org.telegram_chat_id, summary);
-          telegramSent = true;
-        } catch (e) {
-            console.error(`[Cron] Telegram send failed for ${org.name}:`, e);
-        }
-      }
+      // 4. Stale Goal Nudge (Daily check)
+      const shouldCheckStale = hour >= 9 && hour < 11 && (
+        !org.last_stale_nudge_at || 
+        new Date(org.last_stale_nudge_at).getTime() < now.getTime() - 24 * 60 * 60 * 1000
+      );
 
-      // 5. Update timestamp
-      if (slackSent || telegramSent) {
-        await supabase
-          .from("organizations")
-          .update({ last_weekly_summary_at: new Date().toISOString() })
-          .eq("id", org.id);
+      if (shouldCheckStale) {
+        const slackThreshold = org.slack_settings?.stale_threshold_days || 7;
+        const telegramThreshold = org.telegram_settings?.stale_threshold_days || 7;
         
-        results.push({ org: org.name, slack: slackSent, telegram: telegramSent });
+        const activeGoals = orgGoals.filter(g => g.status !== 'completed');
+        
+        const getStaleFor = (threshold: number) => activeGoals.filter(g => {
+            const lastUpdate = new Date(g.updatedAt);
+            const daysSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24);
+            return daysSinceUpdate >= threshold;
+        }).map(g => {
+            const ownerId = g.assigned_to?.[0]; // Assume first assignee for nudge
+            const owner = members.find(m => m.id === ownerId || (m as any).user_id === ownerId || (m as any).userId === ownerId);
+            return {
+                title: g.title,
+                memberName: owner?.name || "Team",
+                days: Math.floor((now.getTime() - new Date(g.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
+            };
+        });
+
+        if (hasSlack && org.slack_settings?.notify_on_stale !== false) {
+           const staleSlack = getStaleFor(slackThreshold);
+           if (staleSlack.length > 0) await slackService.sendStaleNudge(org.slack_webhook_url, staleSlack).catch(e => console.error("Slack stale fail", e));
+        }
+        
+        if (hasTelegram && org.telegram_settings?.notify_on_stale !== false) {
+           const staleTelegram = getStaleFor(telegramThreshold);
+           if (staleTelegram.length > 0) await telegramService.sendStaleNudge(org.telegram_chat_id, staleTelegram).catch(e => console.error("Telegram stale fail", e));
+        }
+
+        await supabase.from("organizations").update({ last_stale_nudge_at: now.toISOString() }).eq("id", org.id);
+        results.push({ org: org.name, type: 'stale_nudge' });
+      }
+
+      // 5. Daily Gingering (Morning motivation)
+      const shouldGinger = hour >= 7 && hour < 9 && (
+        !org.last_gingering_at || 
+        new Date(org.last_gingering_at).getTime() < now.getTime() - 24 * 60 * 60 * 1000
+      );
+
+      if (shouldGinger) {
+          if (hasSlack) await slackService.sendDailyGingering(org.slack_webhook_url).catch(e => console.error("Slack ginger fail", e));
+          if (hasTelegram) await telegramService.sendDailyGingering(org.telegram_chat_id).catch(e => console.error("Telegram ginger fail", e));
+          
+          await supabase.from("organizations").update({ last_gingering_at: now.toISOString() }).eq("id", org.id);
+          results.push({ org: org.name, type: 'daily_gingering' });
       }
     }
 
