@@ -280,5 +280,36 @@ export const slackService = {
     });
 
     return this.sendMessage(webhookUrl, blocks);
+  },
+
+  async sendDailyGingering(webhookUrl: string) {
+    const messages = [
+      "Rise and shine! ☀️ Another day to crush your goals and move the needle. Let's get after it! 🚀",
+      "Focus determines reality. 🎯 What's the one thing you're crushing today?",
+      "Consistency is the secret sauce. 🔥 Keep that momentum high, team!",
+      "New day, new opportunities to win. Let's make every move count! ⚡",
+      "Small wins lead to massive victories. 🏆 Brick by brick, goal by goal."
+    ];
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+
+    const blocks = [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `⚡ *DAILY GINGERING*\n\n${randomMessage}`
+        }
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: "Ready for another day of crushing it? Check your dashboard at <https://crushgoals.app|crushgoals.app>"
+          }
+        ]
+      }
+    ];
+    return this.sendMessage(webhookUrl, blocks);
   }
 };

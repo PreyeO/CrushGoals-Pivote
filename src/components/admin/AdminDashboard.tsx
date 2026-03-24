@@ -2,7 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Users, Building2, Target, CreditCard, Activity, TrendingUp, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatTimeAgo } from "@/lib/utils";
-import type { PlatformStats } from "@/lib/services/admin";
+import type { PlatformStats, RecentPayment } from "@/lib/services/admin";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface PlatformActivity {
     id: string;
@@ -16,9 +17,10 @@ interface PlatformActivity {
 interface AdminDashboardProps {
     stats: PlatformStats;
     activity: PlatformActivity[];
+    payments: RecentPayment[];
 }
 
-export function AdminDashboard({ stats, activity }: AdminDashboardProps) {
+export function AdminDashboard({ stats, activity, payments }: AdminDashboardProps) {
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
@@ -59,10 +61,10 @@ export function AdminDashboard({ stats, activity }: AdminDashboardProps) {
                     bg="bg-emerald-500/10"
                 />
                 <StatusCard 
-                    title="Estimated MRR" 
+                    title="Real-time MRR" 
                     value={`$${stats.billing.mrr.toLocaleString()}`} 
                     icon={DollarSign} 
-                    trend="+2% this month"
+                    trend="Last 30 days"
                     color="text-purple-500"
                     bg="bg-purple-500/10"
                 />
@@ -86,22 +88,22 @@ export function AdminDashboard({ stats, activity }: AdminDashboardProps) {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <CreditCard className="w-5 h-5 text-indigo-500" />
-                            Subscription Distribution
+                            Plan Distribution
                         </CardTitle>
-                        <CardDescription>Current active plans across the network.</CardDescription>
+                        <CardDescription>Active organizations by subscription tier.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="font-semibold text-emerald-500 flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500" /> Free Trial
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500" /> Free
                                 </span>
-                                <span className="font-bold">{stats.billing.freeTrialUsers} Users</span>
+                                <span className="font-bold">{stats.billing.free} Orgs</span>
                             </div>
                             <div className="w-full h-2 rounded-full bg-accent relative overflow-hidden">
                                 <div 
                                     className="absolute inset-y-0 left-0 bg-emerald-500 rounded-full" 
-                                    style={{ width: `${Math.max(5, (stats.billing.freeTrialUsers / stats.totalUsers) * 100)}%` }} 
+                                    style={{ width: `${Math.max(5, (stats.billing.free / (stats.totalOrgs || 1)) * 100)}%` }} 
                                 />
                             </div>
                         </div>
@@ -109,14 +111,14 @@ export function AdminDashboard({ stats, activity }: AdminDashboardProps) {
                         <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="font-semibold text-blue-500 flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500" /> Pro Plan
+                                    <div className="w-2 h-2 rounded-full bg-blue-500" /> Pro
                                 </span>
-                                <span className="font-bold">{stats.billing.proUsers} Users</span>
+                                <span className="font-bold">{stats.billing.pro} Orgs</span>
                             </div>
                             <div className="w-full h-2 rounded-full bg-accent relative overflow-hidden">
                                 <div 
                                     className="absolute inset-y-0 left-0 bg-blue-500 rounded-full" 
-                                    style={{ width: `${Math.max(2, (stats.billing.proUsers / stats.totalUsers) * 100)}%` }} 
+                                    style={{ width: `${Math.max(2, (stats.billing.pro / (stats.totalOrgs || 1)) * 100)}%` }} 
                                 />
                             </div>
                         </div>
@@ -124,14 +126,14 @@ export function AdminDashboard({ stats, activity }: AdminDashboardProps) {
                          <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="font-semibold text-purple-500 flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-purple-500" /> Enterprise
+                                    <div className="w-2 h-2 rounded-full bg-purple-500" /> Business
                                 </span>
-                                <span className="font-bold">{stats.billing.enterpriseUsers} Users</span>
+                                <span className="font-bold">{stats.billing.business} Orgs</span>
                             </div>
                             <div className="w-full h-2 rounded-full bg-accent relative overflow-hidden">
                                 <div 
                                     className="absolute inset-y-0 left-0 bg-purple-500 rounded-full" 
-                                    style={{ width: `${Math.max(1, (stats.billing.enterpriseUsers / stats.totalUsers) * 100)}%` }} 
+                                    style={{ width: `${Math.max(1, (stats.billing.business / (stats.totalOrgs || 1)) * 100)}%` }} 
                                 />
                             </div>
                         </div>
@@ -176,25 +178,78 @@ export function AdminDashboard({ stats, activity }: AdminDashboardProps) {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="col-span-1 lg:col-span-3 glass-card shadow-sm border-border/40">
+                <Card className="col-span-1 lg:col-span-2 glass-card shadow-sm border-border/40">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <DollarSign className="w-5 h-5 text-emerald-500" />
+                            Recent Payments
+                        </CardTitle>
+                        <CardDescription>Live feed of Flutterwave transactions.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="hover:bg-transparent border-border/10">
+                                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Payer</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Amount</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Plan</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-right">Date</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {payments.map((p) => (
+                                    <TableRow key={p.id} className="border-border/5 hover:bg-accent/5 transition-colors">
+                                        <TableCell className="py-3">
+                                            <div className="flex flex-col">
+                                                <span className="text-[12px] font-bold">{p.userName || 'Unknown'}</span>
+                                                <span className="text-[10px] text-muted-foreground">{p.email}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center py-3">
+                                            <Badge variant="outline" className="text-[10px] font-bold bg-emerald-500/5 text-emerald-500 border-emerald-500/20">
+                                                {p.currency} {p.amount.toLocaleString()}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center py-3">
+                                            <span className={`text-[10px] font-black uppercase tracking-tighter ${p.tier === 'business' ? 'text-purple-500' : 'text-blue-500'}`}>
+                                                {p.tier}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right py-3 text-[10px] font-bold text-muted-foreground">
+                                            {formatTimeAgo(p.created_at)}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {payments.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-10 text-muted-foreground text-xs italic">
+                                            No recent payments found.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                <Card className="col-span-1 lg:col-span-1 glass-card shadow-sm border-border/40">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                                    <Activity className="w-5 h-5 text-emerald-500" />
-                                    System Health & Core Services
+                                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                    <Activity className="w-4 h-4 text-emerald-500" />
+                                    System Status
                                 </CardTitle>
-                                <CardDescription>Real-time status of platform infrastructure.</CardDescription>
                             </div>
-                            <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 animate-pulse">
-                                All Systems Operational
+                            <Badge className="text-[9px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 animate-pulse">
+                                Active
                             </Badge>
                         </div>
                     </CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-3 p-6 pt-2">
-                        <HealthItem label="Database Cluster" status="Operational" latency="14ms" />
-                        <HealthItem label="Authentication Service" status="Operational" latency="8ms" />
-                        <HealthItem label="Storage Engine" status="Operational" latency="42ms" />
+                    <CardContent className="space-y-4 pt-2">
+                        <HealthItem label="Database" status="OK" latency="14ms" />
+                        <HealthItem label="Auth API" status="OK" latency="8ms" />
+                        <HealthItem label="Payment Webhook" status="Ready" latency="Active" />
                     </CardContent>
                 </Card>
             </div>
