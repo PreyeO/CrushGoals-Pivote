@@ -1,11 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CreditCard, DollarSign, TrendingUp, BarChart3, ArrowUpRight, Zap, Box } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { CreditCard, DollarSign, TrendingUp, BarChart3, Zap, Box, ArrowUpRight } from "lucide-react";
 import { adminService } from "@/lib/services/admin";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatTimeAgo } from "@/lib/utils";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/shared/AdminPageHeader";
+import { StatusCard } from "@/components/admin/shared/StatusCard";
+import { PaymentsTable } from "@/components/admin/dashboard/PaymentsTable";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -29,27 +30,22 @@ async function SubscriptionsDataFetcher() {
     ]);
 
     const totalPaid = stats.billing.pro + stats.billing.business;
-    const churnRate = 2.4; // Placeholder until we have historical data
+    const churnRate = 2.4; // Placeholder
     const arpu = totalPaid > 0 ? (stats.billing.mrr / totalPaid) : 0;
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header */}
-            <div>
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center glow-primary-sm">
-                        <CreditCard className="w-6 h-6 text-indigo-500" />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Billing &amp; Revenue</h1>
-                        <p className="text-muted-foreground text-sm">Monitor platform subscriptions, revenue, and payout status.</p>
-                    </div>
-                </div>
-            </div>
+            <AdminPageHeader 
+                title="Billing & Revenue"
+                description="Monitor platform subscriptions, revenue, and payout status."
+                icon={CreditCard}
+                iconColor="text-indigo-500"
+                iconBg="bg-indigo-500/10"
+            />
 
             {/* Quick Metrics */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 stagger">
-                <MetricCard
+                <StatusCard
                     title="Live MRR (30d)"
                     value={`$${stats.billing.mrr.toLocaleString()}`}
                     trend="Last 30 days"
@@ -57,16 +53,16 @@ async function SubscriptionsDataFetcher() {
                     color="text-emerald-500"
                     bg="bg-emerald-500/10"
                 />
-                <MetricCard
+                <StatusCard
                     title="Churn Rate"
                     value={`${churnRate}%`}
-                    trend="Placeholder"
+                    trend="Estimated"
                     icon={TrendingUp}
                     color="text-rose-500"
                     bg="bg-rose-500/10"
                     inverse
                 />
-                <MetricCard
+                <StatusCard
                     title="Avg Revenue (ARPU)"
                     value={arpu > 0 ? `$${arpu.toFixed(2)}` : "N/A"}
                     trend="Per paying org"
@@ -74,7 +70,7 @@ async function SubscriptionsDataFetcher() {
                     color="text-blue-500"
                     bg="bg-blue-500/10"
                 />
-                <MetricCard
+                <StatusCard
                     title="Paying Orgs"
                     value={totalPaid}
                     trend={`of ${stats.totalOrgs} total`}
@@ -90,7 +86,7 @@ async function SubscriptionsDataFetcher() {
                     <CardHeader className="border-b border-border/10">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle className="text-lg font-bold">Plan Tiers &amp; Distribution</CardTitle>
+                                <CardTitle className="text-lg font-bold">Plan Tiers & Distribution</CardTitle>
                                 <CardDescription>Active organizations grouped by subscription plan.</CardDescription>
                             </div>
                             <Badge variant="outline" className="bg-indigo-500/5 text-indigo-500 border-indigo-500/20 px-3 py-1">
@@ -148,106 +144,21 @@ async function SubscriptionsDataFetcher() {
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
                                 Payment Gateway Active
                             </p>
-                            <p className="text-xs text-muted-foreground max-w-[200px] leading-relaxed mx-auto">
+                            <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">
                                 Flutterwave webhook is live. Transactions are recorded in real time.
                             </p>
                         </div>
-                        <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] uppercase tracking-widest">
-                            Connected
-                        </Badge>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Recent Payments Table */}
-            <Card className="glass-card shadow-sm border-border/40">
-                <CardHeader className="border-b border-border/10">
-                    <CardTitle className="flex items-center gap-2">
-                        <DollarSign className="w-5 h-5 text-emerald-500" />
-                        Recent Transactions
-                    </CardTitle>
-                    <CardDescription>Latest Flutterwave payment events (up to 20).</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="hover:bg-transparent border-border/10">
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest pl-6">Payer</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Amount</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Plan</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Status</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest text-right pr-6">Date</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {payments.map((p) => (
-                                <TableRow key={p.id} className="border-border/5 hover:bg-accent/5 transition-colors">
-                                    <TableCell className="py-3 pl-6">
-                                        <div className="flex flex-col">
-                                            <span className="text-[12px] font-bold">{p.userName || 'Unknown'}</span>
-                                            <span className="text-[10px] text-muted-foreground">{p.email}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center py-3">
-                                        <Badge variant="outline" className="text-[10px] font-bold bg-emerald-500/5 text-emerald-500 border-emerald-500/20">
-                                            {p.currency} {Number(p.amount).toLocaleString()}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-center py-3">
-                                        <span className={`text-[10px] font-black uppercase tracking-tighter ${p.tier === 'business' ? 'text-purple-500' : 'text-indigo-500'}`}>
-                                            {p.tier}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-center py-3">
-                                        <Badge
-                                            variant="outline"
-                                            className={`text-[9px] uppercase tracking-widest font-bold ${p.status === 'successful'
-                                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                                                : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                            }`}
-                                        >
-                                            {p.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right py-3 text-[10px] font-bold text-muted-foreground pr-6">
-                                        {formatTimeAgo(p.created_at)}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {payments.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground text-xs italic">
-                                        No transactions found yet.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <PaymentsTable 
+                payments={payments} 
+                limit={20} 
+                title="Recent Transactions" 
+                description="Latest Flutterwave payment events (up to 20)." 
+            />
         </div>
-    );
-}
-
-function MetricCard({ title, value, trend, icon: Icon, color, bg, inverse }: any) {
-    return (
-        <Card className="glass-card shadow-sm border-border/40 p-5 relative overflow-hidden group hover:shadow-md transition-all duration-300">
-            <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full ${bg} blur-2xl group-hover:scale-120 transition-transform`} />
-            <div className="relative z-10 space-y-3">
-                <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{title}</span>
-                    <div className={`p-2 rounded-lg ${bg}`}>
-                        <Icon className={`w-4 h-4 ${color}`} />
-                    </div>
-                </div>
-                <div className="flex items-end justify-between">
-                    <p className="text-3xl font-black tracking-tight">{value}</p>
-                    <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md ${inverse ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                        {trend}
-                    </span>
-                </div>
-            </div>
-        </Card>
     );
 }
 
