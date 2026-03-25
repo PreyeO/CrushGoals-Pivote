@@ -19,8 +19,14 @@ export interface PlatformStats {
         free: number;
         pro: number;
         business: number;
-        mrr: number; // Monthly Recurring Revenue
+        mrr: number;
     };
+}
+
+export interface GrowthPoint {
+    date: string;
+    users: number;
+    orgs: number;
 }
 
 export interface RecentPayment {
@@ -43,60 +49,75 @@ export const adminService = {
 
         const supabase = await createServerClient();
 
-        // 1. Get User Count
-        const { count: userCount } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true });
+        try {
+            // 1. Get User Count
+            const { count: userCount, error: userError } = await supabase
+                .from('profiles')
+                .select('*', { count: 'exact', head: true });
+            
+            if (userError) console.error("Error fetching user count:", userError);
 
-        // 2. Get Goal Count
-        const { count: goalCount } = await supabase
-            .from('goals')
-            .select('*', { count: 'exact', head: true });
+            // 2. Get Goal Count
+            const { count: goalCount, error: goalError } = await supabase
+                .from('goals')
+                .select('*', { count: 'exact', head: true });
+            
+            if (goalError) console.error("Error fetching goal count:", goalError);
 
-        // 3. Get Organization Plan Distribution
-        const { data: orgPlans } = await supabase
-            .from('organizations')
-            .select('plan');
+            // 3. Get Organization Plan Distribution
+            const { data: orgPlans, error: orgError } = await supabase
+                .from('organizations')
+                .select('plan');
+            
+            if (orgError) console.error("Error fetching org plans:", orgError);
 
-        const plans = {
-            free: 0,
-            pro: 0,
-            business: 0
-        };
+            const plans = {
+                free: 0,
+                pro: 0,
+                business: 0
+            };
 
-        if (orgPlans) {
-            orgPlans.forEach(org => {
-                const p = (org.plan || 'free').toLowerCase();
-                if (p === 'pro') plans.pro++;
-                else if (p === 'business') plans.business++;
-                else plans.free++;
-            });
-        }
-
-        // 4. Calculate Actual MRR from Payments
-        // We sum successful payments in the last 30 days
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        const { data: recentPayments } = await supabase
-            .from('payments')
-            .select('amount')
-            .eq('status', 'successful')
-            .gte('created_at', thirtyDaysAgo.toISOString());
-
-        const mrr = recentPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-
-        return {
-            totalUsers: userCount || 0,
-            totalOrgs: orgPlans?.length || 0,
-            totalGoals: goalCount || 0,
-            billing: {
-                free: plans.free,
-                pro: plans.pro,
-                business: plans.business,
-                mrr: mrr
+            if (orgPlans) {
+                orgPlans.forEach(org => {
+                    const p = (org.plan || 'free').toLowerCase();
+                    if (p === 'pro') plans.pro++;
+                    else if (p === 'business') plans.business++;
+                    else plans.free++;
+                });
             }
-        };
+
+            // 4. Calculate Actual MRR from Payments
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const { data: recentPayments } = await supabase
+                .from('payments')
+                .select('amount')
+                .eq('status', 'successful')
+                .gte('created_at', thirtyDaysAgo.toISOString());
+
+            const mrr = recentPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+
+            return {
+                totalUsers: userCount || 0,
+                totalOrgs: orgPlans?.length || 0,
+                totalGoals: goalCount || 0,
+                billing: {
+                    free: plans.free,
+                    pro: plans.pro,
+                    business: plans.business,
+                    mrr: mrr
+                }
+            };
+        } catch (error) {
+            console.error("Platform stats fetch failed:", error);
+            return {
+                totalUsers: 0,
+                totalOrgs: 0,
+                totalGoals: 0,
+                billing: { free: 0, pro: 0, business: 0, mrr: 0 }
+            };
+        }
     },
 
     async getRecentPayments(limit = 10): Promise<RecentPayment[]> {
@@ -105,7 +126,7 @@ export const adminService = {
 
         const supabase = await createServerClient();
 
-        const { data: payments, error } = await supabase
+        let { data: payments, error } = await supabase
             .from('payments')
             .select(`
                 *,
@@ -115,11 +136,27 @@ export const adminService = {
             .limit(limit);
 
         if (error) {
-            console.error("Error fetching payments:", error);
+            console.error("Error fetching payments with join:", error.message);
+            // Fallback: try without the join
+            const { data: fallbackPayments, error: fallbackError } = await supabase
+                .from('payments')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(limit);
+            
+            if (fallbackError) {
+                console.error("Critical error fetching payments:", fallbackError.message);
+                return [];
+            }
+            payments = fallbackPayments;
+        }
+
+        if (!payments || payments.length === 0) {
+            console.log("No payments found in database.");
             return [];
         }
 
-        return (payments || []).map((p: any) => ({
+        return (payments || []).map((p) => ({
             id: p.id,
             email: p.email,
             amount: p.amount,
@@ -127,7 +164,7 @@ export const adminService = {
             status: p.status,
             tier: p.tier,
             created_at: p.created_at,
-            userName: p.profiles?.full_name
+            userName: (p.profiles as any)?.full_name
         }));
     },
 
@@ -151,35 +188,39 @@ export const adminService = {
 
         const { data: profiles, error: userError } = await (query as any).order('full_name', { ascending: true });
 
-        // If the query fails (likely due to missing columns), we'll do one final fallback 
-        // to keep the dashboard functional while waiting for the migration.
         if (userError) {
-            let fallbackQuery = supabase
-                .from('profiles')
-                .select('id, full_name, avatar_url');
+            console.error("Error fetching users:", userError.message);
+            // Fallback for missing columns
+            let fallbackQuery = supabase.from('profiles').select('id, full_name, avatar_url');
+            if (searchTerm) fallbackQuery = fallbackQuery.ilike('full_name', `%${searchTerm}%`);
+            const { data: fallbackProfiles } = await fallbackQuery.order('full_name', { ascending: true });
             
-            if (searchTerm) {
-                fallbackQuery = fallbackQuery.ilike('full_name', `%${searchTerm}%`);
-            }
-
-            const { data: fallbackProfiles, error: fallbackError } = await fallbackQuery.order('full_name', { ascending: true });
-
-            if (fallbackError) throw new Error("Database error: " + fallbackError.message);
-            
-            return (fallbackProfiles || []).map(profile => ({
-                id: profile.id,
-                name: profile.full_name || 'Unknown User',
-                avatar_url: profile.avatar_url,
-                email: `user_${profile.id.substring(0,6)}@example.com`, // Mock email
-                created_at: null // Will show N/A until migration
+            return (fallbackProfiles || []).map(p => ({
+                id: p.id,
+                name: p.full_name || 'Unknown User',
+                avatar_url: p.avatar_url,
+                email: 'N/A',
+                orgCount: 0,
+                goalCount: 0
             }));
         }
 
-        return (profiles || []).map((profile: any) => ({
+        // Fetch counts for all users in one go
+        const [orgsResponse, goalsResponse] = await Promise.all([
+            supabase.from('organizations').select('owner_id'),
+            supabase.from('goals').select('created_by')
+        ]);
+
+        const orgs = orgsResponse.data || [];
+        const goals = goalsResponse.data || [];
+
+        return (profiles || []).map((profile: { id: string; full_name: string | null; avatar_url: string | null; email?: string | null }) => ({
             id: profile.id,
             name: profile.full_name || 'Unknown User',
             avatar_url: profile.avatar_url,
-            email: profile.email || `user_${profile.id.substring(0,6)}@example.com`
+            email: profile.email || 'N/A',
+            orgCount: orgs.filter(o => o.owner_id === profile.id).length,
+            goalCount: goals.filter(g => g.created_by === profile.id).length
         }));
     },
 
@@ -205,7 +246,10 @@ export const adminService = {
 
         const { data: orgs, error: orgError } = await query.order('created_at', { ascending: false });
 
-        if (orgError) throw new Error("Failed to fetch organizations: " + orgError.message);
+        if (orgError) {
+            console.error("Error fetching organizations:", orgError.message, orgError.details);
+            throw new Error("Failed to fetch organizations: " + orgError.message);
+        }
 
         // 2. Get member counts for each org
         const { data: members, error: memberError } = await supabase
@@ -228,54 +272,43 @@ export const adminService = {
         }));
     },
 
-    async getRecentActivity() {
+    async getGrowthData(): Promise<GrowthPoint[]> {
         const isAdmin = await isSuperAdmin();
         if (!isAdmin) throw new Error("Unauthorized");
 
         const supabase = await createServerClient();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        // Fetch recent profiles
-        const { data: recentProfiles } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url, created_at')
-            .order('id', { ascending: false })
-            .limit(3);
+        // Fetch users and orgs created in the last 30 days
+        const [usersResponse, orgsResponse] = await Promise.all([
+            supabase.from('profiles').select('created_at').gte('created_at', thirtyDaysAgo.toISOString()),
+            supabase.from('organizations').select('created_at').gte('created_at', thirtyDaysAgo.toISOString())
+        ]);
 
-        // Fetch recent orgs
-        const { data: recentOrgs } = await supabase
-            .from('organizations')
-            .select('id, name, created_at, emoji')
-            .order('created_at', { ascending: false })
-            .limit(3);
+        const users = usersResponse.data || [];
+        const orgs = orgsResponse.data || [];
 
-        const activities: any[] = [];
+        // Generate points for each of the last 30 days
+        const points: GrowthPoint[] = [];
+        for (let i = 29; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
 
-        if (recentProfiles) {
-            recentProfiles.forEach(p => {
-                activities.push({
-                    id: `profile-${p.id}`,
-                    type: 'user',
-                    title: 'New Member Joined',
-                    description: `${p.full_name || 'A user'} created a profile`,
-                    timestamp: (p as any).created_at || new Date().toISOString(),
-                    icon: 'user'
-                });
+            // Filter counts up to this day (cumulative)
+            // But since we only have the last 30 days of data here, we'll just show the acquisition per day
+            // or we could fetch total counts. Let's do daily acquisition for a clearer growth trend.
+            const userCount = users.filter(u => u.created_at && u.created_at.startsWith(dateStr)).length;
+            const orgCount = orgs.filter(o => o.created_at && o.created_at.startsWith(dateStr)).length;
+
+            points.push({
+                date: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date),
+                users: userCount,
+                orgs: orgCount
             });
         }
 
-        if (recentOrgs) {
-            recentOrgs.forEach(o => {
-                activities.push({
-                    id: `org-${o.id}`,
-                    type: 'org',
-                    title: 'New Organization',
-                    description: `"${o.name}" was launched`,
-                    timestamp: o.created_at,
-                    icon: 'org'
-                });
-            });
-        }
-
-        return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5);
+        return points;
     }
 };

@@ -65,7 +65,6 @@ export default async function AdminOrganizationsPage({ searchParams }: PageProps
                                     <th className="px-6 py-4 text-center">Resources</th>
                                     <th className="px-6 py-4">Plan</th>
                                     <th className="px-6 py-4">Created</th>
-                                    <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/5">
@@ -128,11 +127,6 @@ export default async function AdminOrganizationsPage({ searchParams }: PageProps
                                                 <Calendar className="w-3 h-3" />
                                                 <span className="text-[11px] font-bold text-foreground/80">{new Date(org.created_at).toLocaleDateString()}</span>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-amber-500 transition-colors py-1 px-3 rounded-lg hover:bg-amber-500/5 border border-transparent hover:border-amber-500/10">
-                                                Manage
-                                            </button>
                                         </td>
                                     </tr>
                                 ))}

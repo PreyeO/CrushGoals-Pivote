@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Mail, Building2, Calendar, ShieldCheck, Search } from "lucide-react";
+import { Users, Mail, Building2, Calendar, ShieldCheck, Search, Target } from "lucide-react";
 import { adminService } from "@/lib/services/admin";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +63,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                                 <tr className="bg-accent/10 text-muted-foreground font-semibold uppercase tracking-wider text-[10px] border-b border-border/10">
                                     <th className="px-6 py-4">User</th>
                                     <th className="px-6 py-4">Email</th>
+                                    <th className="px-6 py-4 text-center">Resources</th>
                                     <th className="px-6 py-4 text-right">Role</th>
                                 </tr>
                             </thead>
@@ -87,6 +88,22 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                                             <div className="flex items-center gap-2 text-muted-foreground">
                                                 <Mail className="w-3.5 h-3.5" />
                                                 <span className="font-medium truncate max-w-[200px]">{user.email}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-center gap-4">
+                                                <div className="flex flex-col items-center gap-0.5" title="Owned Organizations">
+                                                    <div className="w-6 h-6 rounded-lg bg-amber-500/5 flex items-center justify-center">
+                                                        <Building2 className="w-3 h-3 text-amber-500" />
+                                                    </div>
+                                                    <span className="font-bold text-[11px]">{user.orgCount || 0}</span>
+                                                </div>
+                                                <div className="flex flex-col items-center gap-0.5" title="Created Goals">
+                                                    <div className="w-6 h-6 rounded-lg bg-emerald-500/5 flex items-center justify-center">
+                                                        <Target className="w-3 h-3 text-emerald-500" />
+                                                    </div>
+                                                    <span className="font-bold text-[11px]">{user.goalCount || 0}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
