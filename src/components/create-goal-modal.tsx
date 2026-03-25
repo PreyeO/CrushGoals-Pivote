@@ -23,27 +23,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Target, Sparkles, UserPlus, TrendingUp, Info, Check, Users } from "lucide-react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger
-} from "@/components/ui/tooltip";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { OrgGoal, GoalStatus, GoalPriority, GoalFrequency } from "@/types";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { GOAL_TEMPLATES } from "@/lib/templates";
 import { useStore } from "@/lib/store";
 import { toast } from "sonner";
+import { CreateGoalTemplates } from "./goals/CreateGoalTemplates";
+import { CreateGoalAssignees } from "./goals/CreateGoalAssignees";
 
 const formSchema = z.object({
     title: z.string().min(2, "Title must be at least 2 characters"),
@@ -243,44 +231,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
-                    <div className="space-y-3 p-4 rounded-xl bg-accent/20 border border-border/20 backdrop-blur-sm">
-                        <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                <Label className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-muted-foreground/80">Quick Start Templates</Label>
-                            </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            <TooltipProvider>
-                                {GOAL_TEMPLATES.map((template) => (
-                                    <Tooltip key={template.id}>
-                                        <TooltipTrigger asChild>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyTemplate(template.id)}
-                                                className={cn(
-                                                    "group relative flex items-center gap-2 px-3 h-9 rounded-lg border text-[11px] font-semibold transition-all duration-300 cursor-pointer",
-                                                    "bg-background/40 border-border/40 hover:border-primary/50 hover:bg-primary/5",
-                                                    "hover:shadow-[0_0_15px_-5px_var(--primary)] hover:scale-[1.02] active:scale-[0.98]"
-                                                )}
-                                            >
-                                                <span className="text-sm scale-110 group-hover:rotate-12 transition-transform">{template.emoji}</span>
-                                                <span className="truncate max-w-[120px] text-muted-foreground group-hover:text-foreground transition-colors">
-                                                    {template.title}
-                                                </span>
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="glass-card border-border/40 p-3 max-w-[200px] shadow-2xl animate-in zoom-in-95">
-                                            <p className="font-bold text-xs mb-1 text-primary">{template.title}</p>
-                                            <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                                {template.description}
-                                            </p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                ))}
-                            </TooltipProvider>
-                        </div>
-                    </div>
+                    <CreateGoalTemplates applyTemplate={applyTemplate} />
 
                     <div className="flex flex-col sm:grid sm:grid-cols-4 gap-4">
                         <div className="space-y-2 sm:col-span-1 border-b border-border/10 pb-4 sm:border-0 sm:pb-0">
@@ -371,104 +322,14 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                                     </div>
 
                                     <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-xs font-semibold uppercase tracking-wider">
-                                                {isMemberOnly ? "Assigned To" : "Assign To"}
-                                            </Label>
-                                            {!isMemberOnly && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={toggleEveryone}
-                                                    className={cn(
-                                                        "h-7 text-[10px] px-2 gap-1.5 border border-border/20",
-                                                        selectedAssignees.length === members.length && "bg-primary/10 text-primary border-primary/20"
-                                                    )}
-                                                >
-                                                    <Users className="w-3 h-3" />
-                                                    Everyone
-                                                </Button>
-                                            )}
-                                        </div>
-
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <div className="flex items-center">
-                                                {selectedAssignees.slice(0, 6).map((id, i) => {
-                                                    const m = members.find(m => m.id === id);
-                                                    if (!m) return null;
-                                                    return (
-                                                        <button
-                                                            key={id}
-                                                            type="button"
-                                                            onClick={() => !isMemberOnly && toggleAssignee(id)}
-                                                            title={m.name}
-                                                            className={cn(
-                                                                "relative w-8 h-8 rounded-full border-2 border-background transition-transform hover:scale-110 hover:z-10",
-                                                                i > 0 && "-ml-2"
-                                                            )}
-                                                            style={{ zIndex: i }}
-                                                        >
-                                                            <Avatar className="w-full h-full">
-                                                                <AvatarFallback className="text-[9px] bg-primary/20 text-primary font-bold uppercase">
-                                                                    {m.name.split(" ").map(n => n[0]).join("")}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            {!isMemberOnly && (
-                                                                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-destructive/80 text-white text-[7px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition">✕</span>
-                                                            )}
-                                                        </button>
-                                                    );
-                                                })}
-                                                {selectedAssignees.length > 6 && (
-                                                    <div className="relative -ml-2 w-8 h-8 rounded-full bg-accent border-2 border-background flex items-center justify-center text-[9px] font-bold text-muted-foreground z-10">
-                                                        +{selectedAssignees.length - 6}
-                                                    </div>
-                                                )}
-                                                {selectedAssignees.length === 0 && (
-                                                    <span className="text-xs text-muted-foreground/60 italic">No one assigned yet</span>
-                                                )}
-                                            </div>
-
-                                            {!isMemberOnly && (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="h-8 gap-1.5 text-[11px] border-dashed border-border/40 text-muted-foreground hover:text-foreground"
-                                                        >
-                                                            <UserPlus className="w-3.5 h-3.5" />
-                                                            Add Assignee
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="start" className="w-52 glass-card border-border/40">
-                                                        <ScrollArea className="max-h-52">
-                                                            {members.map((member) => {
-                                                                const isSelf = member.id === myMemberId;
-                                                                const isSelected = selectedAssignees.includes(member.id);
-                                                                return (
-                                                                    <DropdownMenuItem
-                                                                        key={member.id}
-                                                                        onSelect={(e) => { e.preventDefault(); toggleAssignee(member.id); }}
-                                                                        className="flex items-center gap-2 cursor-pointer"
-                                                                    >
-                                                                        <Avatar className="w-6 h-6 shrink-0">
-                                                                            <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase">
-                                                                                {member.name.split(" ").map(n => n[0]).join("")}
-                                                                            </AvatarFallback>
-                                                                        </Avatar>
-                                                                        <span className="flex-1 text-xs truncate">{isSelf ? `${member.name} (You)` : member.name}</span>
-                                                                        {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                                                    </DropdownMenuItem>
-                                                                );
-                                                            })}
-                                                        </ScrollArea>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            )}
-                                        </div>
+                                        <CreateGoalAssignees 
+                                            members={members}
+                                            selectedAssignees={selectedAssignees}
+                                            isMemberOnly={isMemberOnly}
+                                            myMemberId={myMemberId}
+                                            toggleAssignee={toggleAssignee}
+                                            toggleEveryone={toggleEveryone}
+                                        />
                                     </div>
 
                                     <div className="space-y-2">
