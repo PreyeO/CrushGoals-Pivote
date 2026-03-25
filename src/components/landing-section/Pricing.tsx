@@ -30,7 +30,7 @@ export const pricingPlans = [
     description: "For growing teams who need more",
     features: [
       "3 org",
-      "Up to 25 members per or,g",
+      "Up to 25 members per org",
       "Unlimited goals",
       "Slack & Telegram notifications",
       "Leaderboard",
