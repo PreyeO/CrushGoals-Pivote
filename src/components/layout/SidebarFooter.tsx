@@ -22,7 +22,7 @@ export function SidebarFooter({
   const user = useStore(useShallow((state) => state.user));
 
   return (
-    <div className="flex-shrink-0 p-3 space-y-2">
+    <div className="shrink-0 p-3 space-y-2">
       <Separator className="opacity-15" />
       {!collapsed && user && (
         <Link

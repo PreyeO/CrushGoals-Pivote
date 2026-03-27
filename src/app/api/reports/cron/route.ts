@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
     const results = [];
 
-    for (const org of (orgs as any[])) {
+    for (const org of (orgs as Organization[])) {
       const hasSlack = !!org.slack_webhook_url;
       const hasTelegram = !!org.telegram_chat_id;
 
@@ -145,8 +145,9 @@ export async function GET(request: Request) {
         details: results
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Weekly Report Error";
     console.error("[Cron] Weekly Report Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -2,7 +2,7 @@ import { OrgGoal, OrgMember } from "@/types";
 import { WeeklySummary } from "./reportService";
 
 export const slackService = {
-  async sendMessage(webhookUrl: string, blocks: any[]) {
+  async sendMessage(webhookUrl: string, blocks: Record<string, any>[]) {
     try {
       const response = await fetch('/api/slack', {
         method: 'POST',
@@ -51,7 +51,7 @@ export const slackService = {
     return this.sendMessage(webhookUrl, blocks);
   },
 
-  async sendGoalCompletion(webhookUrl: string, memberName: string, goal: any, streakCount?: number) {
+  async sendGoalCompletion(webhookUrl: string, memberName: string, goal: OrgGoal, streakCount?: number) {
     const streakText = streakCount && streakCount >= 3 
       ? `\n\n🔥 ${memberName} is on a ${streakCount}-goal streak!` 
       : "";
@@ -80,7 +80,7 @@ export const slackService = {
     return this.sendMessage(webhookUrl, blocks);
   },
 
-  async sendGoalBlocked(webhookUrl: string, memberName: string, goal: any, reason: string) {
+  async sendGoalBlocked(webhookUrl: string, memberName: string, goal: OrgGoal, reason: string) {
     const blocks = [
       {
         type: "header",
@@ -126,7 +126,7 @@ export const slackService = {
     return this.sendMessage(webhookUrl, blocks);
   },
 
-  async sendNewGoalNotification(webhookUrl: string, goal: any, memberNames: string[]) {
+  async sendNewGoalNotification(webhookUrl: string, goal: OrgGoal, memberNames: string[]) {
     const names = memberNames.length > 0 ? memberNames.join(", ") : "Team";
     const blocks = [
       {
@@ -175,7 +175,7 @@ export const slackService = {
   async sendStaleNudge(webhookUrl: string, staleGoals: { title: string, memberName: string, days: number }[]) {
     if (staleGoals.length === 0) return;
 
-    const blocks: any[] = [
+    const blocks: Record<string, any>[] = [
       {
         type: "header",
         text: {
@@ -220,7 +220,7 @@ export const slackService = {
   },
 
   async sendWeeklySummary(webhookUrl: string, summary: WeeklySummary) {
-    const blocks: any[] = [
+    const blocks: Record<string, any>[] = [
       {
         type: "header",
         text: {

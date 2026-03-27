@@ -46,7 +46,10 @@ interface ActiveDailyGoalItemProps {
   members: OrgMember[];
 }
 
-export function ActiveDailyGoalItem({ goal, members }: ActiveDailyGoalItemProps) {
+export function ActiveDailyGoalItem({
+  goal,
+  members,
+}: ActiveDailyGoalItemProps) {
   const dailyCheckIn = useStore((state) => state.dailyCheckIn);
   const undoDailyCheckIn = useStore((state) => state.undoDailyCheckIn);
   const fetchCheckIns = useStore((state) => state.fetchCheckIns);
@@ -105,7 +108,7 @@ export function ActiveDailyGoalItem({ goal, members }: ActiveDailyGoalItemProps)
               </h4>
               <Badge
                 variant="outline"
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 h-4 bg-[oklch(0.72_0.18_55_/_0.12)] text-[oklch(0.72_0.18_55)] border-[oklch(0.72_0.18_55_/_0.2)]"
+                className="text-[9px] font-bold uppercase tracking-wider px-1.5 h-4 bg-[oklch(0.72_0.18_55_/0.12)] text-[oklch(0.72_0.18_55)] border-[oklch(0.72_0.18_55_/0.2)]"
               >
                 <Flame className="w-2.5 h-2.5 mr-0.5" />
                 {goal.frequency}

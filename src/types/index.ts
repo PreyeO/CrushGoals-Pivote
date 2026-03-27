@@ -37,6 +37,7 @@ export interface Organization {
     allow_commands: boolean;
   };
   lastTelegramNudgeAt?: string;
+  [key: string]: any; // To allow for dynamic fields from Supabase joined queries
 }
 
 export interface Profile {
@@ -143,6 +144,15 @@ export interface ActivityItem {
   createdAt: string;
 }
 
+export interface RawGoal {
+  id: string;
+  org_id: string;
+  title: string;
+  assigned_to: string[] | null;
+  status: GoalStatus;
+  updated_at: string;
+}
+
 export interface LeaderboardEntry {
   rank: number;
   memberId: string;
@@ -182,4 +192,30 @@ export interface DailyCheckIn {
   completed: boolean;
   note: string | null;
   createdAt: string;
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url: string | null;
+  orgCount: number;
+  goalCount: number;
+  role?: string;
+}
+
+export interface AdminOrg {
+  id: string;
+  name: string;
+  emoji: string | null;
+  description: string | null;
+  owner: {
+    full_name: string;
+    email: string;
+    avatar_url: string | null;
+  } | null;
+  memberCount: number;
+  goalCount: number;
+  plan: string;
+  created_at: string;
 }

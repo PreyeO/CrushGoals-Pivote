@@ -14,9 +14,8 @@ export function EmptyDashboard() {
             Welcome to CrushGoals
           </h1>
           <p className="text-sm text-muted-foreground leading-relaxed text-balance">
-            You don't belong to any organizations yet. Create your first
-            workspace to start tracking goals and collaborating with your
-            team.
+            {`You don't belong to any organizations yet. Create your first`}
+            workspace to start tracking goals and collaborating with your team.
           </p>
         </div>
         <div className="pt-2 flex flex-col gap-3">

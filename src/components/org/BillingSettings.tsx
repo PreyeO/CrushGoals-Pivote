@@ -3,7 +3,9 @@ import { useSearchParams } from "next/navigation";
 import { PricingPlans } from "@/components/PricingPlans";
 import { CreditCard, Zap } from "lucide-react";
 
-export function BillingSettings({ org }: { org: any }) {
+import { Organization } from "@/types";
+
+export function BillingSettings({ org }: { org: Organization }) {
     const searchParams = useSearchParams();
     const highlightPlan = searchParams.get('plan') || undefined;
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { telegramService } from "@/lib/services/telegram";
+import { RawGoal } from "@/types";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -121,10 +122,15 @@ export async function POST(req: NextRequest) {
             `)
             .eq("org_id", org.id);
         
-        const memberNameMap = Object.fromEntries(orgMembersWithProfiles?.map((m: any) => [m.id, m.profiles?.full_name || "Someone"]) || []);
+        const memberNameMap = Object.fromEntries(
+            (orgMembersWithProfiles as any[] | null)?.map((m: { id: string, profiles: { full_name: string | null } | null } | any) => [
+                m.id, 
+                m.profiles?.full_name || "Someone"
+            ]) || []
+        );
 
         let msg = "🎯 Active Goals:\n\n";
-        goals.forEach((g: any, i: number) => { 
+        goals.forEach((g: RawGoal, i: number) => { 
             const assignees = Array.isArray(g.assigned_to) ? g.assigned_to : [];
             const names = assignees.map((id: string) => memberNameMap[id] || "Someone").join(", ");
             const assigneeText = names ? ` — ${names}` : "";
@@ -137,7 +143,7 @@ export async function POST(req: NextRequest) {
       const { data: comp } = await supabaseAdmin.from("goals").select("assigned_to").eq("org_id", org.id).eq("status", "completed");
       const board: Record<string, number> = {};
       
-      comp?.forEach((g: any) => { 
+      comp?.forEach((g: { assigned_to: string[] | null }) => { 
         const assignees = Array.isArray(g.assigned_to) ? g.assigned_to : [];
         assignees.forEach((mId: string) => {
             board[mId] = (board[mId] || 0) + 1;
@@ -157,7 +163,12 @@ export async function POST(req: NextRequest) {
             `)
             .eq("org_id", org.id);
         
-        const memberNameMap = Object.fromEntries(orgMembersWithProfiles?.map((m: any) => [m.id, m.profiles?.full_name || "Someone"]) || []);
+        const memberNameMap = Object.fromEntries(
+            (orgMembersWithProfiles as any[] | null)?.map((m: { id: string, profiles: { full_name: string | null } | null } | any) => [
+                m.id, 
+                m.profiles?.full_name || "Someone"
+            ]) || []
+        );
 
         let msg = "🏆 Crush Leaderboard:\n\n";
         sorted.forEach(([mId, c], i) => { 

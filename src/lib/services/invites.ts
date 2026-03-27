@@ -67,9 +67,10 @@ export const inviteService = {
                 // Return descriptive error for user
                 return { ...data, inviteLink, emailError: result.error };
             }
-        } catch (emailErr: any) {
+        } catch (emailErr: unknown) {
             console.error("Failed to execute invitation email action:", emailErr);
-            return { ...data, inviteLink, emailError: emailErr.message || "Email service unavailable" };
+            const errorMessage = emailErr instanceof Error ? emailErr.message : "Email service unavailable";
+            return { ...data, inviteLink, emailError: errorMessage };
         }
 
         return { ...data, inviteLink };

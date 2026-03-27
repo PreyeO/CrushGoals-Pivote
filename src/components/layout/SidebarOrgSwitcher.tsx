@@ -51,7 +51,7 @@ export function SidebarOrgSwitcher({
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="w-[230px] bg-background/95 backdrop-blur-xl border-border/40 p-1.5 shadow-2xl"
+          className="w-57.5 bg-background/95 backdrop-blur-xl border-border/40 p-1.5 shadow-2xl"
           align="start"
           side="bottom"
           sideOffset={4}
@@ -72,9 +72,7 @@ export function SidebarOrgSwitcher({
                 <span className="text-base w-6 h-6 flex items-center justify-center">
                   {org.emoji}
                 </span>
-                <span className="font-semibold text-xs flex-1">
-                  {org.name}
-                </span>
+                <span className="font-semibold text-xs flex-1">{org.name}</span>
                 {urlOrgId === org.id && (
                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                 )}

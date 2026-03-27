@@ -77,9 +77,10 @@ export const emailService = {
 
       console.log('Invitation email sent successfully:', data?.id);
       return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Critical email service failure";
       console.error('Critical failure in email service:', error);
-      return { success: false, error: error.message || 'Critical email service failure' };
+      return { success: false, error: message };
     }
   },
 };

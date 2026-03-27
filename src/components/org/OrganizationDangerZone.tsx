@@ -7,7 +7,9 @@ import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-export function OrganizationDangerZone({ org, orgId }: { org: any, orgId: string }) {
+import { Organization } from "@/types";
+
+export function OrganizationDangerZone({ org, orgId }: { org: Organization, orgId: string }) {
     const router = useRouter();
     const deleteOrganization = useStore((state) => state.deleteOrganization);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -24,8 +26,9 @@ export function OrganizationDangerZone({ org, orgId }: { org: any, orgId: string
             await deleteOrganization(orgId);
             toast.success("Organization deleted successfully.");
             router.push("/dashboard");
-        } catch (error: any) {
-            toast.error(error.message || "Failed to delete organization.");
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Failed to delete organization.";
+            toast.error(message);
         } finally {
             setIsDeleting(false);
         }

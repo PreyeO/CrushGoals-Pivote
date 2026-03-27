@@ -33,11 +33,11 @@ export function SidebarNavItem({
       )}
     >
       {isActive && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full gradient-primary" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-5 rounded-r-full gradient-primary" />
       )}
       <Icon
         className={cn(
-          "w-[18px] h-[18px] flex-shrink-0 transition-colors",
+          "w-4.5 h-4.5 shrink-0 transition-colors",
           isActive && "text-primary",
         )}
       />

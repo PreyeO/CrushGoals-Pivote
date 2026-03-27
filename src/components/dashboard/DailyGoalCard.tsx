@@ -41,7 +41,13 @@ function calculateStreak(checkedDates: Set<string>): number {
   return streak;
 }
 
-export function DailyGoalCard({ goal, orgs }: { goal: OrgGoal; orgs: Organization[] }) {
+export function DailyGoalCard({
+  goal,
+  orgs,
+}: {
+  goal: OrgGoal;
+  orgs: Organization[];
+}) {
   const dailyCheckIn = useStore((state) => state.dailyCheckIn);
   const undoDailyCheckIn = useStore((state) => state.undoDailyCheckIn);
   const fetchCheckIns = useStore((state) => state.fetchCheckIns);
@@ -79,8 +85,9 @@ export function DailyGoalCard({ goal, orgs }: { goal: OrgGoal; orgs: Organizatio
         await dailyCheckIn(goal.id, todayStr);
         toast.success("Checked in! 🔥");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to check in");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to check in";
+      toast.error(message);
     } finally {
       setIsCheckingIn(false);
     }
@@ -98,7 +105,7 @@ export function DailyGoalCard({ goal, orgs }: { goal: OrgGoal; orgs: Organizatio
           </div>
           <Badge
             variant="outline"
-            className="text-[9px] font-bold uppercase tracking-wider px-1.5 h-4 bg-[oklch(0.72_0.18_55_/_0.12)] text-[oklch(0.72_0.18_55)] border-[oklch(0.72_0.18_55_/_0.2)]"
+            className="text-[9px] font-bold uppercase tracking-wider px-1.5 h-4 bg-[oklch(0.72_0.18_55_/0.12)] text-[oklch(0.72_0.18_55)] border-[oklch(0.72_0.18_55_/0.2)]"
           >
             <Flame className="w-2.5 h-2.5 mr-0.5" />
             {goal.frequency}
@@ -157,7 +164,10 @@ export function DailyGoalCard({ goal, orgs }: { goal: OrgGoal; orgs: Organizatio
               { weekday: "narrow" },
             );
             return (
-              <div key={day} className="flex flex-col items-center gap-1 flex-1">
+              <div
+                key={day}
+                className="flex flex-col items-center gap-1 flex-1"
+              >
                 <span className="text-[7px] text-muted-foreground/50 font-bold">
                   {dayLabel}
                 </span>

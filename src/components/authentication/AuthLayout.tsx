@@ -20,7 +20,6 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           </div>
 
           <div className="space-y-4">{children}</div>
-
         </div>
       </div>
 
@@ -30,9 +29,9 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           className="absolute inset-0 pointer-events-none"
           aria-hidden="true"
         >
-          <div className="absolute -top-24 -right-24 w-[600px] h-[600px] rounded-full bg-primary/10 blur-[120px] animate-float" />
+          <div className="absolute -top-24 -right-24 w-150 h-150 rounded-full bg-primary/10 blur-[120px] animate-float" />
           <div
-            className="absolute top-1/2 left-1/4 w-[400px] h-[400px] rounded-full bg-chart-2/10 blur-[100px] animate-float"
+            className="absolute top-1/2 left-1/4 w-150 h-150 rounded-full bg-chart-2/10 blur-[100px] animate-float"
             style={{ animationDelay: "3s" }}
           />
         </div>
@@ -44,9 +43,9 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           </div>
           <blockquote className="space-y-4">
             <p className="text-2xl font-medium leading-tight">
-              CrushGoals transformed how our organization executes. No more guessing or
-              endless meetings — just clear goals, ownership, and real
-              accountability.
+              CrushGoals transformed how our organization executes. No more
+              guessing or endless meetings — just clear goals, ownership, and
+              real accountability.
             </p>
             <footer className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center font-bold text-white shadow-lg">

@@ -8,71 +8,7 @@ import { flutterwaveService } from "@/lib/services/flutterwave";
 import { toast } from "sonner";
 import { PricingCard, PlanData } from "@/components/PricingCard";
 
-const PLANS = [
-    {
-        id: "free",
-        name: "Free",
-        price: "$0",
-        period: "forever",
-        description: "For small teams getting started",
-        features: [
-            "1 Organization",
-            "Up to 10 members",
-            "15 active goals",
-            "Progress reports & analytics",
-            "Leaderboard",
-            "Export PDF / CSV",
-            "Email notifications",
-        ],
-        buttonText: "Current Plan",
-        disabled: true,
-        gradient: "from-slate-500/20 to-slate-400/10",
-        border: "border-slate-500/20",
-    },
-    {
-        id: "pro",
-        name: "Pro",
-        price: "$8",
-        period: "per month",
-        description: "For growing teams who need more",
-        features: [
-            "3 Organizations",
-            "Up to 25 members per org",
-            "Unlimited goals",
-            "Slack & Telegram notifications",
-            "Leaderboard",
-            "Progress reports & analytics",
-            "Export PDF / CSV",
-            "Priority Support",
-        ],
-        buttonText: "Upgrade to Pro",
-        disabled: false,
-        recommended: true,
-        gradient: "from-primary/20 to-primary/5",
-        border: "border-primary/30",
-        glow: "glow-primary-sm",
-    },
-    {
-        id: "business",
-        name: "Business",
-        price: "$19",
-        period: "per month",
-        description: "For organizations at scale",
-        features: [
-            "Unlimited Organizations",
-            "Unlimited Members",
-            "Unlimited Goals",
-            "Advanced analytics",
-            "Team health score",
-            "Everything in Pro",
-            "Dedicated support",
-        ],
-        buttonText: "Go Business",
-        disabled: false,
-        gradient: "from-[oklch(0.60_0.20_330/0.15)] to-[oklch(0.60_0.20_330/0.05)]",
-        border: "border-[oklch(0.60_0.20_330/0.3)]",
-    },
-];
+import { PLANS } from "@/lib/constants/pricing";
 
 export function PricingPlans({ 
     showHeader = true, 

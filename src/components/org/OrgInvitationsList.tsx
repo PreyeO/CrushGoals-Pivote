@@ -5,8 +5,10 @@ import { Copy, Trash2, Clock, Mail, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
 
+import { OrgInvite } from "@/types";
+
 interface OrgInvitationsListProps {
-    filteredInvites: any[];
+    filteredInvites: OrgInvite[];
     orgId: string;
     isMemberOnly: boolean;
 }
@@ -14,7 +16,7 @@ interface OrgInvitationsListProps {
 export function OrgInvitationsList({ filteredInvites, orgId, isMemberOnly }: OrgInvitationsListProps) {
     const cancelInvitation = useStore((state) => state.cancelInvitation);
 
-    const handleCopyInviteLink = (invite: any) => {
+    const handleCopyInviteLink = (invite: OrgInvite) => {
         const baseUrl = window.location.origin;
         const link = `${baseUrl}/invite/${invite.token}`;
         navigator.clipboard.writeText(link);

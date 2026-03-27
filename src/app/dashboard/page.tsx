@@ -69,7 +69,7 @@ export default function DashboardPage() {
     }
   }, [
     isLoading,
-    organizations.length,
+    organizations,
     members,
     user,
     pendingInvitations,
@@ -83,7 +83,7 @@ export default function DashboardPage() {
         <main
           className={cn(
             "transition-all duration-300 w-full h-full",
-            sidebarCollapsed ? "lg:pl-18" : "lg:pl-65",
+            sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]",
           )}
         >
           <DashboardSkeleton />
@@ -107,7 +107,7 @@ export default function DashboardPage() {
         <main
           className={cn(
             "transition-all duration-300 w-full h-full",
-            sidebarCollapsed ? "lg:pl-18" : "lg:pl-65",
+            sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]",
           )}
         >
           <DashboardSkeleton />
@@ -122,7 +122,7 @@ export default function DashboardPage() {
       <main
         className={cn(
           "transition-all duration-300",
-          sidebarCollapsed ? "lg:pl-18" : "lg:pl-65",
+          sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]",
         )}
       >
         <DashboardMain />

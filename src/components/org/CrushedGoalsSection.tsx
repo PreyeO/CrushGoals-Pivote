@@ -10,7 +10,9 @@ interface CrushedGoalsSectionProps {
   crushedGoals: OrgGoal[];
 }
 
-export function CrushedGoalsSection({ crushedGoals }: CrushedGoalsSectionProps) {
+export function CrushedGoalsSection({
+  crushedGoals,
+}: CrushedGoalsSectionProps) {
   const [showCrushed, setShowCrushed] = useState(false);
 
   if (crushedGoals.length === 0) return null;
@@ -30,7 +32,8 @@ export function CrushedGoalsSection({ crushedGoals }: CrushedGoalsSectionProps) 
               Crushed Goals
             </span>
             <span className="text-[10px] text-muted-foreground font-medium">
-              {crushedGoals.length} target{crushedGoals.length !== 1 ? 's' : ''} successfully hit
+              {crushedGoals.length} target{crushedGoals.length !== 1 ? "s" : ""}{" "}
+              successfully hit
             </span>
           </div>
         </div>
@@ -49,7 +52,7 @@ export function CrushedGoalsSection({ crushedGoals }: CrushedGoalsSectionProps) 
           {crushedGoals.map((goal) => (
             <div
               key={goal.id}
-              className="glass-card border-emerald-500/20 bg-emerald-500/[0.02] p-4 flex items-center justify-between opacity-80 hover:opacity-100 transition-opacity"
+              className="glass-card border-emerald-500/20 bg-emerald-500/2 p-4 flex items-center justify-between opacity-80 hover:opacity-100 transition-opacity"
             >
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{goal.emoji}</span>

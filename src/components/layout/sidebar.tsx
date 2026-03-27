@@ -9,15 +9,11 @@ import {
   Users,
   Trophy,
   Building2,
-  ChevronLeft,
-  ChevronRight,
   Menu,
   X,
   BarChart3,
   Mail,
   Settings,
-  UserCircle,
-  ShieldAlert,
   CreditCard,
   Share2,
 } from "lucide-react";
@@ -45,6 +41,26 @@ const getOrgNavItems = (orgId: string) => [
   { icon: Settings, label: "Settings", path: `/org/${orgId}/settings` },
 ];
 
+function NavItem({
+  collapsed,
+  setMobileOpen,
+  ...props
+}: Omit<
+  React.ComponentProps<typeof SidebarNavItem>,
+  "collapsed" | "setMobileOpen"
+> & {
+  collapsed: boolean;
+  setMobileOpen: (open: boolean) => void;
+}) {
+  return (
+    <SidebarNavItem
+      {...props}
+      collapsed={collapsed}
+      setMobileOpen={setMobileOpen}
+    />
+  );
+}
+
 export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -55,21 +71,35 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
   const urlOrgId = pathname.split("/org/")[1]?.split("/")[0];
 
   useEffect(() => {
-    setMounted(true);
+    // Use setTimeout to defer setState to the next task, avoiding cascading render warning
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     if (urlOrgId) {
-      localStorage.setItem("lastActiveOrgId", urlOrgId);
-      setLastOrgId(urlOrgId);
+      if (localStorage.getItem("lastActiveOrgId") !== urlOrgId) {
+        localStorage.setItem("lastActiveOrgId", urlOrgId);
+      }
+      if (lastOrgId !== urlOrgId) {
+        // Defer to avoid cascading render
+        const timer = setTimeout(() => setLastOrgId(urlOrgId), 0);
+        return () => clearTimeout(timer);
+      }
     } else {
       const saved = localStorage.getItem("lastActiveOrgId");
-      if (saved) setLastOrgId(saved);
+      if (saved && lastOrgId !== saved) {
+        // Defer to avoid cascading render
+        const timer = setTimeout(() => setLastOrgId(saved), 0);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [urlOrgId]);
+  }, [urlOrgId, lastOrgId]);
 
   const orgs = useStore(useShallow((state) => state.organizations));
   const members = useStore(useShallow((state) => state.members));
   const invitations = useStore(useShallow((state) => state.invitations));
   const user = useStore(useShallow((state) => state.user));
-  const signOut = useStore((state) => state.signOut);
   const collapsed = useStore((state) => state.sidebarCollapsed);
   const setCollapsed = useStore((state) => state.setSidebarCollapsed);
 
@@ -85,10 +115,10 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
   );
 
   // Permission Fix: Don't downgrade admins/owners during transitions
-  // If we don't have myMember for THIS org yet, but we know they are an admin ANYWHERE, 
+  // If we don't have myMember for THIS org yet, but we know they are an admin ANYWHERE,
   // we keep the tools visible to prevent flickering "lag"
-  const isMemberOnly = myMember 
-    ? myMember.role === "member" 
+  const isMemberOnly = myMember
+    ? myMember.role === "member"
     : !isOwnerOrAdminAny;
 
   const orgNavItems = resolvedOrgId
@@ -110,10 +140,6 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
   );
 
   if (!mounted) return null;
-
-  const NavItem = (props: Omit<React.ComponentProps<typeof SidebarNavItem>, "collapsed" | "setMobileOpen">) => (
-    <SidebarNavItem {...props} collapsed={collapsed} setMobileOpen={setMobileOpen} />
-  );
 
   return (
     <>
@@ -142,14 +168,13 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
         )}
       >
         {/* Logo */}
-        <div className="px-5 h-16 flex items-center flex-shrink-0">
+        <div className="px-5 h-16 flex items-center shrink-0">
           <Logo iconOnly={collapsed} size="sm" href="/" />
         </div>
 
         {!collapsed && currentOrg && (
           <SidebarOrgSwitcher currentOrg={currentOrg} urlOrgId={urlOrgId} />
         )}
-
 
         <Separator className="mx-4 w-auto opacity-20 my-2" />
 
@@ -162,27 +187,36 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
               icon={LayoutDashboard}
               label="Dashboard"
               isActive={pathname === "/dashboard"}
+              collapsed={collapsed}
+              setMobileOpen={setMobileOpen}
             />
           )}
 
           {/* Pending invitations indicator */}
           {(() => {
             const hasReceived = pendingInvites.length > 0;
-            const myMemberInCurrent = members.find(m => m.userId === user?.id && m.orgId === resolvedOrgId);
-            const isAdminInCurrent = myMemberInCurrent && (myMemberInCurrent.role === 'owner' || myMemberInCurrent.role === 'admin');
-            const hasSent = isAdminInCurrent && resolvedOrgId && invitations.length > 0;
-            
+            const myMemberInCurrent = members.find(
+              (m) => m.userId === user?.id && m.orgId === resolvedOrgId,
+            );
+            const isAdminInCurrent =
+              myMemberInCurrent &&
+              (myMemberInCurrent.role === "owner" ||
+                myMemberInCurrent.role === "admin");
+            const hasSent =
+              isAdminInCurrent && resolvedOrgId && invitations.length > 0;
+
             if (hasReceived) {
-              const inviteHref = pendingInvites.length === 1
-                ? `/invite/${pendingInvites[0].token}`
-                : `/invitations`;
+              const inviteHref =
+                pendingInvites.length === 1
+                  ? `/invite/${pendingInvites[0].token}`
+                  : `/invitations`;
               return (
                 <Link
                   href={inviteHref}
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
                 >
-                  <Mail className="w-[18px] h-[18px] flex-shrink-0" />
+                  <Mail className="w-4.5 h-4.5 shrink-0" />
                   {!collapsed && (
                     <span className="flex-1">
                       {pendingInvites.length === 1
@@ -207,7 +241,7 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-[oklch(0.70_0.18_155)] bg-[oklch(0.70_0.18_155)]/10 hover:bg-[oklch(0.70_0.18_155)]/20"
                 >
-                  <Mail className="w-[18px] h-[18px] flex-shrink-0" />
+                  <Mail className="w-4.5 h-4.5 shrink-0" />
                   {!collapsed && (
                     <span className="flex-1">
                       {sentCount === 1
@@ -231,12 +265,12 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
                   icon={item.icon}
                   label={item.label}
                   isActive={pathname === item.path}
+                  collapsed={collapsed}
+                  setMobileOpen={setMobileOpen}
                 />
               ))}
             </div>
           )}
-
-
 
           {/* Super Admin Link */}
           {user?.email === "ayibakep@gmail.com" && (
@@ -253,33 +287,41 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
                 icon={LayoutDashboard}
                 label="Overview"
                 isActive={pathname === "/admin"}
+                collapsed={collapsed}
+                setMobileOpen={setMobileOpen}
               />
               <NavItem
                 href="/admin/users"
                 icon={Users}
                 label="Users"
                 isActive={pathname === "/admin/users"}
+                collapsed={collapsed}
+                setMobileOpen={setMobileOpen}
               />
               <NavItem
                 href="/admin/organizations"
                 icon={Building2}
                 label="Organizations"
                 isActive={pathname === "/admin/organizations"}
+                collapsed={collapsed}
+                setMobileOpen={setMobileOpen}
               />
               <NavItem
                 href="/admin/subscriptions"
                 icon={CreditCard}
                 label="Subscriptions"
                 isActive={pathname === "/admin/subscriptions"}
+                collapsed={collapsed}
+                setMobileOpen={setMobileOpen}
               />
             </>
           )}
         </nav>
 
-        <SidebarFooter 
-          collapsed={collapsed} 
-          setCollapsed={setCollapsed} 
-          resolvedOrgId={resolvedOrgId} 
+        <SidebarFooter
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          resolvedOrgId={resolvedOrgId}
         />
       </aside>
     </>

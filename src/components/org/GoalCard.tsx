@@ -5,12 +5,8 @@ import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Clock,
-  TrendingUp,
-  AlertCircle,
   ChevronDown,
   Calendar,
   Ban,
@@ -34,7 +30,10 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
   const isCompleted = goal.status === "completed";
   const deadline = new Date(goal.deadline);
   const isOverdue = !isCompleted && deadline < new Date();
-  const isDaily = goal.frequency === "daily" || goal.frequency === "weekly" || goal.frequency === "monthly";
+  const isDaily =
+    goal.frequency === "daily" ||
+    goal.frequency === "weekly" ||
+    goal.frequency === "monthly";
 
   const [expanded, setExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -44,7 +43,9 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
   // Trigger celebration on completion
   useEffect(() => {
     if (goal.status === "completed" && !isDaily) {
-      setShowCelebration(true);
+      // Use setTimeout to defer setState to the next task, avoiding cascading render warning
+      const timer = setTimeout(() => setShowCelebration(true), 0);
+      return () => clearTimeout(timer);
     }
   }, [goal.status, isDaily]);
 
@@ -66,8 +67,6 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
   const members = useStore((state) => state.members);
   const user = useStore((state) => state.user);
   const deleteGoal = useStore((state) => state.deleteGoal);
-  const updateGoalStatus = useStore((state) => state.updateGoalStatus);
-  const upsertMemberStatus = useStore((state) => state.upsertMemberStatus);
   const fetchMemberStatuses = useStore((state) => state.fetchMemberStatuses);
   const memberGoalStatuses = useStore(
     useShallow((state) =>
@@ -106,24 +105,23 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
     try {
       await deleteGoal(goal.id, goal.orgId);
       toast.success("Goal deleted successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete goal");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to delete goal";
+      toast.error(message);
       setIsDeleting(false);
       setConfirmDelete(false);
     }
   };
-
-
 
   return (
     <div
       className={cn(
         "glass-card p-5 transition-all animate-fade-in-up group/card relative overflow-hidden",
         isCompleted
-          ? "border-emerald-500/30 bg-emerald-500/[0.02]"
+          ? "border-emerald-500/30 bg-emerald-500/2"
           : "hover:border-primary/20",
         isOverdue &&
-        "border-destructive/50 bg-destructive/[0.03] shadow-[0_0_20px_-10px_rgba(239,68,68,0.5)]",
+          "border-destructive/50 bg-destructive/3 shadow-[0_0_20px_-10px_rgba(239,68,68,0.5)]",
       )}
     >
       {isCompleted && (
@@ -135,12 +133,15 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
         </div>
       )}
 
-      <Celebration active={showCelebration} onComplete={() => setShowCelebration(false)} />
+      <Celebration
+        active={showCelebration}
+        onComplete={() => setShowCelebration(false)}
+      />
 
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-xl flex-shrink-0 group-hover/card:scale-110 transition-transform">
+          <span className="text-xl shrink-0 group-hover/card:scale-110 transition-transform">
             {goal.emoji}
           </span>
           <div className="min-w-0">
@@ -159,7 +160,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
               {isDaily ? (
                 <Badge
                   variant="outline"
-                  className="text-[9px] font-bold uppercase tracking-wider px-1.5 h-4 bg-[oklch(0.72_0.18_55_/_0.12)] text-[oklch(0.72_0.18_55)] border-[oklch(0.72_0.18_55_/_0.2)]"
+                  className="text-[9px] font-bold uppercase tracking-wider px-1.5 h-4 bg-[oklch(0.72_0.18_55_/0.12)] text-[oklch(0.72_0.18_55)] border-[oklch(0.72_0.18_55_/0.2)]"
                 >
                   <Flame className="w-2.5 h-2.5 mr-0.5" />
                   {goal.frequency}
@@ -182,7 +183,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <Badge className={`${p.class} text-[9px]`}>{p.label}</Badge>
           <Badge className={`${s.badgeClass} text-[9px] gap-1`}>
             <s.icon className="w-2.5 h-2.5" />
@@ -299,11 +300,12 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             Team Progress
           </p>
 
-          <GoalTeamProgressPanel 
+          <GoalTeamProgressPanel
             assignees={assignees}
             memberGoalStatuses={memberGoalStatuses}
             isDaily={isDaily}
             checkins={checkins}
+            now={now}
           />
         </div>
       )}

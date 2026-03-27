@@ -9,7 +9,7 @@ export const heroData = {
   subhead:
     "CrushGoals helps teams and organizations set clear goals, assign ownership, and track real progress without heavy project management tools.",
   cta: {
-    placeholder: "Enter organization name...",
+    placeholder: "Enter your email address...",
     buttonText: "Start Free",
     subtext: "No credit card required • Instant setup",
   },

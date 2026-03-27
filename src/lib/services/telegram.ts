@@ -9,14 +9,14 @@ export const telegramService = {
     return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
   },
 
-  async sendMessage(chatId: string, text: string, replyMarkup?: any, options: { parseMode?: 'MarkdownV2' | 'HTML' | null } = { parseMode: 'MarkdownV2' }): Promise<void> {
+  async sendMessage(chatId: string, text: string, replyMarkup?: Record<string, any>, options: { parseMode?: 'MarkdownV2' | 'HTML' | null } = { parseMode: 'MarkdownV2' }): Promise<void> {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) {
         console.error('No Telegram Bot Token found!');
         return;
     }
     try {
-      const body: any = {
+      const body: Record<string, any> = {
         chat_id: chatId,
         text: options.parseMode === 'MarkdownV2' ? this.escapeMarkdown(text) : text,
       };
@@ -43,7 +43,18 @@ export const telegramService = {
     }
   },
 
-  async sendNotification(chatId: string, type: 'win' | 'sos' | 'boost' | 'summary', data: any) {
+  async sendNotification(
+    chatId: string, 
+    type: 'win' | 'sos' | 'boost' | 'summary', 
+    data: { 
+      userName?: string; 
+      goalTitle?: string; 
+      reason?: string; 
+      days?: number; 
+      goalId?: string; 
+      summary?: string; 
+    }
+  ) {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!chatId || !token) return;
 
@@ -114,7 +125,7 @@ export const telegramService = {
     return this.sendMessage(chatId, text);
   },
 
-  async sendGoalCompletion(chatId: string, memberName: string, goal: any, streakCount?: number) {
+  async sendGoalCompletion(chatId: string, memberName: string, goal: OrgGoal, streakCount?: number) {
     const streakText = streakCount && streakCount >= 3 
       ? `\n\n🔥 ${memberName} is on a ${streakCount}-goal streak!` 
       : "";
@@ -122,12 +133,12 @@ export const telegramService = {
     return this.sendMessage(chatId, text);
   },
 
-  async sendGoalBlocked(chatId: string, memberName: string, goal: any, reason: string) {
+  async sendGoalBlocked(chatId: string, memberName: string, goal: OrgGoal, reason: string) {
     const text = `⚠️ ATTENTION TEAM\n\n${memberName} is facing a challenge with "${goal.title}". Let's jump in and help solve this! 🤝\n\nReason: ${this.escapeMarkdown(reason)}`;
     return this.sendMessage(chatId, text);
   },
 
-  async sendNewGoalNotification(chatId: string, goal: any, memberNames: string[]) {
+  async sendNewGoalNotification(chatId: string, goal: OrgGoal, memberNames: string[]) {
     const names = memberNames.length > 0 ? memberNames.join(", ") : "Team";
     const text = `🎯 NEW OBJECTIVE\n\n"${goal.title}" has been set for ${names}. Let's get after it! 🚀`;
     return this.sendMessage(chatId, text);

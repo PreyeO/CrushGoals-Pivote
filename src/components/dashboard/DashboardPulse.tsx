@@ -15,12 +15,9 @@ interface DashboardPulseProps {
 export function DashboardPulse({ organizations }: DashboardPulseProps) {
   const members = useStore(useShallow((state: AppState) => state.members));
   const goals = useStore(useShallow((state: AppState) => state.goals));
-  const memberGoalStatuses = useStore(
-    useShallow((state: AppState) => state.memberGoalStatuses),
-  );
+
   const user = useStore(useShallow((state: AppState) => state.user));
-  
-  const STALE_MS = 5 * 24 * 60 * 60 * 1000;
+
   const [now] = useState(() => Date.now());
 
   const isOwnerOrAdmin = members.some(
@@ -49,7 +46,7 @@ export function DashboardPulse({ organizations }: DashboardPulseProps) {
         const mBlockedCount = memberGoals.filter(
           (g: OrgGoal) => g.status === "blocked",
         ).length;
-        
+
         const overdueCount = memberGoals.filter(
           (g: OrgGoal) =>
             g.status !== "completed" && new Date(g.deadline).getTime() < now,
@@ -95,7 +92,9 @@ export function DashboardPulse({ organizations }: DashboardPulseProps) {
               <span className="flex h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
             </h3>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              {needsAttention.length} {needsAttention.length === 1 ? "member needs" : "members need"} attention
+              {needsAttention.length}{" "}
+              {needsAttention.length === 1 ? "member needs" : "members need"}{" "}
+              attention
             </p>
           </div>
         </div>
@@ -115,10 +114,10 @@ export function DashboardPulse({ organizations }: DashboardPulseProps) {
               <Link
                 key={member.id}
                 href={`/org/${member.orgId}/members/${member.id}`}
-                className="group relative flex flex-col p-4 rounded-2xl glass-card border-border/40 hover:border-yellow-500/40 hover:bg-yellow-500/[0.02] transition-all duration-500 overflow-hidden"
+                className="group relative flex flex-col p-4 rounded-2xl glass-card border-border/40 hover:border-yellow-500/40 hover:bg-yellow-500/2 transition-all duration-500 overflow-hidden"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
+                <div className="absolute inset-0 bg-linear-to-br from-yellow-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
                 <div className="flex items-center gap-3 relative z-10">
                   <Avatar className="w-10 h-10 border-2 border-background shadow-xl scale-100 group-hover:scale-110 transition-transform duration-500">
                     <AvatarFallback className="bg-yellow-500/10 text-yellow-600 text-[11px] font-black uppercase">
@@ -134,7 +133,8 @@ export function DashboardPulse({ organizations }: DashboardPulseProps) {
                       {member.name}
                     </p>
                     <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">
-                      {organizations.find(o => o.id === member.orgId)?.name || "Member"}
+                      {organizations.find((o) => o.id === member.orgId)?.name ||
+                        "Member"}
                     </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground/20 group-hover:text-yellow-600 group-hover:translate-x-1 transition-all duration-500" />
@@ -153,7 +153,8 @@ export function DashboardPulse({ organizations }: DashboardPulseProps) {
                   )}
                   {behindCount > 0 && (
                     <div className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-600 border border-yellow-500/20">
-                      <AlertCircle className="w-2.5 h-2.5" /> {behindCount} Behind
+                      <AlertCircle className="w-2.5 h-2.5" /> {behindCount}{" "}
+                      Behind
                     </div>
                   )}
                   {staleUpdate && (

@@ -1,23 +1,25 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
-import Link from "next/link";
 import { OrgHeader } from "@/components/org/OrgHeader";
 import { OrgStats } from "@/components/org/OrgStats";
-import { OrgPulse } from "@/components/org/OrgPulse";
-import { ActiveGoalsList } from "@/components/org/ActiveGoalsList";
 import { LeaderboardTable } from "@/components/org/LeaderboardTable";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { OrgDashboardSkeleton } from "@/components/org/OrgDashboardSkeleton";
 import { notFound } from "next/navigation";
+import dynamic from "next/dynamic";
 import { getOrgHealthScore, getOrgLeaderboard } from "@/lib/store-utils";
 import type { OrgGoal, OrgMember, Organization } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Trophy,
-  Target,
-} from "lucide-react";
+import { Trophy, Target } from "lucide-react";
+
+const OrgPulse = dynamic(() =>
+  import("@/components/org/OrgPulse").then((mod) => mod.OrgPulse),
+);
+const ActiveGoalsList = dynamic(() =>
+  import("@/components/org/ActiveGoalsList").then((mod) => mod.ActiveGoalsList),
+);
 
 export default function OrgDashboardPage({
   params,
@@ -25,7 +27,6 @@ export default function OrgDashboardPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = use(params);
-  const [mounted, setMounted] = useState(false);
   const [now] = useState(() => Date.now());
 
   const goals = useStore(
@@ -46,29 +47,36 @@ export default function OrgDashboardPage({
   const isLoading = useStore((state) => state.isLoading);
   const user = useStore((state) => state.user);
 
-  useEffect(() => {
-    setMounted(true);
-    // Data fetching removed here; handled by parent OrgLayout to prevent flickers
-  }, [orgId]);
+  const health = useMemo(
+    () =>
+      org
+        ? getOrgHealthScore(orgId, goals, membersList)
+        : { overall: 0, trend: "stable" as const },
+    [orgId, goals, membersList, org],
+  );
+  const leaderboard = useMemo(
+    () => getOrgLeaderboard(orgId, membersList),
+    [orgId, membersList],
+  );
 
-  if (!mounted || (isLoading && !org)) return <LoadingState />;
+  const activeGoalsCount = useMemo(
+    () => goals.filter((g: OrgGoal) => g.status !== "completed").length,
+    [goals],
+  );
+
+  const completedGoalsCount = useMemo(
+    () => goals.filter((g: OrgGoal) => g.status === "completed").length,
+    [goals],
+  );
+
+  // Role gating: only admins/owners see Pulse
+  if (isLoading && !org) return <OrgDashboardSkeleton />;
   if (!org) return notFound();
-
-  const health = getOrgHealthScore(orgId, goals, membersList);
-  const leaderboard = getOrgLeaderboard(orgId, membersList);
-
-  const activeGoalsCount = goals.filter(
-    (g: OrgGoal) => g.status !== "completed",
-  ).length;
-  const completedGoalsCount = goals.filter(
-    (g: OrgGoal) => g.status === "completed",
-  ).length;
 
   // Role gating: only admins/owners see Pulse
   const myMember = membersList.find((m) => m.userId === user?.id);
-  const isAdminOrOwner = myMember?.role === "owner" || myMember?.role === "admin";
-
-
+  const isAdminOrOwner =
+    myMember?.role === "owner" || myMember?.role === "admin";
 
   return (
     <div className="p-5 pt-16 lg:pt-8 lg:p-8 max-w-7xl mx-auto space-y-6">

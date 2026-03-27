@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next"
 import { PaymentStatusHandler } from "@/components/PaymentStatusHandler";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 export default function RootLayout({
   children,
@@ -33,7 +34,9 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased`}>
         <PaymentStatusHandler />
-        <main>{children}</main>
+        <ErrorBoundary>
+          <main>{children}</main>
+        </ErrorBoundary>
         <Toaster richColors position="top-right" />
         <Analytics />
       </body>

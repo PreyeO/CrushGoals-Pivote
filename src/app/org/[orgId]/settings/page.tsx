@@ -14,17 +14,9 @@ import { OrganizationDangerZone } from "@/components/org/OrganizationDangerZone"
 
 export default function OrgSettingsPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params);
-    const [mounted, setMounted] = useState(false);
-
-    const fetchInitialData = useStore((state) => state.fetchInitialData);
     const org = useStore(useShallow((state) => state.organizations.find((o) => o.id === orgId)));
 
-    useEffect(() => {
-        setMounted(true);
-        fetchInitialData(orgId);
-    }, [orgId, fetchInitialData]);
 
-    if (!mounted) return null;
     if (!org) return notFound();
 
     return (
