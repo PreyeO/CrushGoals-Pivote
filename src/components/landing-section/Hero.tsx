@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { heroData } from "@/data/landing.data";
 
 export function Hero() {
-  const [orgName, setOrgName] = useState("");
+  const [email, setEmail] = useState("");
 
   return (
     <section className="relative pt-28 pb-24 sm:pt-36 sm:pb-32 px-5 sm:px-8 overflow-hidden">
@@ -67,14 +67,14 @@ export function Hero() {
         >
           <div className="flex flex-col sm:flex-row gap-3 p-2 rounded-2xl glass-card border-primary/20 bg-primary/5 shadow-2xl backdrop-blur-3xl group transition-all hover:bg-primary/10 hover:border-primary/40 focus-within:ring-2 focus-within:ring-primary/40">
             <Input
-              type="text"
+              type="email"
               placeholder={heroData.cta.placeholder}
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="h-12 border-0 bg-transparent text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-0 focus-visible:ring-offset-0 text-base sm:text-lg flex-1 shadow-none"
             />
             <Link
-              href={`/auth/signup?org=${encodeURIComponent(orgName || "My Organization")}`}
+              href={`/auth/signup?email=${encodeURIComponent(email)}`}
             >
               <Button
                 size="lg"

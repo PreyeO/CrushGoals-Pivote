@@ -1,7 +1,11 @@
 import { Organization, OrgGoal, OrgMember, LeaderboardEntry, OrgHealthScore, DailyCheckIn } from "@/types";
 
 export function getToday(): string {
-    return new Date().toISOString().split("T")[0];
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 export function getLast14Days(): string[] {
@@ -9,28 +13,39 @@ export function getLast14Days(): string[] {
     for (let i = 13; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        days.push(d.toISOString().split("T")[0]);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        days.push(`${year}-${month}-${day}`);
     }
     return days;
 }
 
 export function calculateStreak(checkedDates: Set<string>): number {
+    if (checkedDates.size === 0) return 0;
+    
     let streak = 0;
     const today = new Date();
-    // Use a fixed reference to "today" at midnight for consistent calculation
-    const todayStr = today.toISOString().split("T")[0];
+    
+    // We iterate backwards from today.
+    // If we want to support long streaks, we shouldn't hardcode 365. We check up to max possible streak.
+    const maxPossible = Math.max(365, checkedDates.size + 1);
 
-    for (let i = 0; i < 365; i++) {
+    for (let i = 0; i <= maxPossible; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split("T")[0];
+        
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
 
         if (checkedDates.has(dateStr)) {
             streak++;
         } else {
             // Allow today to be unchecked if streak started yesterday
             if (i === 0) continue;
-            break;
+            break; // Streak broken
         }
     }
     return streak;

@@ -71,7 +71,9 @@ export function OrgPulse({ orgId, membersList, goals, now }: OrgPulseProps) {
             <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />
           </h3>
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-            {needsAttention.length} {needsAttention.length === 1 ? "member needs" : "members need"} attention
+            {needsAttention.length}{" "}
+            {needsAttention.length === 1 ? "member needs" : "members need"}{" "}
+            attention
           </p>
         </div>
       </div>
@@ -90,10 +92,10 @@ export function OrgPulse({ orgId, membersList, goals, now }: OrgPulseProps) {
               <Link
                 key={member.id}
                 href={`/org/${orgId}/members/${member.id}`}
-                className="group relative flex flex-col p-4 rounded-2xl glass-card border-border/40 hover:border-primary/40 hover:bg-primary/[0.03] transition-all duration-500 overflow-hidden"
+                className="group relative flex flex-col p-4 rounded-2xl glass-card border-border/40 hover:border-primary/40 hover:bg-primary/3 transition-all duration-500 overflow-hidden"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
+                <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
                 <div className="flex items-center gap-3 relative z-10">
                   <Avatar className="w-10 h-10 border-2 border-background shadow-xl scale-100 group-hover:scale-110 transition-transform duration-500">
                     <AvatarFallback className="bg-primary/10 text-primary text-[11px] font-black urbanist uppercase">
@@ -128,7 +130,8 @@ export function OrgPulse({ orgId, membersList, goals, now }: OrgPulseProps) {
                   )}
                   {behindCount > 0 && (
                     <div className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
-                      <AlertCircle className="w-2.5 h-2.5" /> {behindCount} Behind
+                      <AlertCircle className="w-2.5 h-2.5" /> {behindCount}{" "}
+                      Behind
                     </div>
                   )}
                   {staleUpdate && (
@@ -146,7 +149,7 @@ export function OrgPulse({ orgId, membersList, goals, now }: OrgPulseProps) {
         <div className="flex justify-center pt-2">
           <Link
             href={`/org/${orgId}/members`}
-            className="group flex items-center gap-2.5 px-6 py-2.5 rounded-2xl bg-destructive/5 hover:bg-destructive/10 border border-destructive/10 text-[11px] font-black uppercase tracking-[0.1em] text-destructive transition-all hover:scale-[1.02] shadow-sm"
+            className="group flex items-center gap-2.5 px-6 py-2.5 rounded-2xl bg-destructive/5 hover:bg-destructive/10 border border-destructive/10 text-[11px] font-black uppercase tracking-widest text-destructive transition-all hover:scale-[1.02] shadow-sm"
           >
             View All Needs Attention ({needsAttention.length})
             <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />

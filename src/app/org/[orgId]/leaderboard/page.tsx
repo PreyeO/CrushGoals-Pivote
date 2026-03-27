@@ -14,21 +14,14 @@ import { useShallow } from "zustand/react/shallow";
 export default function OrgLeaderboardPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params);
     const [period, setPeriod] = useState("all");
-    const [mounted, setMounted] = useState(false);
 
-    const fetchInitialData = useStore((state) => state.fetchInitialData);
     const isLoading = useStore((state) => state.isLoading);
     const orgs = useStore(useShallow((state) => state.organizations));
     const members = useStore(useShallow((state) => state.members));
 
-    useEffect(() => {
-        setMounted(true);
-        fetchInitialData(orgId);
-    }, [orgId, fetchInitialData]);
-
     const org = orgs.find(o => o.id === orgId);
 
-    if (!mounted || (isLoading && !org)) return <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse text-muted-foreground">Loading Leaderboard...</div>;
+    if (isLoading && !org) return <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse text-muted-foreground">Loading Leaderboard...</div>;
     if (!org) return notFound();
 
     const leaderboard = getOrgLeaderboard(orgId, members);

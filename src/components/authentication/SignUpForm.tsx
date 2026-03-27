@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 export function SignUpForm() {
   const searchParams = useSearchParams();
   const invitedEmail = searchParams.get("email");
-  const [validInvite, setValidInvite] = useState(!!invitedEmail);
+  const [validInvite, setValidInvite] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState(invitedEmail || "");
@@ -26,7 +26,6 @@ export function SignUpForm() {
   // Validate that the invited email actually has a pending invite
   useEffect(() => {
     if (invitedEmail) {
-      setEmail(invitedEmail);
       // Check if invite is still valid
       const checkInvite = async () => {
         try {
@@ -36,9 +35,9 @@ export function SignUpForm() {
             .eq('email', invitedEmail)
             .eq('status', 'pending')
             .limit(1);
-          if (!data || data.length === 0) {
-            // Invite expired/deleted/canceled - unlock email
-            setValidInvite(false);
+          if (data && data.length > 0) {
+            // Found a valid invite
+            setValidInvite(true);
           }
         } catch {
           setValidInvite(false);

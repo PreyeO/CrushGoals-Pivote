@@ -29,7 +29,7 @@ export const goalService = {
       .eq("user_id", user.id);
 
     if (!memberOf || memberOf.length === 0) return [];
-    const orgIds = memberOf.map((m: any) => m.org_id);
+    const orgIds = memberOf.map((m: { org_id: string }) => m.org_id);
 
     return this.getGoals(orgIds);
   },
@@ -52,7 +52,7 @@ export const goalService = {
           target_number: goal.targetNumber,
           unit: goal.unit,
           current_value: 0,
-          frequency: (goal as any).frequency || "one_time",
+          frequency: goal.frequency || "one_time",
           start_date: goal.startDate || new Date().toISOString(),
           deadline: goal.deadline,
           category: goal.category,
@@ -201,7 +201,7 @@ export const goalService = {
 
     console.log("getMemberStatuses raw data for goal", goalId, data);
 
-    return (data ?? []).map((row: any) => ({
+    return (data ?? []).map((row: Record<string, any>) => ({
       id: row.id,
       goalId: row.goal_id,
       userId: row.user_id,
@@ -323,7 +323,7 @@ export const goalService = {
       throw error;
     }
 
-    return (data ?? []).map((row: any): DailyCheckIn => ({
+    return (data ?? []).map((row: Record<string, any>): DailyCheckIn => ({
       id: row.id,
       goalId: row.goal_id,
       userId: row.user_id,
@@ -355,7 +355,7 @@ export const goalService = {
 
     if (error) throw error;
 
-    return (data ?? []).map((row: any): DailyCheckIn => ({
+    return (data ?? []).map((row: Record<string, any>): DailyCheckIn => ({
         id: row.id,
         goalId: row.goal_id,
         userId: row.user_id,

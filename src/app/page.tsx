@@ -1,4 +1,4 @@
-"use client";
+
 
 import { Navbar } from "@/components/landing-section/Navbar";
 import { Hero } from "@/components/landing-section/Hero";

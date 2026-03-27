@@ -1,7 +1,7 @@
 "use client";
 
 import { useStore } from "@/lib/store";
-import { OrgMember, OrgInvite } from "@/types";
+import { OrgInvite } from "@/types";
 import {
   Users,
   Mail,
@@ -46,7 +46,7 @@ export function MembersInvitesList({ orgId }: MembersInvitesListProps) {
     i.email.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const handleCopyInviteLink = (invite: any) => {
+  const handleCopyInviteLink = (invite: OrgInvite) => {
     const baseUrl = window.location.origin;
     const link = `${baseUrl}/invite/${invite.token}`;
     navigator.clipboard.writeText(link);
@@ -57,7 +57,7 @@ export function MembersInvitesList({ orgId }: MembersInvitesListProps) {
     try {
       await cancelInvitation(id);
       toast.success("Invitation canceled");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to cancel invitation");
     }
   };

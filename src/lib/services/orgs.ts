@@ -15,7 +15,7 @@ export const orgService = {
         if (membershipError) throw membershipError;
         if (!membershipData || membershipData.length === 0) return [];
 
-        const orgIds = membershipData.map((m: any) => m.org_id);
+        const orgIds = membershipData.map((m: { org_id: string }) => m.org_id);
 
         // Fetch orgs with member and goal counts and owner's tier
         const { data, error } = await getSupabase()
@@ -30,11 +30,11 @@ export const orgService = {
 
         if (error) throw error;
 
-        return data.map((org: any) => ({
+        return (data || []).map((org: Record<string, any>) => ({
             ...org,
-            plan: org.owner?.subscription_tier || "free",
-            memberCount: org.memberCount?.[0]?.count || 0,
-            goalCount: org.goalCount?.[0]?.count || 0,
+            plan: (org.owner as Record<string, any> | null)?.subscription_tier || "free",
+            memberCount: (org.memberCount as any)?.[0]?.count || 0,
+            goalCount: (org.goalCount as any)?.[0]?.count || 0,
             completionRate: 0,
             ownerId: org.owner_id,
             slackWebhookUrl: org.slack_webhook_url,
@@ -47,7 +47,7 @@ export const orgService = {
             telegramSettings: org.telegram_settings,
             lastTelegramNudgeAt: org.last_telegram_nudge_at,
             createdAt: org.created_at || new Date().toISOString()
-        }));
+        })) as Organization[];
     },
 
     async createOrganization(data: { name: string; description: string; emoji: string }) {
@@ -73,9 +73,10 @@ export const orgService = {
                 .single();
             org = result;
             orgError = error;
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { code?: string; message?: string };
             // If column doesn't exist (PGRST204), retry with basic fields
-            if (err.code === '42703' || err.message?.includes('description') || err.message?.includes('emoji')) {
+            if (error.code === '42703' || error.message?.includes('description') || error.message?.includes('emoji')) {
                 const { data: result, error } = await getSupabase()
                     .from('organizations')
                     .insert([{
@@ -157,7 +158,7 @@ export const orgService = {
     async updateOrganization(orgId: string, data: Partial<Organization>) {
         const { name, description, emoji, slackWebhookUrl, slackSettings } = data;
         
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
         if (name !== undefined) updateData.name = name;
         if (description !== undefined) updateData.description = description;
         if (emoji !== undefined) updateData.emoji = emoji;
@@ -223,7 +224,7 @@ export const orgService = {
             .eq('org_id', orgId);
         
         if (goals && goals.length > 0) {
-            const goalIds = goals.map((g: any) => g.id);
+            const goalIds = goals.map((g: { id: string }) => g.id);
             await getSupabase().from('daily_check_ins').delete().in('goal_id', goalIds);
         }
         

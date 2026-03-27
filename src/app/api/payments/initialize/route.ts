@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       business: process.env.FLUTTERWAVE_PLAN_ID_BUSINESS
     };
 
-    const planId = (PLAN_IDS as any)[tier];
+    const planId = (PLAN_IDS as Record<string, string | undefined>)[tier];
     const numericPlanId = planId ? parseInt(planId) : undefined;
 
     console.log("Initializing payment:", { tier, amount, email });
@@ -49,7 +49,8 @@ export async function POST(request: Request) {
     const data = await response.json();
     console.log("Flutterwave response:", data);
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Payment initialization error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

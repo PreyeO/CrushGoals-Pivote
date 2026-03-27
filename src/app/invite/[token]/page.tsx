@@ -4,11 +4,16 @@ import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { inviteService } from "@/lib/services/invites";
 import { useStore } from "@/lib/store";
-import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { toast } from "sonner";
 import { InvitationCard } from "@/components/org/InvitationCard";
+
+import { OrgInvite, Organization } from "@/types";
+
+interface InvitationWithOrg extends OrgInvite {
+  organizations: Organization & { emoji?: string };
+}
 
 export default function InvitationPage({
   params,
@@ -18,7 +23,7 @@ export default function InvitationPage({
   const { token } = use(params);
   const router = useRouter();
   const user = useStore((state) => state.user);
-  const [invitation, setInvitation] = useState<any>(null);
+  const [invitation, setInvitation] = useState<InvitationWithOrg | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
@@ -33,18 +38,22 @@ export default function InvitationPage({
 
     const fetchInvite = async () => {
       try {
-        const data = await inviteService.getInvitationByToken(token);
+        const data = (await inviteService.getInvitationByToken(
+          token,
+        )) as InvitationWithOrg;
         setInvitation(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Fetch invite error:", err);
-        setError(err.message || "Invalid or expired invitation.");
+        const errorMessage =
+          err instanceof Error ? err.message : "Invalid or expired invitation.";
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchInvite();
-  }, [token]);
+  }, [token, fetchInitialData]);
 
   const handleAccept = async () => {
     if (!user) {
@@ -64,7 +73,7 @@ export default function InvitationPage({
       // so sidebar doesn't show stale pending invite after redirect
       useStore.setState((state) => ({
         pendingInvitations: state.pendingInvitations.filter(
-          (i) => i.token !== token
+          (i) => i.token !== token,
         ),
       }));
 
@@ -73,9 +82,11 @@ export default function InvitationPage({
 
       // Go to the new org dashboard
       router.push(`/org/${orgId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Accept invite error:", err);
-      toast.error(err.message || "Failed to accept invitation.");
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to accept invitation.";
+      toast.error(errorMessage);
     } finally {
       setIsAccepting(false);
     }
@@ -87,9 +98,11 @@ export default function InvitationPage({
       await rejectInvitation(token);
       toast.success("Invitation declined.");
       router.push(user ? "/dashboard" : "/");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Decline invite error:", err);
-      toast.error(err.message || "Failed to decline invitation.");
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to decline invitation.";
+      toast.error(errorMessage);
     } finally {
       setIsDeclining(false);
     }
@@ -112,11 +125,11 @@ export default function InvitationPage({
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background overflow-hidden relative">
       {/* Background Decorations */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -mr-32 -mt-32" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[oklch(0.70_0.18_155)]/5 blur-[120px] rounded-full -ml-32 -mb-32" />
+      <div className="absolute top-0 right-0 w-125 h-125 bg-primary/5 blur-[120px] rounded-full -mr-32 -mt-32" />
+      <div className="absolute bottom-0 left-0 w-125 h-125 bg-[oklch(0.70_0.18_155)]/5 blur-[120px] rounded-full -ml-32 -mb-32" />
 
       <div className="max-w-md w-full relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <InvitationCard 
+        <InvitationCard
           invitation={invitation}
           org={org}
           user={user}

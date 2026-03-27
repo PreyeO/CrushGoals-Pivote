@@ -1,8 +1,5 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
     Dialog,
     DialogContent,
@@ -24,33 +21,14 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { OrgGoal, GoalStatus, GoalPriority, GoalFrequency } from "@/types";
-import { useState } from "react";
-import { GOAL_TEMPLATES } from "@/lib/templates";
-import { useStore } from "@/lib/store";
-import { toast } from "sonner";
+import { GoalStatus } from "@/types";
 import { CreateGoalTemplates } from "./goals/CreateGoalTemplates";
 import { CreateGoalAssignees } from "./goals/CreateGoalAssignees";
-
-const formSchema = z.object({
-    title: z.string().min(2, "Title must be at least 2 characters"),
-    description: z.string().min(5, "Description must be at least 5 characters"),
-    emoji: z.string().min(1),
-    category: z.string().min(2),
-    priority: z.enum(["low", "medium", "high"]),
-    frequency: z.enum(["one_time", "daily", "weekly", "monthly"]),
-    startDate: z.string().min(1, "Start date is required"),
-    deadline: z.string().min(1, "Deadline is required"),
-    assigneeIds: z.array(z.string()).min(1, "Please assign this goal to at least one person"),
-    goalType: z.enum(["metric", "milestone"]).optional(),
-    targetNumber: z.number().min(0.01, "Target must be greater than 0").optional(),
-    unit: z.string().optional(),
-    targetValue: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
+import { CreateGoalFormValues } from "@/lib/validations/goal";
+import { useGoalForm } from "@/hooks/useGoalForm";
+import { useState } from "react";
+import { useStore } from "@/lib/store";
+import { toast } from "sonner";
 interface CreateGoalModalProps {
     orgId: string;
     children?: React.ReactNode;
@@ -89,7 +67,13 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
     const myMemberId = myMember?.id || "";
     const isMemberOnly = myMember?.role === "member";
 
-    const [now] = useState(() => Date.now());
+    const { form, toggleAssignee, toggleEveryone, applyTemplate } = useGoalForm({
+        myMemberId,
+        isMemberOnly,
+        membersCount: members.length,
+        memberIds: members.map(m => m.id)
+    });
+
     const {
         register,
         handleSubmit,
@@ -97,24 +81,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
         setValue,
         watch,
         formState: { errors, isSubmitting },
-    } = useForm<FormValues>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            title: "",
-            description: "",
-            emoji: "🎯",
-            category: "General",
-            priority: "medium" as GoalPriority,
-            frequency: undefined,
-            startDate: new Date(now).toISOString().split('T')[0],
-            deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            assigneeIds: myMemberId ? [myMemberId] : [],
-            goalType: undefined,
-            targetValue: "",
-            targetNumber: 50,
-            unit: "Tasks",
-        },
-    });
+    } = form;
 
     const selectedAssignees = watch("assigneeIds") || [];
     const goalType = watch("goalType");
@@ -124,26 +91,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
     const hasTitle = title && title.trim().length >= 3;
     const hasTracking = hasTitle && !!goalType && !!frequency;
 
-    const toggleAssignee = (id: string) => {
-        if (isMemberOnly) return; // Members can't change assignees
-        const current = [...selectedAssignees];
-        if (current.includes(id)) {
-            setValue("assigneeIds", current.filter(i => i !== id));
-        } else {
-            setValue("assigneeIds", [...current, id]);
-        }
-    };
-
-    const toggleEveryone = () => {
-        if (isMemberOnly) return; // Members can't assign to everyone
-        if (selectedAssignees.length === members.length) {
-            setValue("assigneeIds", [myMemberId]); // Default back to self
-        } else {
-            setValue("assigneeIds", members.map(m => m.id));
-        }
-    };
-
-    const onSubmit = async (data: FormValues) => {
+    const onSubmit = async (data: CreateGoalFormValues) => {
         try {
             await addGoal({
                 ...data,
@@ -162,50 +110,6 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             console.error("Failed to create goal:", error);
             toast.error("Failed to launch goal. Please try again.");
         }
-    };
-
-    const applyTemplate = (templateId: string) => {
-        const template = GOAL_TEMPLATES.find(t => t.id === templateId);
-        if (!template) return;
-
-        if (template.id === 'tpl-custom') {
-            reset({
-                title: "",
-                description: "",
-                emoji: "🎯",
-                category: "General",
-                priority: "medium",
-                frequency: "one_time",
-                startDate: new Date(now).toISOString().split('T')[0],
-                deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                assigneeIds: myMemberId ? [myMemberId] : [],
-                goalType: "milestone",
-                targetValue: "",
-                targetNumber: 50,
-                unit: "Tasks",
-            });
-            return;
-        }
-
-        const isMetric = template.targetNumber !== undefined;
-        const unit = template.unit || "Items";
-        const targetNumber = template.targetNumber || 10;
-
-        reset({
-            title: template.title,
-            description: template.description,
-            emoji: template.emoji,
-            category: template.category,
-            priority: template.priority,
-            frequency: template.cadence || "one_time",
-            startDate: new Date(now).toISOString().split('T')[0],
-            deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            assigneeIds: myMemberId ? [myMemberId] : [],
-            goalType: isMetric ? "metric" : "milestone",
-            targetValue: isMetric ? `${targetNumber} ${unit}` : template.title,
-            targetNumber: targetNumber,
-            unit: unit,
-        });
     };
 
     return (
@@ -261,7 +165,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">Frequency</Label>
-                                    <Select value={frequency} onValueChange={(val: GoalFrequency) => setValue("frequency", val)}>
+                                    <Select value={frequency} onValueChange={(val) => setValue("frequency", val as CreateGoalFormValues["frequency"])}>
                                         <SelectTrigger className="bg-accent/30 border-border/40 h-11 sm:h-9">
                                             <SelectValue placeholder="Select frequency" />
                                         </SelectTrigger>

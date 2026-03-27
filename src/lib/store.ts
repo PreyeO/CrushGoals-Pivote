@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { fetchWithRetry } from "./fetch-retry";
 import {
   Organization,
   OrgGoal,
@@ -7,6 +8,8 @@ import {
   OrgInvite,
   ActivityItem,
   GoalStatus,
+  GoalPriority,
+  GoalFrequency,
   MemberGoalStatus,
   MemberGoalStatusValue,
   DailyCheckIn,
@@ -16,8 +19,6 @@ import { goalService } from "./services/goals";
 import { orgService } from "./services/orgs";
 import { inviteService } from "./services/invites";
 import { reportService } from "./services/reportService";
-import { slackService } from "./services/slack";
-import { telegramService } from "./services/telegram";
 
 export interface AppState {
   organizations: Organization[];
@@ -91,7 +92,75 @@ export interface AppState {
 
 import { authService } from "./services/auth";
 
-const cleanOrgData = (org: any) => {
+/** Raw shape returned by Supabase for an organization row */
+interface RawOrg {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  plan?: string;
+  goal_count?: number;
+  slack_webhook_url?: string;
+  slack_settings?: Record<string, boolean>;
+  telegram_chat_id?: string;
+  telegram_settings?: Record<string, boolean>;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+/** Raw shape returned by Supabase for a goal row */
+interface RawGoal {
+  id: string;
+  org_id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  emoji?: string;
+  status: string;
+  priority?: string;
+  target_value?: string;
+  target_number?: number;
+  unit?: string;
+  current_value?: number;
+  start_date?: string;
+  created_at: string;
+  updated_at?: string;
+  deadline?: string;
+  frequency?: string;
+  created_by?: string;
+  assigned_to?: string[];
+  reason?: string;
+}
+
+/** Raw shape returned by Supabase for a member row (joined with profiles) */
+interface RawMember {
+  id: string;
+  org_id: string;
+  user_id: string;
+  role: string;
+  joined_at?: string;
+  email?: string;
+  profiles?: {
+    full_name?: string;
+    avatar_url?: string;
+  };
+}
+
+/** Raw shape returned by Supabase for an invitation row */
+interface RawInvite {
+  id: string;
+  org_id: string;
+  email: string;
+  role: string;
+  status: string;
+  token: string;
+  invited_by?: string;
+  created_at: string;
+  inviteLink?: string;
+  emailError?: string;
+}
+
+const cleanOrgData = <T extends RawOrg>(org: T): T => {
   let name = org.name;
   let description = org.description;
   let emoji = org.emoji;
@@ -99,10 +168,10 @@ const cleanOrgData = (org: any) => {
   // Handle data corrupted by the previous JSON stringification bug
   if (typeof name === "string" && name.startsWith("{")) {
     try {
-      const parsed = JSON.parse(name);
-      name = parsed.name || name;
-      description = parsed.description || description;
-      emoji = parsed.emoji || emoji;
+      const parsed = JSON.parse(name) as Partial<RawOrg>;
+      name = (parsed.name as string) || name;
+      description = (parsed.description as string) || description;
+      emoji = (parsed.emoji as string) || emoji;
     } catch (e) {
       console.warn("Failed to parse corrupted org name:", name);
     }
@@ -110,7 +179,7 @@ const cleanOrgData = (org: any) => {
   return { ...org, name, description, emoji };
 };
 
-const cleanGoalData = (goal: any): OrgGoal => {
+const cleanGoalData = (goal: RawGoal): OrgGoal => {
   const targetNumber = goal.target_number;
   const currentValue = goal.current_value || 0;
 
@@ -125,24 +194,24 @@ const cleanGoalData = (goal: any): OrgGoal => {
     id: goal.id,
     orgId: goal.org_id,
     title: goal.title,
-    description: goal.description,
-    category: goal.category,
-    emoji: goal.emoji,
-    status: goal.status,
-    priority: goal.priority,
-    targetValue: goal.target_value,
+    description: goal.description ?? "",
+    category: goal.category ?? "General",
+    emoji: goal.emoji ?? "🎯",
+    status: (goal.status as GoalStatus) ?? "not_started",
+    priority: (goal.priority as GoalPriority) ?? "medium",
+    targetValue: goal.target_value ?? "",
     targetNumber: targetNumber,
     unit: goal.unit,
     currentValue: currentValue,
-    startDate: goal.start_date || goal.created_at,
-    deadline: goal.deadline,
-    frequency: goal.frequency || "one_time",
-    createdBy: goal.created_by,
+    startDate: goal.start_date ?? goal.created_at,
+    deadline: goal.deadline ?? "",
+    frequency: (goal.frequency ?? "one_time") as GoalFrequency,
+    createdBy: goal.created_by ?? "",
     assignedTo: goal.assigned_to || [],
     progress: progress,
     comments: [],
     createdAt: goal.created_at,
-    updatedAt: goal.updated_at,
+    updatedAt: goal.updated_at ?? "",
     reason: goal.reason,
   };
 };
@@ -150,7 +219,7 @@ const cleanGoalData = (goal: any): OrgGoal => {
 import { getUserStreak } from "./store-utils";
 
 const cleanMemberData = (
-  m: any,
+  m: RawMember,
   goals: OrgGoal[],
   checkins: DailyCheckIn[],
 ): OrgMember => {
@@ -266,19 +335,19 @@ export const useStore = create<AppState>((set, get) => ({
         sevenDaysAgo.setDate(now.getDate() - 7);
 
         invitations = rawOrgInvites
-          .filter((i: any) => new Date(i.created_at) > sevenDaysAgo)
+          .filter((i: RawInvite) => new Date(i.created_at) > sevenDaysAgo)
           .map(
-            (i: any) =>
+            (i: RawInvite): OrgInvite =>
               ({
                 id: i.id,
                 orgId: i.org_id,
                 email: i.email,
-                role: i.role,
-                status: i.status,
-                invitedBy: i.invited_by,
+                role: i.role as OrgRole,
+                status: i.status as "pending" | "accepted" | "declined",
+                invitedBy: i.invited_by || "",
                 createdAt: i.created_at,
                 token: i.token,
-              }) as any,
+              }),
           );
 
         if (authUser) {
@@ -286,22 +355,23 @@ export const useStore = create<AppState>((set, get) => ({
             authUser.email ?? "",
           );
           pendingInvitations = rawUserInvites
-            .filter((i: any) => new Date(i.created_at) > sevenDaysAgo)
+            .filter((i: RawInvite) => new Date(i.created_at) > sevenDaysAgo)
             .map(
-              (i: any) =>
+              (i: RawInvite): OrgInvite =>
                 ({
                   id: i.id,
                   orgId: i.org_id,
                   email: i.email,
-                  role: i.role,
-                  status: i.status,
+                  role: i.role as OrgRole,
+                  status: i.status as "pending" | "accepted" | "declined",
                   token: i.token,
                   createdAt: i.created_at,
-                }) as any,
+                  invitedBy: i.invited_by || "",
+                }),
             );
         }
 
-        members = rawMembers.map((m: any) => cleanMemberData(m, goals, orgCheckins));
+        members = (rawMembers as RawMember[]).map((m) => cleanMemberData(m, goals, orgCheckins));
       } else if (authUser) {
         // Dashboard view: Fetch ALL goals across user's organizations
         const rawGoals = await goalService.getGoalsForUser();
@@ -311,11 +381,11 @@ export const useStore = create<AppState>((set, get) => ({
         const userMemberships = await orgService.getMemberships(authUser.id);
         
         // Find orgs where the user is an owner or admin
-        const adminedOrgIds = userMemberships
-          .filter((m: any) => m.role === 'owner' || m.role === 'admin')
-          .map((m: any) => m.org_id);
+        const adminedOrgIds = (userMemberships as RawMember[])
+          .filter((m) => m.role === 'owner' || m.role === 'admin')
+          .map((m) => m.org_id);
 
-        let allMembers: any[] = [];
+        let allMembers: RawMember[] = [];
         let finalStatuses: MemberGoalStatus[] = [];
         let orgCheckins: DailyCheckIn[] = [];
 
@@ -329,23 +399,23 @@ export const useStore = create<AppState>((set, get) => ({
             ]);
           allMembers = rawOrgMembers;
           orgCheckins = rawCheckins;
-          finalStatuses = rawOrgStatuses.map((row: any) => ({
-            id: row.id,
-            goalId: row.goal_id,
-            userId: row.user_id,
-            orgId: row.org_id,
-            status: row.status,
-            note: row.note,
-            contribution: row.contribution ?? 0,
-            updatedAt: row.updated_at,
+          finalStatuses = rawOrgStatuses.map((row: Record<string, any>) => ({
+            id: row.id as string,
+            goalId: row.goal_id as string,
+            userId: row.user_id as string,
+            orgId: row.org_id as string,
+            status: row.status as MemberGoalStatusValue,
+            note: row.note as string | null,
+            contribution: (row.contribution as number) ?? 0,
+            updatedAt: row.updated_at as string,
             name: "",
             avatarUrl: null,
           }));
         }
 
         // For orgs where user is NOT an admin, still include the user's own membership info
-        const nonAdminMemberships = userMemberships.filter((m: any) => !adminedOrgIds.includes(m.org_id));
-        const selfMembers = nonAdminMemberships.map((m: any) => ({
+        const nonAdminMemberships = (userMemberships as RawMember[]).filter((m) => !adminedOrgIds.includes(m.org_id));
+        const selfMembers = nonAdminMemberships.map((m) => ({
           ...m,
           name: get().user?.name || "User",
           email: get().user?.email || "",
@@ -353,10 +423,10 @@ export const useStore = create<AppState>((set, get) => ({
             full_name: get().user?.name || "User",
             avatar_url: get().user?.avatarUrl
           }
-        }));
+        })) as RawMember[];
 
         // Combine and clean
-        members = [...allMembers, ...selfMembers].map((m: any) =>
+        members = [...allMembers, ...selfMembers].map((m) =>
           cleanMemberData(m, goals, orgCheckins),
         );
         memberGoalStatuses = finalStatuses;
@@ -370,23 +440,24 @@ export const useStore = create<AppState>((set, get) => ({
         sevenDaysAgo.setDate(now.getDate() - 7);
 
         pendingInvitations = rawInvites
-          .filter((i: any) => new Date(i.created_at) > sevenDaysAgo)
+          .filter((i: RawInvite) => new Date(i.created_at) > sevenDaysAgo)
           .map(
-            (i: any) =>
+            (i: RawInvite): OrgInvite =>
               ({
                 id: i.id,
                 orgId: i.org_id,
                 email: i.email,
-                role: i.role,
-                status: i.status,
+                role: i.role as OrgRole,
+                status: i.status as "pending" | "accepted" | "declined",
                 token: i.token,
                 createdAt: i.created_at,
-              }) as any,
+                invitedBy: i.invited_by || "",
+              }),
           );
       }
 
       // Sync goalCount for organizations based on actual goals fetched
-      const finalOrgs = orgs.map(cleanOrgData).map((org: any) => {
+      const finalOrgs = orgs.map((o) => cleanOrgData(o)).map((org) => {
         const orgGoals = goals.filter((g: OrgGoal) => g.orgId === org.id);
         if (orgGoals.length > 0 || (orgId && org.id === orgId)) {
           return { ...org, goalCount: orgGoals.length };
@@ -395,11 +466,11 @@ export const useStore = create<AppState>((set, get) => ({
       });
 
       set({
-        organizations: finalOrgs as any,
-        goals: goals as any,
-        members: members as any,
-        invitations: invitations as any,
-        pendingInvitations: pendingInvitations as any,
+        organizations: finalOrgs as Organization[],
+        goals: goals,
+        members: members,
+        invitations: invitations,
+        pendingInvitations: pendingInvitations,
         activities: get().activities,
         memberGoalStatuses: memberGoalStatuses,
         dailyCheckins: get().dailyCheckins,
@@ -411,8 +482,9 @@ export const useStore = create<AppState>((set, get) => ({
       //   get().checkScheduledNotifications(orgId);
       // }
 
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -426,8 +498,9 @@ export const useStore = create<AppState>((set, get) => ({
         isLoading: false,
       }));
       return cleanedOrg.id;
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message, isLoading: false });
       throw err;
     }
   },
@@ -445,7 +518,7 @@ export const useStore = create<AppState>((set, get) => ({
         id: inviteResp.id,
         orgId: inviteResp.org_id,
         email: inviteResp.email,
-        role: inviteResp.role as any,
+        role: inviteResp.role as OrgRole,
         status: inviteResp.status,
         token: inviteResp.token,
         invitedBy: inviteResp.invited_by,
@@ -459,8 +532,9 @@ export const useStore = create<AppState>((set, get) => ({
         link: inviteResp.inviteLink,
         emailError: inviteResp.emailError,
       };
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message, isLoading: false });
       throw err;
     }
   },
@@ -471,8 +545,9 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         invitations: state.invitations.filter((i) => i.id !== inviteId),
       }));
-    } catch (err: any) {
-      set({ error: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message });
     }
   },
 
@@ -482,8 +557,9 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         pendingInvitations: state.pendingInvitations.filter((i) => i.token !== token),
       }));
-    } catch (err: any) {
-      set({ error: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message });
       throw err;
     }
   },
@@ -497,8 +573,9 @@ export const useStore = create<AppState>((set, get) => ({
         members: state.members.filter((m) => m.orgId !== orgId),
         invitations: state.invitations.filter((i) => i.orgId !== orgId),
       }));
-    } catch (err: any) {
-      set({ error: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message });
       throw err;
     }
   },
@@ -516,7 +593,7 @@ export const useStore = create<AppState>((set, get) => ({
         const assigneeNames = (cleanedGoal.assignedTo || [])
           .map(id => state.members.find(m => m.id === id)?.name || "Someone");
         
-        fetch('/api/telegram/notify', {
+        fetchWithRetry('/api/telegram/notify', {
           method: 'POST',
           body: JSON.stringify({ 
             chatId: org.telegramChatId, 
@@ -526,12 +603,15 @@ export const useStore = create<AppState>((set, get) => ({
         }).catch(err => console.error("Telegram notify error:", err));
       }
 
-      // Slack Notification
+      // Slack Notification (via server proxy)
       if (org?.slackWebhookUrl && (org.slackSettings?.notify_on_creation !== false)) {
         const assigneeNames = (cleanedGoal.assignedTo || [])
             .map(id => state.members.find(m => m.id === id)?.name || "Someone");
-        slackService.sendNewGoalNotification(org.slackWebhookUrl, cleanedGoal, assigneeNames)
-            .catch(err => console.error("Slack notify error:", err));
+        fetchWithRetry('/api/slack/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: 'sendNewGoalNotification', args: [cleanedGoal, assigneeNames] }),
+        }).catch(err => console.error("Slack notify error:", err));
       }
 
       set((state) => {
@@ -552,8 +632,9 @@ export const useStore = create<AppState>((set, get) => ({
           isLoading: false,
         };
       });
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message, isLoading: false });
     }
   },
 
@@ -591,17 +672,16 @@ export const useStore = create<AppState>((set, get) => ({
         const streakCount = member?.currentStreak || 0;
         
         if (org?.slackWebhookUrl && org.slackSettings?.notify_on_completion && updatedGoal.progress >= 100 && oldGoal && oldGoal.progress < 100) {
-            slackService.sendGoalCompletion(
-              org.slackWebhookUrl, 
-              state.user?.name || "Someone", 
-              updatedGoal,
-              streakCount
-            ).catch(err => console.error("Slack notify error:", err));
+          fetchWithRetry('/api/slack/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: 'sendGoalCompletion', args: [state.user?.name || "Someone", updatedGoal, streakCount] }),
+          }).catch(err => console.error("Slack notify error:", err));
         }
 
         if (org?.telegramChatId && org.telegramSettings?.notify_on_completion && updatedGoal.progress >= 100 && oldGoal && oldGoal.progress < 100) {
           const userName = state.user?.name || "Someone";
-          fetch('/api/telegram/notify', {
+          fetchWithRetry('/api/telegram/notify', {
             method: 'POST',
             body: JSON.stringify({ 
               chatId: org.telegramChatId, 
@@ -615,11 +695,14 @@ export const useStore = create<AppState>((set, get) => ({
         if (updatedGoal.progress < 100 || (oldGoal && oldGoal.progress < 100)) {
           const userName = state.user?.name || "Someone";
           if (org?.slackWebhookUrl && org.slackSettings?.notify_on_checkin) {
-            slackService.sendCheckInNotification(org.slackWebhookUrl, userName, updatedGoal.title, note)
-              .catch(err => console.error("Slack checkin notify error:", err));
+            fetch('/api/slack/notify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: 'sendCheckInNotification', args: [userName, updatedGoal.title, note] }),
+            }).catch(err => console.error("Slack checkin notify error:", err));
           }
           if (org?.telegramChatId && org.telegramSettings?.notify_on_checkin) {
-             fetch('/api/telegram/notify', {
+             fetchWithRetry('/api/telegram/notify', {
               method: 'POST',
               body: JSON.stringify({ 
                 chatId: org.telegramChatId, 
@@ -640,8 +723,9 @@ export const useStore = create<AppState>((set, get) => ({
           ),
         };
       });
-    } catch (err: any) {
-      set({ error: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message });
     }
   },
 
@@ -669,16 +753,22 @@ export const useStore = create<AppState>((set, get) => ({
         if (oldGoal) {
           const userName = state.user?.name || "Someone";
           
-          // Slack
+          // Slack (via server proxy)
           if (org?.slackWebhookUrl) {
             if (status === "completed" && oldGoal.status !== "completed" && org.slackSettings?.notify_on_completion) {
               const member = state.members.find(m => updatedGoal.assignedTo.includes(m.id));
               const streakCount = member?.currentStreak || 0;
-              slackService.sendGoalCompletion(org.slackWebhookUrl, userName, updatedGoal, streakCount)
-                .catch(e => console.error("Slack notify error:", e));
+              fetchWithRetry('/api/slack/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: 'sendGoalCompletion', args: [userName, updatedGoal, streakCount] }),
+              }).catch(e => console.error("Slack notify error:", e));
             } else if (status === "blocked" && oldGoal.status !== "blocked" && org.slackSettings?.notify_on_blocked) {
-              slackService.sendGoalBlocked(org.slackWebhookUrl, userName, updatedGoal, reason || "No reason provided")
-                .catch(e => console.error("Slack notify error:", e));
+              fetchWithRetry('/api/slack/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: 'sendGoalBlocked', args: [userName, updatedGoal, reason || "No reason provided"] }),
+              }).catch(e => console.error("Slack notify error:", e));
             }
           }
 
@@ -686,7 +776,7 @@ export const useStore = create<AppState>((set, get) => ({
           if (org?.telegramChatId) {
             const sendNotify = async (method: string, args: any[]) => {
               try {
-                await fetch('/api/telegram/notify', {
+                await fetchWithRetry('/api/telegram/notify', {
                   method: 'POST',
                   body: JSON.stringify({ chatId: org.telegramChatId, method, args })
                 });
@@ -715,8 +805,9 @@ export const useStore = create<AppState>((set, get) => ({
           ),
         };
       });
-    } catch (err: any) {
-      set({ error: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message });
     }
   },
 
@@ -743,8 +834,9 @@ export const useStore = create<AppState>((set, get) => ({
           ),
         };
       });
-    } catch (err: any) {
-      set({ error: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message });
       throw err;
     }
   },
@@ -775,8 +867,9 @@ export const useStore = create<AppState>((set, get) => ({
           ...statuses,
         ],
       }));
-    } catch (err: any) {
-      console.error("fetchMemberStatuses error:", err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("fetchMemberStatuses error:", message);
     }
   },
 
@@ -840,7 +933,7 @@ export const useStore = create<AppState>((set, get) => ({
       const org = state.organizations.find(o => o.id === goal?.orgId);
       if (org?.telegramChatId && org.telegramSettings?.notify_on_checkin) {
         const userName = state.user?.name || "Someone";
-        fetch('/api/telegram/notify', {
+        fetchWithRetry('/api/telegram/notify', {
           method: 'POST',
           body: JSON.stringify({ 
             chatId: org.telegramChatId, 
@@ -850,13 +943,14 @@ export const useStore = create<AppState>((set, get) => ({
         }).catch(err => console.error("Telegram notify error:", err));
       }
 
-      // Slack Notification
+      // Slack Notification (via server proxy)
       if (org?.slackWebhookUrl && org.slackSettings?.notify_on_checkin) {
         const userName = state.user?.name || "Someone";
-        import("@/lib/services/slack").then(({ slackService }) => {
-            slackService.sendCheckInNotification(org.slackWebhookUrl!, userName, goal?.title || "Goal", note)
-                .catch(err => console.error("Slack notify error:", err));
-        });
+        fetchWithRetry('/api/slack/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: 'sendCheckInNotification', args: [userName, goal?.title || "Goal", note] }),
+        }).catch(err => console.error("Slack notify error:", err));
       }
     }
   },
@@ -901,8 +995,9 @@ export const useStore = create<AppState>((set, get) => ({
           ...checkins,
         ],
       }));
-    } catch (err: any) {
-      console.error("fetchCheckIns error:", err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("fetchCheckIns error:", message);
     }
   },
 
@@ -914,8 +1009,9 @@ export const useStore = create<AppState>((set, get) => ({
           o.id === orgId ? { ...o, ...updatedOrg } : o,
         ),
       }));
-    } catch (err: any) {
-      console.error("updateOrganization error:", err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("updateOrganization error:", message);
       throw err;
     }
   },

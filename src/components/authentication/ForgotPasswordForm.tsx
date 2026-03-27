@@ -40,7 +40,8 @@ export function ForgotPasswordForm() {
         </div>
         <h3 className="font-bold text-lg">Check your email</h3>
         <p className="text-sm text-muted-foreground">
-          We've sent a password reset link to <span className="font-medium text-foreground">{email}</span>.
+          {`We've sent a password reset link to`}{" "}
+          <span className="font-medium text-foreground">{email}</span>.
         </p>
       </div>
     );
@@ -72,7 +73,11 @@ export function ForgotPasswordForm() {
         className="w-full cursor-pointer h-11 gradient-primary text-white border-0 font-bold shadow-lg shadow-primary/20 hover:opacity-90 mt-2"
         disabled={loading || !email}
       >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Reset Link"}
+        {loading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          "Send Reset Link"
+        )}
       </Button>
     </form>
   );

@@ -186,6 +186,16 @@ async function SubscriptionsDataFetcher() {
   );
 }
 
+interface PlanRowProps {
+  name: string;
+  users: number;
+  price: string;
+  totalOrgs: number;
+  recommended?: boolean;
+  color: string;
+  bg: string;
+}
+
 function PlanRow({
   name,
   users,
@@ -194,7 +204,7 @@ function PlanRow({
   recommended,
   color,
   bg,
-}: any) {
+}: PlanRowProps) {
   const pct = totalOrgs > 0 ? Math.round((users / totalOrgs) * 100) : 0;
   return (
     <div className="flex items-center justify-between p-6 hover:bg-accent/5 transition-colors group">

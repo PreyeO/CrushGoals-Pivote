@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.redirect(`${new URL(request.url).origin}/dashboard?payment=failed`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Verification error:", error);
     return NextResponse.redirect(`${new URL(request.url).origin}/dashboard?payment=error`);
   }

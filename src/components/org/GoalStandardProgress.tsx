@@ -7,11 +7,14 @@ interface GoalStandardProgressProps {
   isOverdue: boolean;
 }
 
-export function GoalStandardProgress({ goal, isOverdue }: GoalStandardProgressProps) {
+export function GoalStandardProgress({
+  goal,
+  isOverdue,
+}: GoalStandardProgressProps) {
   return (
     <div className="mb-5">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-[0.1em]">
+        <span className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-widest">
           Overall Progress
         </span>
         <span className="text-[10px] font-bold text-primary uppercase tracking-wider">

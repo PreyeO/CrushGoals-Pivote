@@ -1,7 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Target, XCircle, Activity } from "lucide-react";
 
-const StatCard = ({ title, value, icon: Icon, subtext }: any) => (
+interface StatCardProps {
+    title: string;
+    value: string | number;
+    icon: React.ElementType;
+    subtext: string;
+}
+
+const StatCard = ({ title, value, icon: Icon, subtext }: StatCardProps) => (
     <Card className="glass-card-hover border-border/40 overflow-hidden group">
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{title}</CardTitle>
