@@ -28,6 +28,7 @@ export function SidebarOrgSwitcher({
 }: SidebarOrgSwitcherProps) {
   const orgs = useStore(useShallow((state) => state.organizations));
   const user = useStore(useShallow((state) => state.user));
+  const members = useStore(useShallow((state) => state.members));
 
   if (!currentOrg) return null;
 
@@ -85,9 +86,11 @@ export function SidebarOrgSwitcher({
           {/* Org Limit Gating */}
           {(() => {
             const tier = user?.subscriptionTier || "free";
-            const orgLimit =
-              tier === "free" ? 1 : tier === "pro" ? 3 : Infinity;
-            const isLimitReached = orgs.length >= orgLimit;
+            const orgLimit = tier === "free" ? 1 : tier === "pro" ? 3 : Infinity;
+            
+            // Only count orgs where the user is an owner
+            const ownedOrgsCount = members.filter(m => m.userId === user?.id && m.role === 'owner').length;
+            const isLimitReached = ownedOrgsCount >= orgLimit;
 
             return (
               <CreateOrgModal disabled={isLimitReached}>

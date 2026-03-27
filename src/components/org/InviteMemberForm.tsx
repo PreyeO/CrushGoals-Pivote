@@ -15,7 +15,12 @@ import {
 import { Sparkles } from "lucide-react";
 
 const formSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().refine((val) => {
+    const emails = val.split(',').map(e => e.trim()).filter(e => e);
+    if (emails.length === 0) return false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emails.every(e => emailRegex.test(e));
+  }, "Please enter valid email addresses separated by commas"),
   role: z.enum(["admin", "member"]),
 });
 
@@ -49,15 +54,18 @@ export function InviteMemberForm({ onSubmit }: InviteMemberFormProps) {
           htmlFor="email"
           className="text-xs font-semibold uppercase tracking-wider"
         >
-          Email Address
+          Email Addresses
         </Label>
         <Input
           id="email"
-          type="email"
-          placeholder="member@example.com"
+          type="text"
+          placeholder="teammate@example.com, another@example.com"
           className="bg-accent/30 border-border/40 focus:border-primary/50 transition-colors"
           {...register("email")}
         />
+        <p className="text-[10px] text-muted-foreground italic">
+            Separate multiple emails with commas.
+        </p>
         {errors.email && (
           <p className="text-[10px] text-destructive font-medium">
             {errors.email.message}
@@ -94,7 +102,7 @@ export function InviteMemberForm({ onSubmit }: InviteMemberFormProps) {
           disabled={isSubmitting}
           className="w-full gradient-primary text-white border-0 glow-primary-sm"
         >
-          {isSubmitting ? "Generating..." : "Generate Invitation"}
+          {isSubmitting ? "Sending..." : "Send Invitations"}
           <Sparkles className="w-4 h-4 ml-2" />
         </Button>
       </DialogFooter>

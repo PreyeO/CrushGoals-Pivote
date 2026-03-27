@@ -10,9 +10,7 @@ interface InvitationCardProps {
   user: AppState["user"];
   token: string;
   isAccepting: boolean;
-  isDeclining: boolean;
   onAccept: () => void;
-  onDecline: () => void;
 }
 
 export function InvitationCard({
@@ -21,9 +19,7 @@ export function InvitationCard({
   user,
   token,
   isAccepting,
-  isDeclining,
   onAccept,
-  onDecline,
 }: InvitationCardProps) {
   return (
     <div className="glass-card p-8 lg:p-10 border-primary/20 bg-primary/2 text-center shadow-2xl">
@@ -51,26 +47,6 @@ export function InvitationCard({
         .
       </p>
 
-      <div className="space-y-4 mb-10">
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-accent/30 border border-border/40 text-left">
-          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-              Security
-            </p>
-            <p className="text-xs font-medium">Safe & secure invitation link</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-accent/30 border border-border/40 text-left">
-          <Building2 className="w-5 h-5 text-[oklch(0.70_0.18_155)] shrink-0" />
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-              Team
-            </p>
-            <p className="text-xs font-medium">{org?.name} Workspace</p>
-          </div>
-        </div>
-      </div>
 
       {!user ? (
         <div className="space-y-4">
@@ -81,21 +57,13 @@ export function InvitationCard({
             Get Started
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </Button>
-          <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground mt-4">
             <Link
               href={`/auth/login?returnUrl=/invite/${token}`}
               className="text-primary hover:underline"
             >
-              Log in here
+              Log in here if you already have an account
             </Link>
-            <span>·</span>
-            <button
-              onClick={onDecline}
-              disabled={isDeclining}
-              className="text-destructive/70 hover:text-destructive hover:underline transition-colors cursor-pointer"
-            >
-              {isDeclining ? "Declining..." : "Decline Invite"}
-            </button>
           </div>
         </div>
       ) : (
@@ -109,15 +77,6 @@ export function InvitationCard({
             {!isAccepting && (
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             )}
-          </Button>
-          <Button
-            onClick={onDecline}
-            disabled={isDeclining}
-            variant="outline"
-            className="w-full h-11 rounded-2xl text-sm font-semibold text-destructive/70 border-destructive/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
-          >
-            {isDeclining ? "Declining..." : "Decline Invitation"}
-            <X className="w-4 h-4 ml-2" />
           </Button>
         </div>
       )}

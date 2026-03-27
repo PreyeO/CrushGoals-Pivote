@@ -13,6 +13,7 @@ import { getOrgHealthScore, getOrgLeaderboard } from "@/lib/store-utils";
 import type { OrgGoal, OrgMember, Organization } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Target } from "lucide-react";
+import { OnboardingSteps } from "@/components/org/OnboardingSteps";
 
 const OrgPulse = dynamic(() =>
   import("@/components/org/OrgPulse").then((mod) => mod.OrgPulse),
@@ -83,6 +84,15 @@ export default function OrgDashboardPage({
       <div className="flex items-center justify-between">
         <OrgHeader org={org} />
       </div>
+
+      {goals.length === 0 && (
+        <OnboardingSteps 
+          orgId={orgId} 
+          orgName={org.name} 
+          goalsCount={goals.length}
+          membersCount={membersList.length}
+        />
+      )}
 
       <OrgStats
         activeGoals={activeGoalsCount}

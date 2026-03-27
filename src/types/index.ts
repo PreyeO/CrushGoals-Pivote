@@ -44,6 +44,7 @@ export interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  email?: string | null;
   subscription_tier: "free" | "pro" | "business";
   telegram_user_id?: string | null;
   telegram_link_code?: string | null;
@@ -109,6 +110,7 @@ export interface OrgGoal {
   comments: GoalComment[];
   createdAt: string;
   updatedAt: string;
+  isPrivate: boolean;
 }
 
 export interface GoalComment {
@@ -192,6 +194,7 @@ export interface DailyCheckIn {
   completed: boolean;
   note: string | null;
   createdAt: string;
+  taggedMemberIds?: string[];
 }
 
 export interface AdminUser {

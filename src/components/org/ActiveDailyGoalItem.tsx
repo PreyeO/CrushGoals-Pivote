@@ -10,19 +10,7 @@ import { cn } from "@/lib/utils";
 import { useShallow } from "zustand/react/shallow";
 import { toast } from "sonner";
 
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-function getLast14Days(): string[] {
-  const days: string[] = [];
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
-  }
-  return days;
-}
+import { getToday, getLast14Days } from "@/lib/store-utils";
 
 function calculateStreak(checkedDates: Set<string>): number {
   let streak = 0;
@@ -53,6 +41,7 @@ export function ActiveDailyGoalItem({
   const dailyCheckIn = useStore((state) => state.dailyCheckIn);
   const undoDailyCheckIn = useStore((state) => state.undoDailyCheckIn);
   const fetchCheckIns = useStore((state) => state.fetchCheckIns);
+  const user = useStore((state) => state.user);
   const checkins = useStore(
     useShallow((state) =>
       state.dailyCheckins.filter((c) => c.goalId === goal.id),
@@ -66,7 +55,16 @@ export function ActiveDailyGoalItem({
   }, [goal.id, fetchCheckIns]);
 
   const checkedDatesSet = new Set(
-    checkins.filter((c) => c.completed).map((c) => c.checkDate),
+    checkins
+      .filter((c) => {
+        if (!c.completed) return false;
+        if (goal.assignedTo.length === 1) {
+          const assignee = members.find(m => m.id === goal.assignedTo[0]);
+          return c.userId === assignee?.userId;
+        }
+        return c.userId === user?.id;
+      })
+      .map((c) => c.checkDate),
   );
   const todayStr = getToday();
   const checkedToday = checkedDatesSet.has(todayStr);
@@ -74,6 +72,7 @@ export function ActiveDailyGoalItem({
   const last14Days = getLast14Days();
 
   const goalAssignees = members.filter((m) => goal.assignedTo.includes(m.id));
+  const isAssigned = goalAssignees.some(m => m.userId === user?.id);
 
   const handleDailyCheckIn = async () => {
     setIsCheckingIn(true);
@@ -182,26 +181,28 @@ export function ActiveDailyGoalItem({
             </Avatar>
           ))}
         </div>
-        <button
-          onClick={handleDailyCheckIn}
-          disabled={isCheckingIn}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50",
-            checkedToday
-              ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/25"
-              : "gradient-primary text-white shadow-lg glow-primary hover:opacity-90",
-          )}
-        >
-          {checkedToday ? (
-            <>
-              <CheckCircle className="w-3.5 h-3.5" /> Done
-            </>
-          ) : (
-            <>
-              <Check className="w-3.5 h-3.5" /> Check In
-            </>
-          )}
-        </button>
+        {isAssigned && (
+          <button
+            onClick={handleDailyCheckIn}
+            disabled={isCheckingIn}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50",
+              checkedToday
+                ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/25"
+                : "gradient-primary text-white shadow-lg glow-primary hover:opacity-90",
+            )}
+          >
+            {checkedToday ? (
+              <>
+                <CheckCircle className="w-3.5 h-3.5" /> Done
+              </>
+            ) : (
+              <>
+                <Check className="w-3.5 h-3.5" /> Check In
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

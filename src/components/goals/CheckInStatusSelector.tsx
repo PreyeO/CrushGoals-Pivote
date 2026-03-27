@@ -24,30 +24,32 @@ export function CheckInStatusSelector({
     return (
         <div className="space-y-3">
             <Label className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">My Status</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-1.5 p-1 bg-accent/10 rounded-xl border border-border/20">
                 {memberStatusOptions.map((opt) => {
                     const Icon = opt.icon;
                     const isSelected = memberStatus === opt.value;
                     
-                    // Dynamic Label: If blocked, "On Track" becomes "Resolved / On Track"
                     let label = opt.label;
                     if (goalStatus === "blocked" && opt.value === "on_track") {
-                        label = "Resolved / On Track";
+                        label = "Resolved";
                     }
 
                     return (
                         <button
                             key={opt.value}
                             onClick={() => setMemberStatus(opt.value)}
+                            title={label}
                             className={cn(
-                                "flex items-center gap-2 p-2.5 rounded-lg border text-left transition-all font-semibold text-[11px] cursor-pointer",
+                                "flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-lg transition-all cursor-pointer border border-transparent",
                                 isSelected
-                                    ? "border-primary/40 bg-primary/10 text-foreground"
-                                    : "border-border/30 bg-accent/20 text-muted-foreground hover:border-border/60"
+                                    ? "bg-primary/15 border-primary/30 text-primary shadow-sm"
+                                    : "text-muted-foreground hover:bg-accent/20"
                             )}
                         >
-                            <Icon className={cn("w-3.5 h-3.5 shrink-0", isSelected ? opt.color : "")} />
-                            {label}
+                            <Icon className={cn("w-4 h-4 shrink-0", isSelected ? "" : "opacity-50")} />
+                            <span className={cn("text-[8px] font-black uppercase tracking-tighter truncate w-full text-center")}>
+                                {label.split(' ')[0]}
+                            </span>
                         </button>
                     );
                 })}

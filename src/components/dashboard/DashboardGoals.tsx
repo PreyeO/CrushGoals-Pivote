@@ -22,9 +22,16 @@ export function DashboardGoals() {
     .filter((m: OrgMember) => m.userId === user?.id)
     .map((m: OrgMember) => m.id);
 
-  // Filter for goals assigned to any of these member IDs and sort them
+  // Filter for goals assigned to any of these member IDs, ensure they aren't private to others, and sort them
   const myGoals = sortGoals(
-    goals.filter((g: OrgGoal) => g.assignedTo.some((id) => myMemberIds.includes(id)))
+    goals.filter((g: OrgGoal) => {
+        const isAssignedToMe = g.assignedTo.some((id) => myMemberIds.includes(id));
+        const isMyPrivateGoal = g.isPrivate && g.createdBy === user?.id;
+        const isPublicGoal = !g.isPrivate;
+        
+        // Show if assigned to me AND (it's not private OR it's MY private goal)
+        return isAssignedToMe && (isPublicGoal || isMyPrivateGoal);
+    })
   ).slice(0, 3);
 
   if (myGoals.length === 0) return null;

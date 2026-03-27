@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { OrgMember } from "@/types";
+import { InviteMemberModal } from "@/components/invite-member-modal";
 
 interface CreateGoalAssigneesProps {
     members: OrgMember[];
@@ -91,42 +92,52 @@ export function CreateGoalAssignees({
                 </div>
 
                 {!isMemberOnly && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 gap-1.5 text-[11px] border-dashed border-border/40 text-muted-foreground hover:text-foreground"
-                            >
-                                <UserPlus className="w-3.5 h-3.5" />
-                                Add Assignee
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-52 glass-card border-border/40">
-                            <ScrollArea className="max-h-52">
-                                {members.map((member) => {
-                                    const isSelf = member.id === myMemberId;
-                                    const isSelected = selectedAssignees.includes(member.id);
-                                    return (
-                                        <DropdownMenuItem
-                                            key={member.id}
-                                            onSelect={(e) => { e.preventDefault(); toggleAssignee(member.id); }}
-                                            className="flex items-center gap-2 cursor-pointer"
-                                        >
-                                            <Avatar className="w-6 h-6 shrink-0">
-                                                <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase">
-                                                    {member.name.split(" ").map(n => n[0]).join("")}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <span className="flex-1 text-xs truncate">{isSelf ? `${member.name} (You)` : member.name}</span>
-                                            {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                        </DropdownMenuItem>
-                                    );
-                                })}
-                            </ScrollArea>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 gap-1.5 text-[11px] border-dashed border-border/40 text-muted-foreground hover:text-foreground"
+                                >
+                                    <UserPlus className="w-3.5 h-3.5" />
+                                    Add Assignee
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-52 glass-card border-border/40">
+                                <ScrollArea className="max-h-52">
+                                    {members.map((member) => {
+                                        const isSelf = member.id === myMemberId;
+                                        const isSelected = selectedAssignees.includes(member.id);
+                                        return (
+                                            <DropdownMenuItem
+                                                key={member.id}
+                                                onSelect={(e) => { e.preventDefault(); toggleAssignee(member.id); }}
+                                                className="flex items-center gap-2 cursor-pointer"
+                                            >
+                                                <Avatar className="w-6 h-6 shrink-0">
+                                                    <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase">
+                                                        {member.name.split(" ").map(n => n[0]).join("")}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <span className="flex-1 text-xs truncate">{isSelf ? `${member.name} (You)` : member.name}</span>
+                                                {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                                            </DropdownMenuItem>
+                                        );
+                                    })}
+                                </ScrollArea>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {members.length === 1 && (
+                            <InviteMemberModal orgId={members[0].orgId}>
+                                <button type="button" className="text-[10px] text-primary hover:underline flex items-center gap-1 animate-pulse">
+                                    <UserPlus className="w-3 h-3" /> Invite teammates
+                                </button>
+                            </InviteMemberModal>
+                        )}
+                    </div>
                 )}
             </div>
         </div>

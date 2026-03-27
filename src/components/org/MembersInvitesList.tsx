@@ -42,9 +42,9 @@ export function MembersInvitesList({ orgId }: MembersInvitesListProps) {
       m.role.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const filteredInvites = invitations.filter((i) =>
-    i.email.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredInvites = invitations
+    .filter((i) => i.status === 'pending')
+    .filter((i) => i.email.toLowerCase().includes(search.toLowerCase()));
 
   const handleCopyInviteLink = (invite: OrgInvite) => {
     const baseUrl = window.location.origin;
@@ -129,30 +129,53 @@ export function MembersInvitesList({ orgId }: MembersInvitesListProps) {
                     {member.goalsCompleted} Goals Crushed
                   </p>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                
+                <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                        <MoreVertical className="w-4 h-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="end"
+                        className="glass-card border-border/40"
                     >
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="glass-card border-border/40"
-                  >
-                    <DropdownMenuItem className="text-xs font-medium gap-2">
-                      <ExternalLink className="w-3.5 h-3.5" /> View Profile
-                    </DropdownMenuItem>
+                        <DropdownMenuItem className="text-xs font-medium gap-2">
+                        <ExternalLink className="w-3.5 h-3.5" /> View Profile
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                    </DropdownMenu>
+
                     {member.role !== "owner" && (
-                      <DropdownMenuItem className="text-xs font-medium gap-2 text-destructive focus:text-destructive">
-                        <UserMinus className="w-3.5 h-3.5" /> Remove Member
-                      </DropdownMenuItem>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        title="Remove member"
+                        onClick={async () => {
+                        if (
+                            confirm(
+                            `Are you sure you want to remove ${member.name} from the organization?`,
+                            )
+                        ) {
+                            try {
+                            await useStore.getState().removeOrgMember(member.id);
+                            toast.success(`${member.name} has been removed.`);
+                            } catch (err) {
+                            toast.error("Failed to remove member.");
+                            }
+                        }
+                        }}
+                    >
+                        <UserMinus className="w-4 h-4" />
+                    </Button>
                     )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                </div>
               </div>
             </div>
           ))}

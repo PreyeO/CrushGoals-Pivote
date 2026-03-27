@@ -25,6 +25,7 @@ interface InviteMemberModalProps {
 export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
     const [open, setOpen] = useState(false);
     const [inviteLink, setInviteLink] = useState<string | null>(null);
+    const [invitedEmails, setInvitedEmails] = useState<string[]>([]);
     const [copied, setCopied] = useState(false);
     
     const organizations = useStore((state) => state.organizations);
@@ -39,17 +40,51 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
 
     const onSubmit = async (data: InviteFormValues) => {
         try {
-            const { link, emailError } = await sendInvitation(orgId, data.email, data.role as OrgRole);
-            setInviteLink(link);
+            const emails = data.email.split(',').map(e => e.trim()).filter(e => e);
+            
+            if (emails.length === 1) {
+                const { link, emailError } = await sendInvitation(orgId, emails[0], data.role as OrgRole);
+                setInviteLink(link);
+                setInvitedEmails(emails);
 
-            if (emailError) {
-                toast.warning("Member added, but invitation email failed: " + emailError);
+                if (emailError) {
+                    toast.warning("Member added, but invitation email failed: " + emailError);
+                } else {
+                    toast.success("Invitation created and email sent!");
+                }
             } else {
-                toast.success("Invitation created and email sent!");
+                const promises = emails.map(email => sendInvitation(orgId, email, data.role as OrgRole));
+                const results = await Promise.allSettled(promises);
+                
+                const successfulEmails: string[] = [];
+                let hasErrors = false;
+
+                results.forEach((result, idx) => {
+                    if (result.status === 'fulfilled') {
+                        successfulEmails.push(emails[idx]);
+                        if (result.value.emailError) {
+                            hasErrors = true;
+                        }
+                    } else {
+                        hasErrors = true;
+                    }
+                });
+
+                if (successfulEmails.length > 0) {
+                    setInvitedEmails(successfulEmails);
+                    setInviteLink("batch_success"); 
+                    if (hasErrors) {
+                        toast.warning(`Sent to ${successfulEmails.length} out of ${emails.length} teammates.`);
+                    } else {
+                        toast.success(`Invitations sent to ${successfulEmails.length} teammates!`);
+                    }
+                } else {
+                    throw new Error("Failed to send any invitations");
+                }
             }
         } catch (error: any) {
-            console.error("Failed to invite member:", error);
-            toast.error(error.message || "Failed to send invitation");
+            console.error("Failed to invite members:", error);
+            toast.error(error.message || "Failed to send invitations");
         }
     };
 
@@ -68,6 +103,7 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
             // Reset state when closing
             setTimeout(() => {
                 setInviteLink(null);
+                setInvitedEmails([]);
                 setCopied(false);
             }, 200);
         }
@@ -100,6 +136,7 @@ export function InviteMemberModal({ orgId, children }: InviteMemberModalProps) {
                 {inviteLink ? (
                     <InviteMemberSuccess
                         inviteLink={inviteLink}
+                        invitedEmails={invitedEmails}
                         copied={copied}
                         copyToClipboard={copyToClipboard}
                         handleOpenChange={handleOpenChange}

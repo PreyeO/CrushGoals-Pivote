@@ -114,6 +114,32 @@ export const goalService = {
     }
   },
 
+  async updateGoal(goalId: string, data: Partial<OrgGoal>) {
+    const { error } = await getSupabase()
+      .from("goals")
+      .update({
+        title: data.title,
+        description: data.description,
+        emoji: data.emoji,
+        target_value: data.targetValue,
+        target_number: data.targetNumber,
+        unit: data.unit,
+        start_date: data.startDate,
+        deadline: data.deadline,
+        category: data.category,
+        priority: data.priority,
+        status: data.status,
+        assigned_to: data.assignedTo,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", goalId);
+
+    if (error) {
+      console.error("Goal update error:", error);
+      throw error;
+    }
+  },
+
   async updateStatus(goalId: string, status: GoalStatus, reason?: string) {
     const { error } = await getSupabase()
       .from("goals")
@@ -222,6 +248,7 @@ export const goalService = {
     status: string,
     note: string,
     contribution?: number,
+    taggedMemberIds?: string[],
   ) {
     const {
       data: { user },
@@ -247,6 +274,7 @@ export const goalService = {
           status,
           note: note || null,
           contribution: contribution ?? 0,
+          tagged_member_ids: taggedMemberIds || null,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "goal_id,user_id" },
@@ -261,7 +289,7 @@ export const goalService = {
     console.log("upsertMemberStatus result:", data);
   },
 
-  async dailyCheckIn(goalId: string, checkDate: string, note?: string) {
+  async dailyCheckIn(goalId: string, checkDate: string, note?: string, taggedMemberIds?: string[]) {
     const {
       data: { user },
     } = await getSupabase().auth.getUser();
@@ -276,6 +304,7 @@ export const goalService = {
           check_date: checkDate,
           completed: true,
           note: note || null,
+          tagged_member_ids: taggedMemberIds || null,
           created_at: new Date().toISOString(),
         },
         { onConflict: "goal_id,user_id,check_date" },
@@ -362,6 +391,7 @@ export const goalService = {
         checkDate: row.check_date,
         completed: row.completed,
         note: row.note,
+        taggedMemberIds: row.tagged_member_ids || [],
         createdAt: row.created_at,
     }));
   },

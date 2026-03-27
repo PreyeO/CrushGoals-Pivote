@@ -4,7 +4,7 @@ import { CreateOrgModal } from "@/components/create-org-modal";
 
 export function EmptyDashboard() {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center">
       <div className="max-w-md w-full glass-card p-10 space-y-6 animate-fade-in-up">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2 text-3xl">
           👋

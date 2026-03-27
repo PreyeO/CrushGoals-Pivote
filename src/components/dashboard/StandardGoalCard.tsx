@@ -8,6 +8,10 @@ import { Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrgGoal, Organization } from "@/types";
 import { OrgLabel } from "./OrgLabel";
+import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
+import { useEffect } from "react";
+import { GoalDailyProgress } from "../org/GoalDailyProgress";
 
 export function StandardGoalCard({
   goal,
@@ -16,7 +20,24 @@ export function StandardGoalCard({
   goal: OrgGoal;
   organizations: Organization[];
 }) {
+  const user = useStore((state) => state.user);
+  const members = useStore((state) => state.members);
   const [now] = useState(() => Date.now());
+
+  const isAssigned = members
+    .filter(m => goal.assignedTo.includes(m.id))
+    .some(m => m.userId === user?.id);
+
+  const fetchCheckIns = useStore((state) => state.fetchCheckIns);
+  const checkins = useStore(
+    useShallow((state) =>
+      state.dailyCheckins.filter((c) => c.goalId === goal.id),
+    ),
+  );
+
+  useEffect(() => {
+    fetchCheckIns(goal.id);
+  }, [goal.id, fetchCheckIns]);
 
   return (
     <div
@@ -25,8 +46,15 @@ export function StandardGoalCard({
     >
       <div>
         <div className="flex items-center justify-between mb-4">
-          <div className="w-10 h-10 rounded-xl bg-accent/50 flex items-center justify-center text-xl">
+          <div className="w-10 h-10 rounded-xl bg-accent/50 flex items-center justify-center text-xl relative">
             {goal.emoji}
+            {goal.status === "completed" && (
+              <div className="absolute -right-2 -top-2 bg-emerald-500 text-white rounded-full p-0.5 shadow-lg animate-in zoom-in duration-300">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
           </div>
           <span
             className={cn(
@@ -105,6 +133,17 @@ export function StandardGoalCard({
           })()}
         </div>
 
+        {/* Check-in History Grid (Small Squares) */}
+        {goal.frequency !== "one_time" && (
+            <div className="pt-2 border-t border-border/10">
+                <GoalDailyProgress 
+                    goal={goal} 
+                    checkins={checkins} 
+                    isReadOnly={true} 
+                />
+            </div>
+        )}
+
         <div className="flex items-center justify-between pt-2 border-t border-border/20">
           <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
             <span className="flex items-center gap-1">
@@ -115,7 +154,7 @@ export function StandardGoalCard({
               })}
             </span>
           </div>
-          <GoalCheckInModal goal={goal} />
+          {isAssigned && <GoalCheckInModal goal={goal} />}
         </div>
       </div>
     </div>

@@ -11,9 +11,10 @@ import { calculateStreak, getToday, getLast14Days } from "@/lib/store-utils";
 interface GoalDailyProgressProps {
   goal: OrgGoal;
   checkins: DailyCheckIn[];
+  isReadOnly?: boolean;
 }
 
-export function GoalDailyProgress({ goal, checkins }: GoalDailyProgressProps) {
+export function GoalDailyProgress({ goal, checkins, isReadOnly }: GoalDailyProgressProps) {
   const [isCheckingIn, setIsCheckingIn] = useState(false);
 
   const user = useStore((state) => state.user);
@@ -22,9 +23,19 @@ export function GoalDailyProgress({ goal, checkins }: GoalDailyProgressProps) {
   const updateGoalStatus = useStore((state) => state.updateGoalStatus);
   const upsertMemberStatus = useStore((state) => state.upsertMemberStatus);
 
+  const members = useStore((state) => state.members);
   const checkedDatesSet = new Set(
     checkins
-      .filter((c) => c.completed && c.userId === user?.id)
+      .filter((c) => {
+        if (!c.completed) return false;
+        if (goal.assignedTo.length === 1) {
+          // If single assignee, show THAT member's check-ins (resolved to userId)
+          const assignee = members.find(m => m.id === goal.assignedTo[0]);
+          return c.userId === assignee?.userId;
+        }
+        // Otherwise show the current user's check-ins
+        return c.userId === user?.id;
+      })
       .map((c) => c.checkDate),
   );
   const todayStr = getToday();
@@ -77,26 +88,28 @@ export function GoalDailyProgress({ goal, checkins }: GoalDailyProgressProps) {
             </span>
           </div>
         </div>
-        <button
-          onClick={handleDailyCheckIn}
-          disabled={isCheckingIn}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50",
-            checkedToday
-              ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/25"
-              : "gradient-primary text-white shadow-lg glow-primary hover:opacity-90",
-          )}
-        >
-          {checkedToday ? (
-            <>
-              <CheckCircle className="w-4 h-4" /> Done Today
-            </>
-          ) : (
-            <>
-              <Check className="w-4 h-4" /> Check In Today
-            </>
-          )}
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={handleDailyCheckIn}
+            disabled={isCheckingIn}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50",
+              checkedToday
+                ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/25"
+                : "gradient-primary text-white shadow-lg glow-primary hover:opacity-90",
+            )}
+          >
+            {checkedToday ? (
+              <>
+                <CheckCircle className="w-4 h-4" /> Done Today
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" /> Check In Today
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-1">

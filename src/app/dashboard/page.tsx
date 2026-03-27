@@ -8,6 +8,7 @@ import { useStore } from "@/lib/store";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { cn } from "@/lib/utils";
 import { EmptyDashboard } from "@/components/dashboard/EmptyDashboard";
+import { WelcomeSkeleton } from "@/components/dashboard/WelcomeSkeleton";
 
 const DashboardMain = dynamic(
   () =>
@@ -86,7 +87,7 @@ export default function DashboardPage() {
             sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]",
           )}
         >
-          <DashboardSkeleton />
+          {organizations.length === 0 ? <WelcomeSkeleton /> : <DashboardSkeleton />}
         </main>
       </div>
     );
@@ -96,8 +97,39 @@ export default function DashboardPage() {
     (m) => m.userId === user?.id && (m.role === "owner" || m.role === "admin"),
   );
 
+  // If the user has no org but HAS pending invitations, the useEffect above
+  // is about to redirect them to the invite page. Render a skeleton instead
+  // of EmptyDashboard so invited users never see the "Create Organization" modal.
   if (organizations.length === 0) {
-    return <EmptyDashboard />;
+    if (pendingInvitations.length > 0) {
+      return (
+        <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 flex flex-col">
+          <Sidebar />
+          <main
+            className={cn(
+              "transition-all duration-300 w-full h-full",
+              sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]",
+            )}
+          >
+            <WelcomeSkeleton />
+          </main>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 flex flex-col">
+        <Sidebar />
+        <main
+          className={cn(
+            "transition-all duration-300 w-full h-full",
+            sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]",
+          )}
+        >
+          <EmptyDashboard />
+        </main>
+      </div>
+    );
   }
 
   if (!isOwnerOrAdmin) {
