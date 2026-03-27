@@ -46,6 +46,7 @@ export function useGoalForm({
             targetValue: initialValues?.targetValue || "",
             targetNumber: initialValues?.targetNumber ?? 50,
             unit: initialValues?.unit || "Tasks",
+            isPrivate: initialValues?.isPrivate || false,
         },
     });
 
@@ -90,6 +91,7 @@ export function useGoalForm({
                 targetValue: "",
                 targetNumber: 50,
                 unit: "Tasks",
+                isPrivate: false,
             });
             return;
         }
@@ -112,6 +114,7 @@ export function useGoalForm({
             targetValue: isMetric ? `${targetNumber} ${unit}` : template.title,
             targetNumber: targetNumber,
             unit: unit,
+            isPrivate: false,
         });
     };
 

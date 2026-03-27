@@ -110,6 +110,7 @@ export interface OrgGoal {
   comments: GoalComment[];
   createdAt: string;
   updatedAt: string;
+  isPrivate: boolean;
 }
 
 export interface GoalComment {
@@ -193,6 +194,7 @@ export interface DailyCheckIn {
   completed: boolean;
   note: string | null;
   createdAt: string;
+  taggedMemberIds?: string[];
 }
 
 export interface AdminUser {

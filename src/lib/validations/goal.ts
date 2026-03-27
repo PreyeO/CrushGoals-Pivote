@@ -14,6 +14,7 @@ export const createGoalSchema = z.object({
     targetNumber: z.number().min(0.01, "Target must be greater than 0").optional(),
     unit: z.string().optional(),
     targetValue: z.string().optional(),
+    isPrivate: z.boolean().optional(),
 });
 
 export type CreateGoalFormValues = z.infer<typeof createGoalSchema>;

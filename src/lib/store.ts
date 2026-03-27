@@ -81,11 +81,13 @@ export interface AppState {
     status: MemberGoalStatusValue,
     note: string,
     contribution?: number,
+    taggedMemberIds?: string[],
   ) => Promise<void>;
   dailyCheckIn: (
     goalId: string,
     checkDate: string,
     note?: string,
+    taggedMemberIds?: string[],
   ) => Promise<void>;
   undoDailyCheckIn: (goalId: string, checkDate: string) => Promise<void>;
   fetchCheckIns: (goalId: string) => Promise<void>;
@@ -133,6 +135,7 @@ interface RawGoal {
   created_by?: string;
   assigned_to?: string[];
   reason?: string;
+  is_private?: boolean;
 }
 
 /** Raw shape returned by Supabase for a member row (joined with profiles) */
@@ -213,10 +216,11 @@ const cleanGoalData = (goal: RawGoal): OrgGoal => {
     createdBy: goal.created_by ?? "",
     assignedTo: goal.assigned_to || [],
     progress: progress,
+    reason: goal.reason,
+    isPrivate: goal.is_private || false,
     comments: [],
     createdAt: goal.created_at,
     updatedAt: goal.updated_at ?? "",
-    reason: goal.reason,
   };
 };
 
@@ -916,20 +920,21 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  upsertMemberStatus: async (goalId, orgId, status, note, contribution) => {
+  upsertMemberStatus: async (goalId, orgId, status, note, contribution, taggedMemberIds) => {
     await goalService.upsertMemberStatus(
       goalId,
       orgId,
       status,
       note,
       contribution,
+      taggedMemberIds,
     );
     // Refresh statuses for this goal so the UI updates immediately
     await get().fetchMemberStatuses(goalId);
   },
 
-  dailyCheckIn: async (goalId, checkDate, note) => {
-    await goalService.dailyCheckIn(goalId, checkDate, note);
+  dailyCheckIn: async (goalId, checkDate, note, taggedMemberIds) => {
+    await goalService.dailyCheckIn(goalId, checkDate, note, taggedMemberIds);
     // Update local state optimistically
     const {
       data: { user },
@@ -942,6 +947,7 @@ export const useStore = create<AppState>((set, get) => ({
         checkDate,
         completed: true,
         note: note || null,
+        taggedMemberIds: taggedMemberIds || [],
         createdAt: new Date().toISOString(),
       };
       set((state) => {

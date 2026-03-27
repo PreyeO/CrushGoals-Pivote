@@ -10,19 +10,7 @@ import { OrgGoal, Organization } from "@/types";
 import { toast } from "sonner";
 import { OrgLabel } from "./OrgLabel";
 
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-function getLast14Days(): string[] {
-  const days: string[] = [];
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
-  }
-  return days;
-}
+import { getToday, getLast14Days } from "@/lib/store-utils";
 
 function calculateStreak(checkedDates: Set<string>): number {
   let streak = 0;
@@ -70,7 +58,16 @@ export function DailyGoalCard({
   }, [goal.id, fetchCheckIns]);
 
   const checkedDatesSet = new Set(
-    checkins.filter((c) => c.completed).map((c) => c.checkDate),
+    checkins
+      .filter((c) => {
+        if (!c.completed) return false;
+        if (goal.assignedTo.length === 1) {
+          const assignee = members.find(m => m.id === goal.assignedTo[0]);
+          return c.userId === assignee?.userId;
+        }
+        return c.userId === user?.id;
+      })
+      .map((c) => c.checkDate),
   );
   const todayStr = getToday();
   const checkedToday = checkedDatesSet.has(todayStr);
@@ -78,8 +75,7 @@ export function DailyGoalCard({
   const last14Days = getLast14Days();
   
   const isAssigned = members
-    .filter(m => goal.assignedTo.includes(m.id))
-    .some(m => m.userId === user?.id);
+    .some(m => goal.assignedTo.includes(m.id) && m.userId === user?.id);
 
   const handleDailyCheckIn = async () => {
     setIsCheckingIn(true);
@@ -163,37 +159,39 @@ export function DailyGoalCard({
         </div>
 
         {/* Mini calendar heat map — last 14 days */}
-        <div className="flex items-center gap-1">
-          {last14Days.map((day) => {
-            const isChecked = checkedDatesSet.has(day);
-            const isToday = day === todayStr;
-            const dayLabel = new Date(day + "T12:00:00").toLocaleDateString(
-              "en-US",
-              { weekday: "narrow" },
-            );
-            return (
-              <div
-                key={day}
-                className="flex flex-col items-center gap-1 flex-1"
-              >
-                <span className="text-[7px] text-muted-foreground/50 font-bold">
-                  {dayLabel}
-                </span>
-                <div
-                  className={cn(
-                    "w-full aspect-square rounded-sm transition-all",
-                    isChecked
-                      ? "bg-primary shadow-[0_0_6px_-1px_var(--primary)]"
-                      : isToday
-                        ? "bg-accent/40 border-2 border-dashed border-primary/30"
-                        : "bg-accent/20 border border-border/10",
-                  )}
-                  title={`${day}${isChecked ? " ✓" : ""}`}
-                />
-              </div>
-            );
-          })}
-        </div>
+        {goal.frequency !== "one_time" && (
+            <div className="flex items-center gap-1">
+                {last14Days.map((day) => {
+                    const isChecked = checkedDatesSet.has(day);
+                    const isToday = day === todayStr;
+                    const dayLabel = new Date(day + "T12:00:00").toLocaleDateString(
+                        "en-US",
+                        { weekday: "narrow" },
+                    );
+                    return (
+                        <div
+                            key={day}
+                            className="flex flex-col items-center gap-1 flex-1"
+                        >
+                            <span className="text-[7px] text-muted-foreground/50 font-bold">
+                                {dayLabel}
+                            </span>
+                            <div
+                                className={cn(
+                                    "w-full aspect-square rounded-sm transition-all",
+                                    isChecked
+                                        ? "bg-primary shadow-[0_0_6px_-1px_var(--primary)]"
+                                        : isToday
+                                            ? "bg-accent/40 border-2 border-dashed border-primary/30"
+                                            : "bg-accent/20 border border-border/10",
+                                )}
+                                title={`${day}${isChecked ? " ✓" : ""}`}
+                            />
+                        </div>
+                    );
+                })}
+            </div>
+        )}
 
         <div className="flex items-center justify-between pt-2 border-t border-border/20">
           <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">

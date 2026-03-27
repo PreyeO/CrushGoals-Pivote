@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   ChevronDown,
@@ -15,10 +16,12 @@ import {
   Users,
   Flame,
   Pencil,
+  CheckCircle,
+  EyeOff,
 } from "lucide-react";
 import { getGoalAssignees } from "@/lib/store-utils";
 import { toast } from "sonner";
-import type { OrgGoal, OrgMember } from "@/types";
+import type { OrgGoal, OrgMember, GoalStatus } from "@/types";
 import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
 import { CreateGoalModal } from "@/components/create-goal-modal";
 import { Celebration } from "@/components/ui/celebration";
@@ -45,39 +48,15 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
   // Trigger celebration on completion
   useEffect(() => {
     if (goal.status === "completed" && !isDaily) {
-      // Use setTimeout to defer setState to the next task, avoiding cascading render warning
       const timer = setTimeout(() => setShowCelebration(true), 0);
       return () => clearTimeout(timer);
     }
   }, [goal.status, isDaily]);
 
-  // Pacing (only for non-daily goals)
-  const start = new Date(goal.startDate || goal.createdAt).getTime();
-  const end = deadline.getTime();
-  const totalTime = end - start;
-  const elapsedTime = now - start;
-  const expectedProgress =
-    totalTime > 0
-      ? Math.min(100, Math.max(0, Math.round((elapsedTime / totalTime) * 100)))
-      : 0;
-  const isBehind = !isDaily && goal.progress < expectedProgress - 15;
-  const isAhead = !isDaily && goal.progress > expectedProgress + 15;
-
-  const s = statusStyles[goal.status];
-  const p = priorityStyles[goal.priority];
-
-  const members = useStore((state) => state.members);
   const user = useStore((state) => state.user);
-  const deleteGoal = useStore((state) => state.deleteGoal);
-  const fetchMemberStatuses = useStore((state) => state.fetchMemberStatuses);
-  const memberGoalStatuses = useStore(
-    useShallow((state) =>
-      state.memberGoalStatuses.filter((s) => s.goalId === goal.id),
-    ),
-  );
-
-  // Daily check-in state
+  const members = useStore((state) => state.members);
   const fetchCheckIns = useStore((state) => state.fetchCheckIns);
+  const deleteGoal = useStore((state) => state.deleteGoal);
   const checkins = useStore(
     useShallow((state) =>
       state.dailyCheckins.filter((c) => c.goalId === goal.id),
@@ -85,154 +64,208 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
   );
 
   useEffect(() => {
-    if (isDaily) {
-      fetchCheckIns(goal.id);
-    }
-  }, [isDaily, goal.id, fetchCheckIns]);
+    fetchCheckIns(goal.id);
+  }, [goal.id, fetchCheckIns]);
 
   const assignees = getGoalAssignees(goal, members);
   const myMember = members.find(
-    (m) => m.orgId === goal.orgId && m.userId === user?.id,
+    (m) => m.userId === user?.id && m.orgId === goal.orgId,
   );
-  const isAdmin = myMember?.role === "admin" || myMember?.role === "owner";
   const isAssigned = goal.assignedTo.includes(myMember?.id || "");
-
-  const handleToggleExpand = () => {
-    const next = !expanded;
-    setExpanded(next);
-    if (next) fetchMemberStatuses(goal.id);
-  };
+  const canEdit =
+    user?.id === goal.createdBy ||
+    myMember?.role === "owner" ||
+    myMember?.role === "admin";
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
       await deleteGoal(goal.id, goal.orgId);
       toast.success("Goal deleted successfully");
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to delete goal";
-      toast.error(message);
+    } catch (err) {
+      toast.error("Failed to delete goal");
+    } finally {
       setIsDeleting(false);
       setConfirmDelete(false);
     }
   };
 
+  const isPrivate = goal.isPrivate;
+  const showPrivacyOverlay = isPrivate && user?.id !== goal.createdBy && myMember?.role !== "owner" && myMember?.role !== "admin";
+
   return (
     <div
       className={cn(
-        "glass-card p-5 transition-all animate-fade-in-up group/card relative overflow-hidden",
-        isCompleted
-          ? "border-emerald-500/30 bg-emerald-500/2"
-          : "hover:border-primary/20",
-        isOverdue &&
-          "border-destructive/50 bg-destructive/3 shadow-[0_0_20px_-10px_rgba(239,68,68,0.5)]",
+        "glass-card group/card flex flex-col transition-all duration-300",
+        expanded ? "ring-1 ring-primary/20 shadow-xl" : "hover:shadow-lg",
+        isCompleted ? "opacity-90" : "opacity-100",
       )}
     >
-      {isCompleted && (
-        <div className="absolute -right-8 -top-8 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl animate-pulse" />
-      )}
-      {isOverdue && (
-        <div className="absolute top-0 right-0 px-3 py-1 bg-destructive text-white text-[10px] font-bold uppercase tracking-widest rounded-bl-lg shadow-lg z-10 flex items-center gap-1.5 animate-pulse">
-          <AlertTriangle className="w-3 h-3" /> Overdue
-        </div>
-      )}
+      {showCelebration && <Celebration active={true} onComplete={() => setShowCelebration(false)} />}
+      
+      <div className="p-6 flex-1 relative">
+        {showPrivacyOverlay && (
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-[6px] z-10 flex flex-col items-center justify-center rounded-2xl p-6 text-center animate-in fade-in duration-300">
+            <div className="w-12 h-12 rounded-full bg-accent/50 flex items-center justify-center mb-3">
+              <EyeOff className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <h4 className="font-bold text-sm mb-1">Private Goal</h4>
+            <p className="text-[10px] text-muted-foreground max-w-[200px]">
+                This is a personal goal set by {assignees[0]?.name || "a team member"}.
+            </p>
+          </div>
+        )}
 
-      <Celebration
-        active={showCelebration}
-        onComplete={() => setShowCelebration(false)}
-      />
-
-      {/* Header */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-xl shrink-0 group-hover/card:scale-110 transition-transform">
-            {goal.emoji}
-          </span>
-          <div className="min-w-0">
-            <h3
-              className={cn(
-                "font-bold text-[15px] truncate",
-                isOverdue && "text-destructive",
-              )}
-            >
-              {goal.title}
-            </h3>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[11px] text-muted-foreground">
-                {goal.category}
-              </span>
-              {isDaily ? (
-                <Badge
-                  variant="outline"
-                  className="text-[9px] font-bold uppercase tracking-wider px-1.5 h-4 bg-[oklch(0.72_0.18_55_/0.12)] text-[oklch(0.72_0.18_55)] border-[oklch(0.72_0.18_55_/0.2)]"
-                >
-                  <Flame className="w-2.5 h-2.5 mr-0.5" />
-                  {goal.frequency}
-                </Badge>
-              ) : (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-[9px] font-bold uppercase tracking-wider px-1.5 h-4",
-                    isBehind
-                      ? "bg-destructive/10 text-destructive border-destructive/20"
-                      : isAhead
-                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                        : "bg-primary/10 text-primary border-primary/20",
-                  )}
-                >
-                  {isBehind ? "Behind" : isAhead ? "Ahead" : "On Track"}
-                </Badge>
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-accent/50 flex items-center justify-center text-2xl relative shadow-inner">
+              {goal.emoji || "🎯"}
+              {isCompleted && (
+                <div className="absolute -right-2 -top-2 bg-emerald-500 text-white rounded-full p-1 shadow-lg animate-in zoom-in duration-300">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
               )}
             </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-bold text-lg leading-tight group-hover/card:text-primary transition-colors">
+                  {goal.title}
+                </h3>
+                {isPrivate && (
+                    <Badge variant="outline" className="h-4 px-1.5 text-[8px] gap-1 border-primary/20 bg-primary/5 text-primary">
+                        <EyeOff className="w-2 h-2" /> Private
+                    </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-1">
+                {goal.description}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!showPrivacyOverlay && canEdit && !isCompleted && (
+              <CreateGoalModal orgId={goal.orgId} goal={goal}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </CreateGoalModal>
+            )}
+            {!showPrivacyOverlay && canEdit && (
+              <div className="relative">
+                {confirmDelete ? (
+                   <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-7 text-[10px] font-bold"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                    >
+                        Delete
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[10px] font-bold"
+                        onClick={() => setConfirmDelete(false)}
+                    >
+                        Cancel
+                    </Button>
+                   </div>
+                ) : (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setConfirmDelete(true)}
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
+                        disabled={isDeleting}
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Badge className={`${p.class} text-[9px]`}>{p.label}</Badge>
-          <Badge className={`${s.badgeClass} text-[9px] gap-1`}>
-            <s.icon className="w-2.5 h-2.5" />
-            {s.label}
+
+        {/* Labels bar */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] h-5 uppercase tracking-widest font-black py-0 px-2",
+              priorityStyles[goal.priority as keyof typeof priorityStyles],
+            )}
+          >
+            {goal.priority}
           </Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] h-5 uppercase tracking-widest font-black py-0 px-2",
+              statusStyles[goal.status as GoalStatus] || "bg-accent/30 text-muted-foreground border-transparent",
+            )}
+          >
+            {goal.status.replace("_", " ")}
+          </Badge>
+          {goal.category && (
+            <Badge
+              variant="outline"
+              className="text-[10px] h-5 uppercase tracking-widest font-black py-0 px-2 border-border/40 bg-accent/10"
+            >
+              {goal.category}
+            </Badge>
+          )}
+          {isOverdue && (
+            <Badge
+              variant="destructive"
+              className="text-[10px] h-5 uppercase tracking-widest font-black py-0 px-2 animate-pulse"
+            >
+              Overdue
+            </Badge>
+          )}
         </div>
+
+        {/* Progress Section */}
+        {isDaily ? (
+          <GoalDailyProgress 
+            goal={goal} 
+            checkins={checkins} 
+            isReadOnly={!isAssigned}
+          />
+        ) : (
+          <>
+            <GoalStandardProgress goal={goal} isOverdue={isOverdue} />
+            {goal.frequency !== "one_time" && (
+              <div className="mb-4">
+                  <GoalDailyProgress 
+                  goal={goal} 
+                  checkins={checkins} 
+                  isReadOnly={true} 
+                  />
+              </div>
+            )}
+          </>
+        )}
+
       </div>
 
-      <p className="text-[12px] text-muted-foreground leading-relaxed mb-4 line-clamp-2">
-        {goal.description}
-      </p>
-
-      {/* Blocked notice */}
-      {goal.status === "blocked" && (
-        <div className="mb-4 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
-          <p className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5 mb-1">
-            <Ban className="w-3 h-3" /> Blocked
-          </p>
-          <p className="text-[11px] text-destructive/80 italic">
-            {goal.reason || "Waiting on resolution"}
-          </p>
-        </div>
-      )}
-
-      {/* Progress Section — different for daily vs metric/milestone goals */}
-      {isDaily ? (
-        <GoalDailyProgress 
-          goal={goal} 
-          checkins={checkins} 
-          isReadOnly={!isAssigned}
-        />
-      ) : (
-        <GoalStandardProgress goal={goal} isOverdue={isOverdue} />
-      )}
-
       {/* Meta row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="px-6 py-4 flex items-center justify-between border-t border-border/20 bg-accent/5">
+        <div className="flex items-center gap-2">
           <div className="flex -space-x-2">
-            {assignees.map((m: OrgMember) => (
+            {assignees.map((member) => (
               <Avatar
-                key={m.id}
-                className="w-7 h-7 border-2 border-background shadow-sm"
+                key={member.id}
+                className="w-6 h-6 border-2 border-background ring-2 ring-transparent group-hover/card:ring-primary/10 transition-all"
               >
-                <AvatarFallback className="bg-primary/20 text-primary text-[9px] font-black">
-                  {m.name
+                <AvatarFallback className="text-[8px] font-bold bg-primary/10 text-primary">
+                  {member.name
                     .split(" ")
                     .map((n) => n[0])
                     .join("")}
@@ -240,11 +273,21 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
               </Avatar>
             ))}
           </div>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            {assignees.length === 0
+              ? "Unassigned"
+              : assignees.length === 1
+                ? assignees[0].name
+                : `${assignees.length} assigned`}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4">
           <span
             className={cn(
-              "text-[11px] font-bold flex items-center gap-1.5 px-2 py-1 rounded-md",
+              "flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full",
               isOverdue
-                ? "bg-destructive/10 text-destructive"
+                ? "text-red-500 bg-red-500/10"
                 : "text-muted-foreground bg-accent/30",
             )}
           >
@@ -254,78 +297,9 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
               day: "numeric",
             })}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <div className="flex items-center gap-1">
-              <CreateGoalModal orgId={goal.orgId} goal={goal}>
-                <button
-                  className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-all cursor-pointer group/edit"
-                  title="Edit Goal"
-                >
-                  <Pencil className="w-3.5 h-3.5 group-hover/edit:scale-110 transition-transform" />
-                </button>
-              </CreateGoalModal>
-              <div className="relative">
-                {confirmDelete ? (
-                  <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
-                    <button
-                      disabled={isDeleting}
-                      onClick={handleDelete}
-                      className="text-[10px] font-bold bg-destructive text-white px-2 py-1 rounded hover:bg-destructive/90 transition-colors disabled:opacity-50"
-                    >
-                      {isDeleting ? "..." : "Confirm"}
-                    </button>
-                    <button
-                      disabled={isDeleting}
-                      onClick={() => setConfirmDelete(false)}
-                      className="text-[10px] font-bold bg-accent/50 text-muted-foreground px-2 py-1 rounded hover:bg-accent transition-colors disabled:opacity-50"
-                    >
-                      No
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setConfirmDelete(true)}
-                    className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer group/del"
-                    title="Delete Goal"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 group-hover/del:scale-110 transition-transform" />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-          <button
-            onClick={handleToggleExpand}
-            className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors uppercase tracking-wider cursor-pointer px-3 py-1.5 rounded-lg hover:bg-accent/50"
-          >
-            <Users className="w-3.5 h-3.5" />
-            {expanded ? "Hide" : "Members"}
-            <ChevronDown
-              className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
-            />
-          </button>
-          {!isDaily && isAssigned && <GoalCheckInModal goal={goal} />}
+          <GoalCheckInModal goal={goal} />
         </div>
       </div>
-
-      {/* Organization Progress Panel */}
-      {expanded && (
-        <div className="mt-5 pt-5 border-t border-border/30 space-y-3 animate-in fade-in slide-in-from-top-3">
-          <p className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-[0.2em]">
-            Team Progress
-          </p>
-
-          <GoalTeamProgressPanel
-            assignees={assignees}
-            memberGoalStatuses={memberGoalStatuses}
-            isDaily={isDaily}
-            checkins={checkins}
-            now={now}
-          />
-        </div>
-      )}
     </div>
   );
 }

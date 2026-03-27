@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils";
 import { OrgGoal, OrgMember, MemberGoalStatus } from "@/types";
 import { goalStatusConfig } from "@/lib/constants";
 import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
+import { useStore } from "@/lib/store";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Users } from "lucide-react";
 
 interface MemberGoalsListProps {
   memberGoals: OrgGoal[];
@@ -19,6 +22,7 @@ export function MemberGoalsList({
   memberGoalStatuses,
   now,
 }: MemberGoalsListProps) {
+  const allMembers = useStore((state) => state.members);
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -174,6 +178,25 @@ export function MemberGoalsList({
                       <p className="text-[11px] text-muted-foreground bg-accent/20 rounded-lg p-2 border border-border/10">
                         &ldquo;{ms.note}&rdquo;
                       </p>
+                    )}
+                    {ms.taggedMemberIds && ms.taggedMemberIds.length > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-tighter flex items-center gap-1">
+                                <Users className="w-2.5 h-2.5" /> Tagged:
+                            </span>
+                            <div className="flex -space-x-1.5 overflow-hidden">
+                                {ms.taggedMemberIds.map(id => {
+                                    const m = allMembers.find(am => am.id === id);
+                                    if (!m) return null;
+                                    return (
+                                        <Avatar key={id} className="w-4 h-4 border-2 border-background ring-1 ring-border/10" title={m.name}>
+                                            <AvatarImage src={m.avatarUrl || undefined} />
+                                            <AvatarFallback className="text-[7px] font-bold">{m.name[0]}</AvatarFallback>
+                                        </Avatar>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     )}
                   </div>
                 )}

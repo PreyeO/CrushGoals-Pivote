@@ -1,24 +1,25 @@
 import { Organization, OrgGoal, OrgMember, LeaderboardEntry, OrgHealthScore, DailyCheckIn } from "@/types";
 
 export function getToday(): string {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  // Use local time for YYYY-MM-DD to avoid timezone shifts
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function getLast14Days(): string[] {
-    const days: string[] = [];
-    for (let i = 13; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        days.push(`${year}-${month}-${day}`);
-    }
-    return days;
+  const days: string[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    days.push(`${year}-${month}-${day}`);
+  }
+  return days;
 }
 
 export function calculateStreak(checkedDates: Set<string>): number {

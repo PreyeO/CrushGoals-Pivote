@@ -23,9 +23,19 @@ export function GoalDailyProgress({ goal, checkins, isReadOnly }: GoalDailyProgr
   const updateGoalStatus = useStore((state) => state.updateGoalStatus);
   const upsertMemberStatus = useStore((state) => state.upsertMemberStatus);
 
+  const members = useStore((state) => state.members);
   const checkedDatesSet = new Set(
     checkins
-      .filter((c) => c.completed && c.userId === user?.id)
+      .filter((c) => {
+        if (!c.completed) return false;
+        if (goal.assignedTo.length === 1) {
+          // If single assignee, show THAT member's check-ins (resolved to userId)
+          const assignee = members.find(m => m.id === goal.assignedTo[0]);
+          return c.userId === assignee?.userId;
+        }
+        // Otherwise show the current user's check-ins
+        return c.userId === user?.id;
+      })
       .map((c) => c.checkDate),
   );
   const todayStr = getToday();

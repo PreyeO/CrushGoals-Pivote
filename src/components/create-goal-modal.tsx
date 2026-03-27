@@ -29,6 +29,8 @@ import { useGoalForm } from "@/hooks/useGoalForm";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { EyeOff } from "lucide-react";
 interface CreateGoalModalProps {
     orgId: string;
     children?: React.ReactNode;
@@ -83,6 +85,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
         targetNumber: goal.targetNumber || 50,
         targetValue: goal.targetValue || "",
         unit: goal.unit || "Tasks",
+        isPrivate: goal.isPrivate || false,
     } : undefined;
 
     const { form, toggleAssignee, toggleEveryone, applyTemplate } = useGoalForm({
@@ -132,6 +135,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                     createdBy: user?.id || "unknown",
                     targetNumber: data.goalType === 'metric' ? data.targetNumber : undefined,
                     unit: data.goalType === 'metric' ? data.unit : undefined,
+                    isPrivate: data.isPrivate || false,
                 } as any);
                 toast.success("Goal launched successfully! 🚀");
             }
@@ -271,6 +275,25 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                                         <div className="space-y-2">
                                             <Label className="text-xs font-semibold uppercase tracking-wider text-destructive/80">Deadline</Label>
                                             <Input type="date" {...register("deadline")} className="bg-accent/30 border-border/40 h-11 sm:h-9" />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                                        <Checkbox 
+                                            id="isPrivate" 
+                                            checked={watch("isPrivate")}
+                                            onCheckedChange={(checked) => setValue("isPrivate", !!checked)}
+                                        />
+                                        <div className="grid gap-1.5 leading-none">
+                                            <Label 
+                                                htmlFor="isPrivate" 
+                                                className="text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                                <EyeOff className="w-3.5 h-3.5" /> Private Goal
+                                            </Label>
+                                            <p className="text-[10px] text-muted-foreground">
+                                                Only you and organization admins can see that this goal exists, but admins won't see specific details.
+                                            </p>
                                         </div>
                                     </div>
 

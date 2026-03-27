@@ -248,6 +248,7 @@ export const goalService = {
     status: string,
     note: string,
     contribution?: number,
+    taggedMemberIds?: string[],
   ) {
     const {
       data: { user },
@@ -273,6 +274,7 @@ export const goalService = {
           status,
           note: note || null,
           contribution: contribution ?? 0,
+          tagged_member_ids: taggedMemberIds || null,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "goal_id,user_id" },
@@ -287,7 +289,7 @@ export const goalService = {
     console.log("upsertMemberStatus result:", data);
   },
 
-  async dailyCheckIn(goalId: string, checkDate: string, note?: string) {
+  async dailyCheckIn(goalId: string, checkDate: string, note?: string, taggedMemberIds?: string[]) {
     const {
       data: { user },
     } = await getSupabase().auth.getUser();
@@ -302,6 +304,7 @@ export const goalService = {
           check_date: checkDate,
           completed: true,
           note: note || null,
+          tagged_member_ids: taggedMemberIds || null,
           created_at: new Date().toISOString(),
         },
         { onConflict: "goal_id,user_id,check_date" },
@@ -388,6 +391,7 @@ export const goalService = {
         checkDate: row.check_date,
         completed: row.completed,
         note: row.note,
+        taggedMemberIds: row.tagged_member_ids || [],
         createdAt: row.created_at,
     }));
   },

@@ -10,19 +10,7 @@ import { cn } from "@/lib/utils";
 import { useShallow } from "zustand/react/shallow";
 import { toast } from "sonner";
 
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-function getLast14Days(): string[] {
-  const days: string[] = [];
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
-  }
-  return days;
-}
+import { getToday, getLast14Days } from "@/lib/store-utils";
 
 function calculateStreak(checkedDates: Set<string>): number {
   let streak = 0;
@@ -67,7 +55,16 @@ export function ActiveDailyGoalItem({
   }, [goal.id, fetchCheckIns]);
 
   const checkedDatesSet = new Set(
-    checkins.filter((c) => c.completed).map((c) => c.checkDate),
+    checkins
+      .filter((c) => {
+        if (!c.completed) return false;
+        if (goal.assignedTo.length === 1) {
+          const assignee = members.find(m => m.id === goal.assignedTo[0]);
+          return c.userId === assignee?.userId;
+        }
+        return c.userId === user?.id;
+      })
+      .map((c) => c.checkDate),
   );
   const todayStr = getToday();
   const checkedToday = checkedDatesSet.has(todayStr);

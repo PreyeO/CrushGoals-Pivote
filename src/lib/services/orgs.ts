@@ -237,5 +237,43 @@ export const orgService = {
             .eq('id', orgId);
 
         if (error) throw error;
+    },
+
+    async removeMember(memberId: string) {
+        const { data: { user } } = await getSupabase().auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        // 1. Get the member being removed to find their org
+        const { data: targetMember, error: targetError } = await getSupabase()
+            .from('org_members')
+            .select('org_id, user_id, role')
+            .eq('id', memberId)
+            .single();
+
+        if (targetError || !targetMember) throw new Error("Member not found");
+
+        // 2. Verify the requester is an admin/owner of that org OR it's the member themselves (leaving)
+        const { data: requesterMember, error: reqError } = await getSupabase()
+            .from('org_members')
+            .select('role')
+            .eq('org_id', targetMember.org_id)
+            .eq('user_id', user.id)
+            .single();
+
+        if (reqError || !requesterMember) throw new Error("Unauthorized");
+
+        const isSelf = targetMember.user_id === user.id;
+        const isAdmin = requesterMember.role === 'admin' || requesterMember.role === 'owner';
+
+        if (!isSelf && !isAdmin) throw new Error("Insufficent permissions to remove member");
+        if (targetMember.role === 'owner') throw new Error("Cannot remove the organization owner");
+
+        // 3. Delete the member
+        const { error: deleteError } = await getSupabase()
+            .from('org_members')
+            .delete()
+            .eq('id', memberId);
+
+        if (deleteError) throw deleteError;
     }
 };
