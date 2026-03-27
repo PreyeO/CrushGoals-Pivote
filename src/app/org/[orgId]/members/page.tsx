@@ -109,7 +109,7 @@ export default function OrgMembersPage({
             className="text-[12px] px-4 py-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary gap-2"
           >
             <Mail className="w-3.5 h-3.5" />
-            Invitations
+            Pending Invites
             {pendingInvites.length > 0 && (
               <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">
                 {filteredInvites.length}

@@ -14,11 +14,13 @@ import {
   Trash2,
   Users,
   Flame,
+  Pencil,
 } from "lucide-react";
 import { getGoalAssignees } from "@/lib/store-utils";
 import { toast } from "sonner";
 import type { OrgGoal, OrgMember } from "@/types";
 import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
+import { CreateGoalModal } from "@/components/create-goal-modal";
 import { Celebration } from "@/components/ui/celebration";
 import { statusStyles, priorityStyles } from "@/lib/goal-constants";
 import { GoalTeamProgressPanel } from "./GoalTeamProgressPanel";
@@ -93,6 +95,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
     (m) => m.orgId === goal.orgId && m.userId === user?.id,
   );
   const isAdmin = myMember?.role === "admin" || myMember?.role === "owner";
+  const isAssigned = goal.assignedTo.includes(myMember?.id || "");
 
   const handleToggleExpand = () => {
     const next = !expanded;
@@ -210,7 +213,11 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
 
       {/* Progress Section — different for daily vs metric/milestone goals */}
       {isDaily ? (
-        <GoalDailyProgress goal={goal} checkins={checkins} />
+        <GoalDailyProgress 
+          goal={goal} 
+          checkins={checkins} 
+          isReadOnly={!isAssigned}
+        />
       ) : (
         <GoalStandardProgress goal={goal} isOverdue={isOverdue} />
       )}
@@ -250,33 +257,43 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
         </div>
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <div className="relative">
-              {confirmDelete ? (
-                <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
-                  <button
-                    disabled={isDeleting}
-                    onClick={handleDelete}
-                    className="text-[10px] font-bold bg-destructive text-white px-2 py-1 rounded hover:bg-destructive/90 transition-colors disabled:opacity-50"
-                  >
-                    {isDeleting ? "..." : "Confirm"}
-                  </button>
-                  <button
-                    disabled={isDeleting}
-                    onClick={() => setConfirmDelete(false)}
-                    className="text-[10px] font-bold bg-accent/50 text-muted-foreground px-2 py-1 rounded hover:bg-accent transition-colors disabled:opacity-50"
-                  >
-                    No
-                  </button>
-                </div>
-              ) : (
+            <div className="flex items-center gap-1">
+              <CreateGoalModal orgId={goal.orgId} goal={goal}>
                 <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer group/del"
-                  title="Delete Goal"
+                  className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-all cursor-pointer group/edit"
+                  title="Edit Goal"
                 >
-                  <Trash2 className="w-3.5 h-3.5 group-hover/del:scale-110 transition-transform" />
+                  <Pencil className="w-3.5 h-3.5 group-hover/edit:scale-110 transition-transform" />
                 </button>
-              )}
+              </CreateGoalModal>
+              <div className="relative">
+                {confirmDelete ? (
+                  <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                    <button
+                      disabled={isDeleting}
+                      onClick={handleDelete}
+                      className="text-[10px] font-bold bg-destructive text-white px-2 py-1 rounded hover:bg-destructive/90 transition-colors disabled:opacity-50"
+                    >
+                      {isDeleting ? "..." : "Confirm"}
+                    </button>
+                    <button
+                      disabled={isDeleting}
+                      onClick={() => setConfirmDelete(false)}
+                      className="text-[10px] font-bold bg-accent/50 text-muted-foreground px-2 py-1 rounded hover:bg-accent transition-colors disabled:opacity-50"
+                    >
+                      No
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer group/del"
+                    title="Delete Goal"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 group-hover/del:scale-110 transition-transform" />
+                  </button>
+                )}
+              </div>
             </div>
           )}
           <button
@@ -289,7 +306,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
               className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
             />
           </button>
-          {!isDaily && <GoalCheckInModal goal={goal} />}
+          {!isDaily && isAssigned && <GoalCheckInModal goal={goal} />}
         </div>
       </div>
 

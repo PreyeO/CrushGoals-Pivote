@@ -98,7 +98,6 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
 
   const orgs = useStore(useShallow((state) => state.organizations));
   const members = useStore(useShallow((state) => state.members));
-  const invitations = useStore(useShallow((state) => state.invitations));
   const user = useStore(useShallow((state) => state.user));
   const collapsed = useStore((state) => state.sidebarCollapsed);
   const setCollapsed = useStore((state) => state.setSidebarCollapsed);
@@ -192,68 +191,33 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
             />
           )}
 
-          {/* Pending invitations indicator */}
-          {(() => {
-            const hasReceived = pendingInvites.length > 0;
-            const myMemberInCurrent = members.find(
-              (m) => m.userId === user?.id && m.orgId === resolvedOrgId,
+          {/* Pending invitations indicator — only shown to users who received an invite */}
+          {pendingInvites.length > 0 && (() => {
+            const inviteHref =
+              pendingInvites.length === 1
+                ? `/invite/${pendingInvites[0].token}`
+                : `/invitations`;
+            return (
+              <Link
+                href={inviteHref}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
+              >
+                <Mail className="w-4.5 h-4.5 shrink-0" />
+                {!collapsed && (
+                  <span className="flex-1">
+                    {pendingInvites.length === 1
+                      ? "Pending Invite"
+                      : `${pendingInvites.length} Pending Invites`}
+                  </span>
+                )}
+                {!collapsed && (
+                  <span className="ml-auto text-[10px] font-black bg-amber-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                    {pendingInvites.length}
+                  </span>
+                )}
+              </Link>
             );
-            const isAdminInCurrent =
-              myMemberInCurrent &&
-              (myMemberInCurrent.role === "owner" ||
-                myMemberInCurrent.role === "admin");
-            const hasSent =
-              isAdminInCurrent && resolvedOrgId && invitations.length > 0;
-
-            if (hasReceived) {
-              const inviteHref =
-                pendingInvites.length === 1
-                  ? `/invite/${pendingInvites[0].token}`
-                  : `/invitations`;
-              return (
-                <Link
-                  href={inviteHref}
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
-                >
-                  <Mail className="w-4.5 h-4.5 shrink-0" />
-                  {!collapsed && (
-                    <span className="flex-1">
-                      {pendingInvites.length === 1
-                        ? "Pending Invite"
-                        : `${pendingInvites.length} Pending Invites`}
-                    </span>
-                  )}
-                  {!collapsed && (
-                    <span className="ml-auto text-[10px] font-black bg-amber-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
-                      {pendingInvites.length}
-                    </span>
-                  )}
-                </Link>
-              );
-            }
-
-            if (hasSent) {
-              const sentCount = invitations.length;
-              return (
-                <Link
-                  href={`/org/${resolvedOrgId}/members`}
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-[oklch(0.70_0.18_155)] bg-[oklch(0.70_0.18_155)]/10 hover:bg-[oklch(0.70_0.18_155)]/20"
-                >
-                  <Mail className="w-4.5 h-4.5 shrink-0" />
-                  {!collapsed && (
-                    <span className="flex-1">
-                      {sentCount === 1
-                        ? "Review Invite"
-                        : `Review Invites (${sentCount})`}
-                    </span>
-                  )}
-                </Link>
-              );
-            }
-
-            return null;
           })()}
 
           {resolvedOrgId && orgNavItems.length > 0 && (

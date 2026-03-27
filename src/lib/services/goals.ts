@@ -114,6 +114,32 @@ export const goalService = {
     }
   },
 
+  async updateGoal(goalId: string, data: Partial<OrgGoal>) {
+    const { error } = await getSupabase()
+      .from("goals")
+      .update({
+        title: data.title,
+        description: data.description,
+        emoji: data.emoji,
+        target_value: data.targetValue,
+        target_number: data.targetNumber,
+        unit: data.unit,
+        start_date: data.startDate,
+        deadline: data.deadline,
+        category: data.category,
+        priority: data.priority,
+        status: data.status,
+        assigned_to: data.assignedTo,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", goalId);
+
+    if (error) {
+      console.error("Goal update error:", error);
+      throw error;
+    }
+  },
+
   async updateStatus(goalId: string, status: GoalStatus, reason?: string) {
     const { error } = await getSupabase()
       .from("goals")

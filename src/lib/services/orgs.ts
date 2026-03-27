@@ -118,7 +118,7 @@ export const orgService = {
     async getMembers(orgIdOrIds: string | string[]) {
         let query = getSupabase()
             .from('org_members')
-            .select('*, profiles(full_name, avatar_url)');
+            .select('*, profiles(full_name, avatar_url, email)');
 
         if (Array.isArray(orgIdOrIds)) {
             query = query.in('org_id', orgIdOrIds);

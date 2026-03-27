@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { fetchWithRetry } from "./fetch-retry";
+import { toast } from "sonner";
 import {
   Organization,
   OrgGoal,
@@ -72,6 +73,7 @@ export interface AppState {
   updateGoalStatus: (goalId: string, status: GoalStatus, reason?: string) => Promise<void>;
   deleteGoal: (goalId: string, orgId: string) => Promise<void>;
   deleteOrganization: (orgId: string) => Promise<void>;
+  removeOrgMember: (memberId: string) => Promise<void>;
   fetchMemberStatuses: (goalId: string) => Promise<void>;
   upsertMemberStatus: (
     goalId: string,
@@ -88,6 +90,7 @@ export interface AppState {
   undoDailyCheckIn: (goalId: string, checkDate: string) => Promise<void>;
   fetchCheckIns: (goalId: string) => Promise<void>;
   updateOrganization: (orgId: string, data: Partial<Organization>) => Promise<void>;
+  updateGoal: (goalId: string, data: Partial<OrgGoal>) => Promise<void>;
 }
 
 import { authService } from "./services/auth";
@@ -143,6 +146,7 @@ interface RawMember {
   profiles?: {
     full_name?: string;
     avatar_url?: string;
+    email?: string;
   };
 }
 
@@ -238,7 +242,7 @@ const cleanMemberData = (
     joinedAt: m.joined_at,
     name: m.profiles?.full_name || "Unknown User",
     avatarUrl: m.profiles?.avatar_url,
-    email: m.email || "",
+    email: m.profiles?.email || m.email || "",
     goalsAssigned: memberGoals.length,
     goalsCompleted: completed,
     completionRate,
@@ -334,8 +338,16 @@ export const useStore = create<AppState>((set, get) => ({
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(now.getDate() - 7);
 
+        const currentMemberEmails = new Set(
+          (rawMembers as RawMember[])
+            .map((m) => m.profiles?.email || m.email)
+            .filter(Boolean)
+            .map((e) => e?.toLowerCase())
+        );
+
         invitations = rawOrgInvites
           .filter((i: RawInvite) => new Date(i.created_at) > sevenDaysAgo)
+          .filter((i: RawInvite) => !currentMemberEmails.has(i.email.toLowerCase()))
           .map(
             (i: RawInvite): OrgInvite =>
               ({
@@ -354,8 +366,12 @@ export const useStore = create<AppState>((set, get) => ({
           const rawUserInvites = await inviteService.getPendingForEmail(
             authUser.email ?? "",
           );
+          // Cross-filter: if the user is already a member of an org, that invite
+          // is no longer truly pending (handles Supabase read-replica lag after accept).
+          const joinedOrgIds = new Set(orgs.map((o) => o.id));
           pendingInvitations = rawUserInvites
             .filter((i: RawInvite) => new Date(i.created_at) > sevenDaysAgo)
+            .filter((i: RawInvite) => !joinedOrgIds.has(i.org_id))
             .map(
               (i: RawInvite): OrgInvite =>
                 ({
@@ -421,7 +437,8 @@ export const useStore = create<AppState>((set, get) => ({
           email: get().user?.email || "",
           profiles: {
             full_name: get().user?.name || "User",
-            avatar_url: get().user?.avatarUrl
+            avatar_url: get().user?.avatarUrl,
+            email: get().user?.email || ""
           }
         })) as RawMember[];
 
@@ -439,8 +456,14 @@ export const useStore = create<AppState>((set, get) => ({
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(now.getDate() - 7);
 
+        // Cross-filter: strip any invite whose org the user is already a member of.
+        // This handles Supabase read-replica lag where an accepted invite can still
+        // appear as 'pending' on the very next read.
+        const joinedOrgIds = new Set(orgs.map((o) => o.id));
+
         pendingInvitations = rawInvites
           .filter((i: RawInvite) => new Date(i.created_at) > sevenDaysAgo)
+          .filter((i: RawInvite) => !joinedOrgIds.has(i.org_id))
           .map(
             (i: RawInvite): OrgInvite =>
               ({
@@ -841,6 +864,26 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  removeOrgMember: async (memberId: string) => {
+    try {
+      await orgService.removeMember(memberId);
+      set((state) => ({
+        members: state.members.filter((m) => m.id !== memberId),
+        // Clean up assignee lists if the member goes away
+        goals: state.goals.map(g => ({
+          ...g,
+          assignedTo: g.assignedTo.filter(id => id !== memberId)
+        })),
+        memberGoalStatuses: state.memberGoalStatuses.filter(
+            (s) => s.userId !== state.members.find(m => m.id === memberId)?.userId
+        )
+      }));
+    } catch (error) {
+      console.error("Failed to remove member:", error);
+      throw error;
+    }
+  },
+
   signOut: async () => {
     await authService.signOut();
     set({
@@ -1013,6 +1056,35 @@ export const useStore = create<AppState>((set, get) => ({
       const message = err instanceof Error ? err.message : String(err);
       console.error("updateOrganization error:", message);
       throw err;
+    }
+  },
+
+  updateGoal: async (goalId: string, goalData: Partial<OrgGoal>) => {
+    set({ isLoading: true });
+    try {
+      await goalService.updateGoal(goalId, goalData);
+      set((state) => {
+        const newGoals = state.goals.map((g) =>
+          g.id === goalId ? { ...g, ...goalData, updatedAt: new Date().toISOString() } : g
+        );
+        const updatedGoal = newGoals.find(g => g.id === goalId);
+        
+        return {
+          goals: newGoals,
+          members: updatedGoal ? syncMemberStats(
+            newGoals,
+            state.members,
+            updatedGoal.orgId,
+            state.dailyCheckins,
+          ) : state.members,
+          isLoading: false,
+        };
+      });
+      toast.success("Goal updated successfully! ✨");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 }));

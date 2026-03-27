@@ -21,7 +21,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import { GoalStatus } from "@/types";
+import { GoalStatus, OrgGoal } from "@/types";
 import { CreateGoalTemplates } from "./goals/CreateGoalTemplates";
 import { CreateGoalAssignees } from "./goals/CreateGoalAssignees";
 import { CreateGoalFormValues } from "@/lib/validations/goal";
@@ -34,9 +34,10 @@ interface CreateGoalModalProps {
     children?: React.ReactNode;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
+    goal?: OrgGoal;
 }
 
-export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenChange: setControlledOpen }: CreateGoalModalProps) {
+export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenChange: setControlledOpen, goal }: CreateGoalModalProps) {
     const [internalOpen, setInternalOpen] = useState(false);
 
     const isControlled = controlledOpen !== undefined;
@@ -49,6 +50,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
         }
     };
     const addGoal = useStore((state) => state.addGoal);
+    const updateGoal = useStore((state) => state.updateGoal);
     const allMembers = useStore((state) => state.members);
     const user = useStore((state) => state.user);
 
@@ -67,11 +69,28 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
     const myMemberId = myMember?.id || "";
     const isMemberOnly = myMember?.role === "member";
 
+    const initialValues: Partial<CreateGoalFormValues> | undefined = goal ? {
+        title: goal.title,
+        description: goal.description || "",
+        emoji: goal.emoji,
+        category: goal.category,
+        priority: goal.priority,
+        frequency: goal.frequency,
+        startDate: goal.startDate,
+        deadline: goal.deadline,
+        assigneeIds: goal.assignedTo,
+        goalType: goal.targetNumber !== undefined ? "metric" : "milestone",
+        targetNumber: goal.targetNumber || 50,
+        targetValue: goal.targetValue || "",
+        unit: goal.unit || "Tasks",
+    } : undefined;
+
     const { form, toggleAssignee, toggleEveryone, applyTemplate } = useGoalForm({
         myMemberId,
         isMemberOnly,
         membersCount: members.length,
-        memberIds: members.map(m => m.id)
+        memberIds: members.map(m => m.id),
+        initialValues
     });
 
     const {
@@ -93,22 +112,34 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
 
     const onSubmit = async (data: CreateGoalFormValues) => {
         try {
-            await addGoal({
-                ...data,
-                orgId,
-                frequency: data.frequency,
-                status: "not_started" as GoalStatus,
-                assignedTo: isMemberOnly ? [myMemberId] : data.assigneeIds,
-                createdBy: user?.id || "unknown",
-                targetNumber: data.goalType === 'metric' ? data.targetNumber : undefined,
-                unit: data.goalType === 'metric' ? data.unit : undefined,
-            } as any);
+            if (goal) {
+                // Edit existing goal
+                await updateGoal(goal.id, {
+                    ...data,
+                    assignedTo: isMemberOnly ? [myMemberId] : data.assigneeIds,
+                    targetNumber: data.goalType === 'metric' ? data.targetNumber : undefined,
+                    unit: data.goalType === 'metric' ? data.unit : undefined,
+                } as any);
+                toast.success("Goal updated successfully! ✨");
+            } else {
+                // Create new goal
+                await addGoal({
+                    ...data,
+                    orgId,
+                    frequency: data.frequency,
+                    status: "not_started" as GoalStatus,
+                    assignedTo: isMemberOnly ? [myMemberId] : data.assigneeIds,
+                    createdBy: user?.id || "unknown",
+                    targetNumber: data.goalType === 'metric' ? data.targetNumber : undefined,
+                    unit: data.goalType === 'metric' ? data.unit : undefined,
+                } as any);
+                toast.success("Goal launched successfully! 🚀");
+            }
             reset();
             setOpen(false);
-            toast.success("Goal launched successfully! 🚀");
         } catch (error) {
-            console.error("Failed to create goal:", error);
-            toast.error("Failed to launch goal. Please try again.");
+            console.error("Failed to save goal:", error);
+            toast.error(`Failed to ${goal ? 'update' : 'launch'} goal. Please try again.`);
         }
     };
 
@@ -128,9 +159,14 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] glass-card border-border/40 backdrop-blur-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-bold">Set Your First Goal</DialogTitle>
+                    <DialogTitle className="text-xl font-bold">
+                        {goal ? 'Refine Your Goal' : 'Set Your First Goal'}
+                    </DialogTitle>
                     <DialogDescription className="text-muted-foreground text-xs">
-                        {isMemberOnly ? "Set a personal goal to contribute to the organization's success." : "Welcome! Let's get everyone moving. What is the #1 priority right now?"}
+                        {goal 
+                            ? "Adjust the details, assignees, or targets for this goal."
+                            : (isMemberOnly ? "Set a personal goal to contribute to the organization's success." : "Welcome! Let's get everyone moving. What is the #1 priority right now?")
+                        }
                     </DialogDescription>
                 </DialogHeader>
 
@@ -201,14 +237,27 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                             ) : frequency !== "one_time" ? (
                                 <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 animate-in fade-in duration-200">
                                     <div className="mt-2">
-                                        <Label className="text-xs font-semibold uppercase tracking-wider">Target Milestone</Label>
-                                        <Input {...register("targetValue")} placeholder={`e.g. ${frequency === "daily" ? "Daily standup" : frequency === "weekly" ? "Weekly report" : "Monthly review"}`} className="bg-background border-border/40 mt-1" />
+                                        <Label className="text-xs font-semibold uppercase tracking-wider">
+                                            {frequency === 'daily' ? 'Daily activity' : frequency === 'weekly' ? 'Weekly outcome' : 'Monthly target'}
+                                        </Label>
+                                        <Input 
+                                            {...register("targetValue")} 
+                                            placeholder={
+                                                frequency === "daily" ? "e.g. 10 Outreach Calls" : 
+                                                frequency === "weekly" ? "e.g. Weekly Sync Meeting" : 
+                                                "e.g. Monthly Revenue Review"
+                                            } 
+                                            className="bg-background border-border/40 mt-1" 
+                                        />
+                                        <p className="text-[10px] text-muted-foreground mt-2 italic">
+                                            This is what you'll check off every {frequency.replace('_', ' ')}.
+                                        </p>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="space-y-2 animate-in fade-in duration-200">
-                                    <Label className="text-xs font-semibold uppercase tracking-wider">Target Milestone</Label>
-                                    <Input {...register("targetValue")} placeholder="e.g. MVP Launch / Complete Goal" className="bg-accent/30 border-border/40" />
+                                    <Label className="text-xs font-semibold uppercase tracking-wider">Final Outcome / Milestone</Label>
+                                    <Input {...register("targetValue")} placeholder="e.g. Launch MVP / Complete Project" className="bg-accent/30 border-border/40" />
                                 </div>
                             )}
 
@@ -245,7 +294,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
 
                                     <DialogFooter className="pt-4 mt-4 border-t border-border/10">
                                         <Button type="submit" disabled={isSubmitting} className="w-full h-11 text-sm font-bold">
-                                            {isSubmitting ? "Launching..." : "Launch Goal"}
+                                            {isSubmitting ? (goal ? "Saving..." : "Launching...") : (goal ? "Save Changes" : "Launch Goal")}
                                         </Button>
                                     </DialogFooter>
                                 </div>

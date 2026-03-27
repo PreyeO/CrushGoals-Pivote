@@ -8,27 +8,44 @@ export interface UseGoalFormProps {
     isMemberOnly: boolean;
     membersCount: number;
     memberIds: string[];
+    initialValues?: Partial<CreateGoalFormValues>;
 }
 
-export function useGoalForm({ myMemberId, isMemberOnly, membersCount, memberIds }: UseGoalFormProps) {
+export function useGoalForm({ 
+    myMemberId, 
+    isMemberOnly, 
+    membersCount, 
+    memberIds,
+    initialValues 
+}: UseGoalFormProps) {
     const now = Date.now();
     
+    // Format dates if they exist in initialValues
+    const formatInitialDate = (dateStr?: string) => {
+        if (!dateStr) return undefined;
+        try {
+            return new Date(dateStr).toISOString().split('T')[0];
+        } catch (e) {
+            return undefined;
+        }
+    };
+
     const form = useForm<CreateGoalFormValues>({
         resolver: zodResolver(createGoalSchema),
         defaultValues: {
-            title: "",
-            description: "",
-            emoji: "🎯",
-            category: "General",
-            priority: "medium",
-            frequency: undefined,
-            startDate: new Date(now).toISOString().split('T')[0],
-            deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            assigneeIds: myMemberId ? [myMemberId] : [],
-            goalType: undefined,
-            targetValue: "",
-            targetNumber: 50,
-            unit: "Tasks",
+            title: initialValues?.title || "",
+            description: initialValues?.description || "",
+            emoji: initialValues?.emoji || "🎯",
+            category: initialValues?.category || "General",
+            priority: initialValues?.priority || "medium",
+            frequency: initialValues?.frequency,
+            startDate: formatInitialDate(initialValues?.startDate) || new Date(now).toISOString().split('T')[0],
+            deadline: formatInitialDate(initialValues?.deadline) || new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            assigneeIds: initialValues?.assigneeIds || (myMemberId && isMemberOnly ? [myMemberId] : []),
+            goalType: initialValues?.goalType,
+            targetValue: initialValues?.targetValue || "",
+            targetNumber: initialValues?.targetNumber ?? 50,
+            unit: initialValues?.unit || "Tasks",
         },
     });
 
@@ -48,7 +65,7 @@ export function useGoalForm({ myMemberId, isMemberOnly, membersCount, memberIds 
     const toggleEveryone = () => {
         if (isMemberOnly) return; 
         if (selectedAssignees.length === membersCount) {
-            setValue("assigneeIds", [myMemberId]);
+            setValue("assigneeIds", []);
         } else {
             setValue("assigneeIds", memberIds);
         }
@@ -68,7 +85,7 @@ export function useGoalForm({ myMemberId, isMemberOnly, membersCount, memberIds 
                 frequency: "one_time",
                 startDate: new Date(now).toISOString().split('T')[0],
                 deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                assigneeIds: myMemberId ? [myMemberId] : [],
+                assigneeIds: (myMemberId && isMemberOnly) ? [myMemberId] : [],
                 goalType: "milestone",
                 targetValue: "",
                 targetNumber: 50,
@@ -90,7 +107,7 @@ export function useGoalForm({ myMemberId, isMemberOnly, membersCount, memberIds 
             frequency: template.cadence || "one_time",
             startDate: new Date(now).toISOString().split('T')[0],
             deadline: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            assigneeIds: myMemberId ? [myMemberId] : [],
+            assigneeIds: (myMemberId && isMemberOnly) ? [myMemberId] : [],
             goalType: isMetric ? "metric" : "milestone",
             targetValue: isMetric ? `${targetNumber} ${unit}` : template.title,
             targetNumber: targetNumber,

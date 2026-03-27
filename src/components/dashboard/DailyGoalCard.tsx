@@ -51,6 +51,8 @@ export function DailyGoalCard({
   const dailyCheckIn = useStore((state) => state.dailyCheckIn);
   const undoDailyCheckIn = useStore((state) => state.undoDailyCheckIn);
   const fetchCheckIns = useStore((state) => state.fetchCheckIns);
+  const user = useStore((state) => state.user);
+  const members = useStore((state) => state.members);
   const checkins = useStore(
     useShallow((state) =>
       state.dailyCheckins.filter((c) => c.goalId === goal.id),
@@ -74,6 +76,10 @@ export function DailyGoalCard({
   const checkedToday = checkedDatesSet.has(todayStr);
   const streak = calculateStreak(checkedDatesSet);
   const last14Days = getLast14Days();
+  
+  const isAssigned = members
+    .filter(m => goal.assignedTo.includes(m.id))
+    .some(m => m.userId === user?.id);
 
   const handleDailyCheckIn = async () => {
     setIsCheckingIn(true);
@@ -132,26 +138,28 @@ export function DailyGoalCard({
               day streak
             </span>
           </div>
-          <button
-            onClick={handleDailyCheckIn}
-            disabled={isCheckingIn}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50",
-              checkedToday
-                ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/25"
-                : "gradient-primary text-white shadow-lg glow-primary hover:opacity-90",
-            )}
-          >
-            {checkedToday ? (
-              <>
-                <CheckCircle className="w-3.5 h-3.5" /> Done
-              </>
-            ) : (
-              <>
-                <Check className="w-3.5 h-3.5" /> Check In
-              </>
-            )}
-          </button>
+          {isAssigned && (
+            <button
+              onClick={handleDailyCheckIn}
+              disabled={isCheckingIn}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50",
+                checkedToday
+                  ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/25"
+                  : "gradient-primary text-white shadow-lg glow-primary hover:opacity-90",
+              )}
+            >
+              {checkedToday ? (
+                <>
+                  <CheckCircle className="w-3.5 h-3.5" /> Done
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5" /> Check In
+                </>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Mini calendar heat map — last 14 days */}

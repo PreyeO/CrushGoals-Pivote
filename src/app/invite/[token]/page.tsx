@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { inviteService } from "@/lib/services/invites";
 import { useStore } from "@/lib/store";
@@ -23,14 +23,15 @@ export default function InvitationPage({
   const { token } = use(params);
   const router = useRouter();
   const user = useStore((state) => state.user);
+  const organizations = useStore((state) => state.organizations);
   const [invitation, setInvitation] = useState<InvitationWithOrg | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAccepting, setIsAccepting] = useState(false);
-  const [isDeclining, setIsDeclining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Guard so auto-accept only fires once
+  const autoAccepted = useRef(false);
 
   const fetchInitialData = useStore((state) => state.fetchInitialData);
-  const rejectInvitation = useStore((state) => state.rejectInvitation);
 
   useEffect(() => {
     // Fetch user session first to ensure UI reflects auth state
@@ -54,6 +55,30 @@ export default function InvitationPage({
 
     fetchInvite();
   }, [token, fetchInitialData]);
+
+  /**
+   * Auto-accept flow for new users:
+   * After signup → email verify → login, the user is redirected back to this
+   * page. At that point they are logged in (user != null), their email matches
+   * the invite email, and they have no existing organisation yet.
+   * In that case we silently accept and send them straight to the org dashboard
+   * so they never see the invitation card a second time.
+   */
+  useEffect(() => {
+    if (
+      !isLoading &&
+      !error &&
+      invitation &&
+      user &&
+      !autoAccepted.current &&
+      organizations.length === 0 &&
+      user.email?.toLowerCase() === invitation.email?.toLowerCase()
+    ) {
+      autoAccepted.current = true;
+      handleAccept();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, invitation, user, organizations]);
 
   const handleAccept = async () => {
     if (!user) {
@@ -87,28 +112,14 @@ export default function InvitationPage({
       const errorMessage =
         err instanceof Error ? err.message : "Failed to accept invitation.";
       toast.error(errorMessage);
-    } finally {
       setIsAccepting(false);
     }
   };
 
-  const handleDecline = async () => {
-    setIsDeclining(true);
-    try {
-      await rejectInvitation(token);
-      toast.success("Invitation declined.");
-      router.push(user ? "/dashboard" : "/");
-    } catch (err: unknown) {
-      console.error("Decline invite error:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to decline invitation.";
-      toast.error(errorMessage);
-    } finally {
-      setIsDeclining(false);
-    }
-  };
+  // Show full-screen loader while auto-accepting (new user path)
+  if (isLoading || isAccepting)
+    return <LoadingState message={isAccepting ? "Joining organisation…" : "Verifying invitation..."} />;
 
-  if (isLoading) return <LoadingState message="Verifying invitation..." />;
   if (error)
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-background">
@@ -135,9 +146,7 @@ export default function InvitationPage({
           user={user}
           token={token}
           isAccepting={isAccepting}
-          isDeclining={isDeclining}
           onAccept={handleAccept}
-          onDecline={handleDecline}
         />
 
         <div className="mt-8 text-center">

@@ -137,7 +137,7 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
             />
           )}
 
-          {/* My status */}
+          {/* My status — ALWAYS visible for all goal types */}
           <CheckInStatusSelector
             memberStatus={memberStatus}
             setMemberStatus={setMemberStatus}

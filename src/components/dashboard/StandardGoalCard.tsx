@@ -8,6 +8,7 @@ import { Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrgGoal, Organization } from "@/types";
 import { OrgLabel } from "./OrgLabel";
+import { useStore } from "@/lib/store";
 
 export function StandardGoalCard({
   goal,
@@ -16,7 +17,13 @@ export function StandardGoalCard({
   goal: OrgGoal;
   organizations: Organization[];
 }) {
+  const user = useStore((state) => state.user);
+  const members = useStore((state) => state.members);
   const [now] = useState(() => Date.now());
+
+  const isAssigned = members
+    .filter(m => goal.assignedTo.includes(m.id))
+    .some(m => m.userId === user?.id);
 
   return (
     <div
@@ -115,7 +122,7 @@ export function StandardGoalCard({
               })}
             </span>
           </div>
-          <GoalCheckInModal goal={goal} />
+          {isAssigned && <GoalCheckInModal goal={goal} />}
         </div>
       </div>
     </div>

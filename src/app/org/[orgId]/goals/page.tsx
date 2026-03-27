@@ -115,7 +115,20 @@ function OrgGoalsContent({ params }: { params: Promise<{ orgId: string }> }) {
         {filtered.map((goal) => (
           <GoalCard key={goal.id} goal={goal} />
         ))}
-        {filtered.length === 0 && (
+        {visibleGoals.length === 0 ? (
+          <div className="glass-card p-16 text-center border-dashed">
+            <Target className="w-12 h-12 text-primary/20 mx-auto mb-4" />
+            <h3 className="text-xl font-bold mb-2">No goals set yet</h3>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+              Define your organization's first performance target to start tracking progress and crushing goals.
+            </p>
+            <CreateGoalModal orgId={orgId}>
+              <Button className="gradient-primary text-white border-0 px-8 h-11 font-bold">
+                Create Your First Goal
+              </Button>
+            </CreateGoalModal>
+          </div>
+        ) : filtered.length === 0 && (
           <div className="glass-card p-16 text-center">
             <Search className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">
