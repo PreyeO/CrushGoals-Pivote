@@ -6,7 +6,7 @@ import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, LogOut } from "lucide-react";
-import { notFound } from "next/navigation";
+
 import { Suspense } from "react";
 import { BillingSettings } from "@/components/org/BillingSettings";
 import { OrganizationGeneralSettings } from "@/components/org/OrganizationGeneralSettings";
@@ -17,7 +17,7 @@ export default function OrgSettingsPage({ params }: { params: Promise<{ orgId: s
     const org = useStore(useShallow((state) => state.organizations.find((o) => o.id === orgId)));
 
 
-    if (!org) return notFound();
+    if (!org) return <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse text-muted-foreground">Loading Settings...</div>;
 
     return (
         <div className="p-5 pt-16 lg:pt-8 lg:p-8 max-w-7xl mx-auto">

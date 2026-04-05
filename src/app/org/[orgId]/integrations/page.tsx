@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Search, Puzzle, Bot } from "lucide-react";
-import { notFound } from "next/navigation";
+
 import { useShallow } from "zustand/react/shallow";
 import {
   SlackLogo,
@@ -31,7 +31,7 @@ export default function IntegrationsPage({
   const [isSlackConfigOpen, setIsSlackConfigOpen] = useState(false);
   const [isTelegramConfigOpen, setIsTelegramConfigOpen] = useState(false);
 
-  if (!org) return notFound();
+  if (!org) return <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse text-muted-foreground">Loading Integrations...</div>;
 
   const isSlackConnected = !!org.slackWebhookUrl;
   const isTelegramConnected = !!org.telegramChatId;

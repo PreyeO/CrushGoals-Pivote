@@ -133,11 +133,13 @@ export function SlackConfigModal({
                 </h3>
                 <div className="bg-accent/40 border border-border/20 rounded-2xl p-6 space-y-4 shadow-inner">
                   {[
-                    "Create a Slack app or use an existing one",
-                    "Add Incoming Webhooks feature",
-                    "Activate Incoming Webhooks",
-                    "Add new Webhook to Workspace",
-                    "Select a channel and click Allow",
+                    "Go to api.slack.com/apps and sign in to your Slack workspace.",
+                    "Once signed in, go back to api.slack.com/apps",
+                    "Click 'Create New App', choose 'From scratch', name it CrushGoals, and pick your workspace.",
+                    "Click 'Incoming Webhooks' on the left menu and toggle it On.",
+                    "Scroll down, click 'Add New Webhook to Workspace', and pick a channel.",
+                    "Copy the Webhook URL Slack generates for you.",
+                    "Paste the URL below, click Test, and then hit Save Configuration!",
                   ].map((step, i) => (
                     <div key={i} className="flex gap-3 items-start">
                       <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-black flex items-center justify-center shrink-0">

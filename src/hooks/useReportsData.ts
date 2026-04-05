@@ -4,12 +4,14 @@ import { OrgGoal, OrgMember } from "@/types";
 interface UseReportsDataProps {
   allGoals: OrgGoal[];
   members: OrgMember[];
+  memberGoalStatuses?: any[];
   filterPeriod: "month" | "quarter" | "year" | "all";
 }
 
 export function useReportsData({
   allGoals,
   members,
+  memberGoalStatuses = [],
   filterPeriod,
 }: UseReportsDataProps) {
   const goals = useMemo(() => {
@@ -71,12 +73,17 @@ export function useReportsData({
     // Top Blockers
     const blockerReasons: Record<string, number> = {};
     blockedGoals.forEach((g) => {
-      const reason = g.reason || "No reason provided";
+      // Find the specific status from members that caused this block
+      const memberStatusNote = memberGoalStatuses.find(
+        (s) => s.goalId === g.id && s.status === "blocked" && s.note
+      )?.note;
+      
+      const reason = memberStatusNote || "No reason provided";
       blockerReasons[reason] = (blockerReasons[reason] || 0) + 1;
     });
     const topBlockers = Object.entries(blockerReasons)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
+      .slice(0, 5);
 
     const avgProgress = goals.length > 0
       ? Math.round(goals.reduce((acc, curr) => acc + (curr.progress || 0), 0) / goals.length)
@@ -92,7 +99,7 @@ export function useReportsData({
       topBlockers,
       avgProgress,
     };
-  }, [goals, members]);
+  }, [goals, members, memberGoalStatuses]);
 
   return stats;
 }

@@ -20,6 +20,7 @@ interface CreateGoalAssigneesProps {
     myMemberId: string;
     toggleAssignee: (id: string) => void;
     toggleEveryone: () => void;
+    error?: string;
 }
 
 export function CreateGoalAssignees({
@@ -29,13 +30,21 @@ export function CreateGoalAssignees({
     myMemberId,
     toggleAssignee,
     toggleEveryone,
+    error,
 }: CreateGoalAssigneesProps) {
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold uppercase tracking-wider">
-                    {isMemberOnly ? "Assigned To" : "Assign To"}
-                </Label>
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs font-semibold uppercase tracking-wider">
+                        {isMemberOnly ? "Assigned To" : "Assign To"}
+                    </Label>
+                    {error && (
+                        <span className="text-[10px] font-medium text-destructive animate-in fade-in slide-in-from-left-1 duration-300">
+                            {error}
+                        </span>
+                    )}
+                </div>
                 {!isMemberOnly && (
                     <Button
                         type="button"

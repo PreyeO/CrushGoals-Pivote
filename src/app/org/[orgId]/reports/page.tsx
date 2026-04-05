@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
-import { notFound } from "next/navigation";
+
 import { useShallow } from "zustand/react/shallow";
 import { reportService } from "@/lib/services/reportService";
 import { toast } from "sonner";
@@ -34,6 +34,15 @@ export default function OrgReportsPage({
   const members = useStore(
     useShallow((state) => state.members.filter((m) => m.orgId === orgId)),
   );
+  
+  const memberGoalStatuses = useStore(
+    useShallow((state) => state.memberGoalStatuses.filter((s) => s.orgId === orgId)),
+  );
+  const fetchMemberStatusesForOrg = useStore((state) => state.fetchMemberStatusesForOrg);
+
+  useEffect(() => {
+    fetchMemberStatusesForOrg(orgId);
+  }, [orgId, fetchMemberStatusesForOrg]);
 
   const {
     goals,
@@ -43,7 +52,7 @@ export default function OrgReportsPage({
     memberStats,
     topBlockers,
     avgProgress,
-  } = useReportsData({ allGoals, members, filterPeriod });
+  } = useReportsData({ allGoals, members, memberGoalStatuses, filterPeriod });
 
   const handleDownloadCSV = () => {
     if (!goals.length) {
@@ -74,13 +83,7 @@ export default function OrgReportsPage({
     }
   };
 
-  if (isLoading && !org)
-    return (
-      <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse">
-        Loading Reports...
-      </div>
-    );
-  if (!org) return notFound();
+  if (!org) return <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse text-muted-foreground">Loading Reports...</div>;
 
   return (
     <div className="p-5 pt-16 lg:pt-8 lg:p-8 max-w-7xl mx-auto">

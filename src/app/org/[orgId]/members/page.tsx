@@ -25,14 +25,14 @@ export default function OrgMembersPage({
   const user = useStore(useShallow((state) => state.user));
   const goals = useStore(useShallow((state) => state.goals));
 
-  if (isLoading && members.length === 0)
+  const membersList = members.filter((m) => m.orgId === orgId);
+
+  if (!isLoading && members.length === 0 && !membersList.length)
     return (
-      <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse">
+      <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse text-muted-foreground">
         Loading Members...
       </div>
     );
-
-  const membersList = members.filter((m) => m.orgId === orgId);
   const myMember = membersList.find((m) => m.userId === user?.id);
   const isMemberOnly = myMember?.role === "member";
 

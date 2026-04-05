@@ -39,9 +39,9 @@ export default function MemberDetailPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memberGoals.length]);
 
-  if (isLoading && !member)
+  if (members.length === 0 || (isLoading && !member))
     return (
-      <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse">
+      <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse text-muted-foreground text-sm tracking-widest uppercase font-bold">
         Loading member...
       </div>
     );

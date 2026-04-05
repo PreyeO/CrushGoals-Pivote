@@ -2,13 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Flame, Check, CheckCircle, Calendar } from "lucide-react";
+import { Flame, Check, CheckCircle, Calendar, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { OrgGoal, Organization } from "@/types";
 import { toast } from "sonner";
 import { OrgLabel } from "./OrgLabel";
+import { GoalDetails } from "../goals/GoalDetails";
 
 import { getToday, getLast14Days } from "@/lib/store-utils";
 
@@ -48,6 +50,7 @@ export function DailyGoalCard({
   );
 
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -203,7 +206,28 @@ export function DailyGoalCard({
               })}
             </span>
           </div>
+            <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpanded(!expanded)}
+            className={cn(
+                "text-[9px] font-black uppercase tracking-tight gap-1.5 h-6 px-2 rounded-full transition-all duration-300",
+                expanded 
+                    ? "bg-primary/20 text-primary hover:bg-primary/30" 
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+            )}
+            >
+            <Activity className={cn("w-3 h-3 transition-transform duration-300", expanded && "rotate-180 scale-110")} />
+            {expanded ? "Hide" : "See Activity"}
+            </Button>
         </div>
+        
+        {/* Expanded Details Section */}
+        {expanded && (
+            <div className="pt-4 mt-2 border-t border-border/10 animate-in fade-in slide-in-from-top-2 duration-300">
+                <GoalDetails goal={goal} className="mt-0" />
+            </div>
+        )}
       </div>
     </div>
   );

@@ -21,6 +21,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { GoalStatus, OrgGoal } from "@/types";
 import { CreateGoalTemplates } from "./goals/CreateGoalTemplates";
 import { CreateGoalAssignees } from "./goals/CreateGoalAssignees";
@@ -30,7 +31,7 @@ import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
-import { EyeOff } from "lucide-react";
+
 interface CreateGoalModalProps {
     orgId: string;
     children?: React.ReactNode;
@@ -182,9 +183,16 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                             <Label className="text-xs font-semibold uppercase tracking-wider">Emoji</Label>
                             <Input {...register("emoji")} className="bg-accent/30 border-border/40 text-center text-xl sm:text-2xl h-12 sm:h-auto" />
                         </div>
-                        <div className="space-y-2 sm:col-span-3">
-                            <Label className="text-xs font-semibold uppercase tracking-wider">Goal Title</Label>
-                            <Input {...register("title")} placeholder="e.g. 100 Daily Outreach Calls" className="bg-accent/30 border-border/40 text-sm h-12 sm:h-auto" />
+                        <div className="space-y-2 sm:col-span-3 text-left">
+                            <div className="flex justify-between items-center px-1">
+                                <Label className="text-xs font-semibold uppercase tracking-wider">Goal Title</Label>
+                                {errors.title && (
+                                    <span className="text-[10px] text-destructive font-medium animate-in fade-in slide-in-from-right-1">
+                                        {errors.title.message}
+                                    </span>
+                                )}
+                            </div>
+                            <Input {...register("title")} placeholder="e.g. 10 Outreach Calls" className={cn("bg-accent/30 border-border/40 text-sm h-12 sm:h-auto", errors.title && "border-destructive/50 focus-visible:ring-destructive/20")} />
                         </div>
                     </div>
 
@@ -269,33 +277,21 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                                 <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-500">
                                     <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-xs font-semibold uppercase tracking-wider text-primary/80">Start Date</Label>
-                                            <Input type="date" {...register("startDate")} className="bg-accent/30 border-border/40 h-11 sm:h-9" />
+                                            <div className="flex justify-between items-center px-1">
+                                                <Label className="text-xs font-semibold uppercase tracking-wider text-primary/80">Start Date</Label>
+                                                {errors.startDate && <span className="text-[9px] text-destructive font-bold uppercase">{errors.startDate.message}</span>}
+                                            </div>
+                                            <Input type="date" {...register("startDate")} className={cn("bg-accent/30 border-border/40 h-11 sm:h-9", errors.startDate && "border-destructive/40")} />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-xs font-semibold uppercase tracking-wider text-destructive/80">Deadline</Label>
-                                            <Input type="date" {...register("deadline")} className="bg-accent/30 border-border/40 h-11 sm:h-9" />
+                                            <div className="flex justify-between items-center px-1">
+                                                <Label className="text-xs font-semibold uppercase tracking-wider text-destructive/80">Deadline</Label>
+                                                {errors.deadline && <span className="text-[9px] text-destructive font-bold uppercase">{errors.deadline.message}</span>}
+                                            </div>
+                                            <Input type="date" {...register("deadline")} className={cn("bg-accent/30 border-border/40 h-11 sm:h-9", errors.deadline && "border-destructive/40")} />
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center space-x-2 p-4 rounded-xl border border-primary/20 bg-primary/5">
-                                        <Checkbox 
-                                            id="isPrivate" 
-                                            checked={watch("isPrivate")}
-                                            onCheckedChange={(checked) => setValue("isPrivate", !!checked)}
-                                        />
-                                        <div className="grid gap-1.5 leading-none">
-                                            <Label 
-                                                htmlFor="isPrivate" 
-                                                className="text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                                            >
-                                                <EyeOff className="w-3.5 h-3.5" /> Private Goal
-                                            </Label>
-                                            <p className="text-[10px] text-muted-foreground">
-                                                Only you and organization admins can see that this goal exists, but admins won't see specific details.
-                                            </p>
-                                        </div>
-                                    </div>
 
                                     <div className="space-y-3">
                                         <CreateGoalAssignees 
@@ -305,6 +301,7 @@ export function CreateGoalModal({ orgId, children, open: controlledOpen, onOpenC
                                             myMemberId={myMemberId}
                                             toggleAssignee={toggleAssignee}
                                             toggleEveryone={toggleEveryone}
+                                            error={errors.assigneeIds?.message}
                                         />
                                     </div>
 

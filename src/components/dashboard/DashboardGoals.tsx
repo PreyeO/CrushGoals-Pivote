@@ -28,9 +28,10 @@ export function DashboardGoals() {
         const isAssignedToMe = g.assignedTo.some((id) => myMemberIds.includes(id));
         const isMyPrivateGoal = g.isPrivate && g.createdBy === user?.id;
         const isPublicGoal = !g.isPrivate;
+        const isNotCompleted = g.status !== "completed";
         
-        // Show if assigned to me AND (it's not private OR it's MY private goal)
-        return isAssignedToMe && (isPublicGoal || isMyPrivateGoal);
+        // Show if assigned to me AND not completed AND (it's not private OR it's MY private goal)
+        return isNotCompleted && isAssignedToMe && (isPublicGoal || isMyPrivateGoal);
     })
   ).slice(0, 3);
 

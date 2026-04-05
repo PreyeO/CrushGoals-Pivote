@@ -70,7 +70,10 @@ export async function GET(request: Request) {
 
       // 3. Weekly Summary (Monday morning)
       const isMonday = now.getDay() === 1;
-      const shouldSendSummary = isMonday && hour >= 8 && hour < 12 && (
+      const totalMinutes = hour * 60 + now.getMinutes();
+
+      // 3. Weekly Summary (Monday morning @ 7:30 AM)
+      const shouldSendSummary = isMonday && totalMinutes >= 450 && totalMinutes < 600 && (
         !org.last_weekly_summary_at || 
         new Date(org.last_weekly_summary_at).getTime() < now.getTime() - 24 * 60 * 60 * 1000 * 6
       );
@@ -84,8 +87,8 @@ export async function GET(request: Request) {
           results.push({ org: org.name, type: 'weekly_summary' });
       }
 
-      // 4. Stale Goal Nudge (Daily check)
-      const shouldCheckStale = hour >= 9 && hour < 11 && (
+      // 4. Stale Goal Nudge (Daily check @ 9:00 AM)
+      const shouldCheckStale = totalMinutes >= 540 && totalMinutes < 660 && (
         !org.last_stale_nudge_at || 
         new Date(org.last_stale_nudge_at).getTime() < now.getTime() - 24 * 60 * 60 * 1000
       );
@@ -124,8 +127,8 @@ export async function GET(request: Request) {
         results.push({ org: org.name, type: 'stale_nudge' });
       }
 
-      // 5. Daily Gingering (Morning motivation)
-      const shouldGinger = hour >= 7 && hour < 9 && (
+      // 5. Daily Gingering (Morning motivation @ 8:00 AM)
+      const shouldGinger = totalMinutes >= 480 && totalMinutes < 540 && (
         !org.last_gingering_at || 
         new Date(org.last_gingering_at).getTime() < now.getTime() - 24 * 60 * 60 * 1000
       );

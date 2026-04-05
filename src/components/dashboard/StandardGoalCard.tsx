@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
-import { Calendar } from "lucide-react";
+import { Calendar, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { OrgGoal, Organization } from "@/types";
 import { OrgLabel } from "./OrgLabel";
@@ -12,6 +13,8 @@ import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { useEffect } from "react";
 import { GoalDailyProgress } from "../org/GoalDailyProgress";
+import { Celebration } from "../ui/celebration";
+import { GoalDetails } from "../goals/GoalDetails";
 
 export function StandardGoalCard({
   goal,
@@ -23,6 +26,7 @@ export function StandardGoalCard({
   const user = useStore((state) => state.user);
   const members = useStore((state) => state.members);
   const [now] = useState(() => Date.now());
+  const [expanded, setExpanded] = useState(false);
 
   const isAssigned = members
     .filter(m => goal.assignedTo.includes(m.id))
@@ -35,15 +39,30 @@ export function StandardGoalCard({
     ),
   );
 
+  const [showCelebration, setShowCelebration] = useState(false);
+
   useEffect(() => {
     fetchCheckIns(goal.id);
   }, [goal.id, fetchCheckIns]);
 
+  // Trigger celebration when goal is completed
+  useEffect(() => {
+    if (goal.status === "completed") {
+      setShowCelebration(true);
+      const timer = setTimeout(() => setShowCelebration(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [goal.status]);
+
   return (
     <div
       key={goal.id}
-      className="glass-card p-6 animate-fade-in-up group flex flex-col justify-between"
+      className={cn(
+        "glass-card p-6 animate-fade-in-up group flex flex-col justify-between relative overflow-hidden",
+        goal.status === "completed" && "border-emerald-500/30"
+      )}
     >
+      <Celebration active={showCelebration} />
       <div>
         <div className="flex items-center justify-between mb-4">
           <div className="w-10 h-10 rounded-xl bg-accent/50 flex items-center justify-center text-xl relative">
@@ -70,7 +89,7 @@ export function StandardGoalCard({
           </span>
         </div>
         <OrgLabel orgId={goal.orgId} orgs={organizations} />
-        <h3 className="font-bold text-[14px] mt-1.5 mb-1 leading-tight">
+        <h3 className={cn("font-bold text-[14px] mt-1.5 mb-1 leading-tight transition-colors", goal.status === "blocked" ? "text-destructive" : "")}>
           {goal.title}
         </h3>
         <p className="text-[11px] text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
@@ -154,8 +173,31 @@ export function StandardGoalCard({
               })}
             </span>
           </div>
-          {isAssigned && <GoalCheckInModal goal={goal} />}
+          <div className="flex items-center gap-2">
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setExpanded(!expanded)}
+                className={cn(
+                "text-[9px] font-black uppercase tracking-tight gap-1.5 h-6 px-2 rounded-full transition-all duration-300",
+                expanded 
+                    ? "bg-primary/20 text-primary hover:bg-primary/30" 
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+                )}
+            >
+                <Activity className={cn("w-3 h-3 transition-transform duration-300", expanded && "rotate-180 scale-110")} />
+                {expanded ? "Hide" : "See Activity"}
+            </Button>
+            {isAssigned && <GoalCheckInModal goal={goal} />}
+          </div>
         </div>
+        
+        {/* Expanded Details Section */}
+        {expanded && (
+            <div className="pt-4 mt-2 border-t border-border/10 animate-in fade-in slide-in-from-top-2 duration-300">
+                <GoalDetails goal={goal} className="mt-0" />
+            </div>
+        )}
       </div>
     </div>
   );
