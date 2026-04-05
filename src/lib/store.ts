@@ -72,7 +72,7 @@ export interface AppState {
     progress: number,
     note?: string,
   ) => Promise<void>;
-  updateGoalStatus: (goalId: string, status: GoalStatus, reason?: string) => Promise<void>;
+  updateGoalStatus: (goalId: string, status: GoalStatus, reason?: string, taggedMemberIds?: string[]) => Promise<void>;
   deleteGoal: (goalId: string, orgId: string) => Promise<void>;
   deleteOrganization: (orgId: string) => Promise<void>;
   removeOrgMember: (memberId: string) => Promise<void>;
@@ -722,14 +722,14 @@ export const useStore = create<AppState>((set, get) => ({
         try { await goalService.updateStatus(goalId, "completed"); }
         catch (e) { console.error("Failed to auto-sync completed status:", e); }
         // 3. Completion notifications
-        if (org?.slackWebhookUrl && org.slackSettings?.notify_on_completion) {
+        if (org?.slackWebhookUrl && (org.slackSettings?.notify_on_completion !== false)) {
           fetchWithRetry("/api/slack/notify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: "sendGoalCompletion", args: [userName, updatedGoal, streakCount] }),
           }).catch((err) => console.error("Slack notify error:", err));
         }
-        if (org?.telegramChatId && org.telegramSettings?.notify_on_completion) {
+        if (org?.telegramChatId && (org.telegramSettings?.notify_on_completion !== false)) {
           fetchWithRetry("/api/telegram/notify", {
             method: "POST",
             body: JSON.stringify({ chatId: org.telegramChatId, method: "sendGoalCompletion", args: [userName, updatedGoal, streakCount] }),
@@ -737,14 +737,14 @@ export const useStore = create<AppState>((set, get) => ({
         }
       } else {
         // Check-in progress notifications (non-completion)
-        if (org?.slackWebhookUrl && org.slackSettings?.notify_on_checkin) {
+        if (org?.slackWebhookUrl && (org.slackSettings?.notify_on_checkin !== false)) {
           fetch("/api/slack/notify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: "sendCheckInNotification", args: [userName, updatedGoal.title, note] }),
           }).catch((err) => console.error("Slack checkin notify error:", err));
         }
-        if (org?.telegramChatId && org.telegramSettings?.notify_on_checkin) {
+        if (org?.telegramChatId && (org.telegramSettings?.notify_on_checkin !== false)) {
           fetchWithRetry("/api/telegram/notify", {
             method: "POST",
             body: JSON.stringify({ chatId: org.telegramChatId, method: "sendCheckInNotification", args: [userName, updatedGoal.title, note] }),
@@ -757,7 +757,7 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  updateGoalStatus: async (goalId, status, reason) => {
+  updateGoalStatus: async (goalId, status, reason, taggedMemberIds) => {
     try {
       await goalService.updateStatus(goalId, status);
       set((state) => {
@@ -785,7 +785,7 @@ export const useStore = create<AppState>((set, get) => ({
           if (org?.slackWebhookUrl) {
             if (status === "completed" && oldGoal.status !== "completed") {
                 get().triggerCelebration();
-                if (org.slackSettings?.notify_on_completion) {
+                if (org.slackSettings?.notify_on_completion !== false) {
                     const member = state.members.find(m => updatedGoal.assignedTo.includes(m.id));
                     const streakCount = member?.currentStreak || 0;
                     fetchWithRetry('/api/slack/notify', {
@@ -794,11 +794,20 @@ export const useStore = create<AppState>((set, get) => ({
                         body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: 'sendGoalCompletion', args: [userName, updatedGoal, streakCount] }),
                     }).catch(e => console.error("Slack notify error:", e));
                 }
-            } else if (status === "blocked" && oldGoal.status !== "blocked" && org.slackSettings?.notify_on_blocked) {
+            } else if (status === "blocked" && oldGoal.status !== "blocked" && (org.slackSettings?.notify_on_blocked !== false)) {
+              // Resolve tagged names for blockers
+              const taggedNames = (taggedMemberIds || [])
+                .map(id => state.members.find(m => m.id === id)?.name)
+                .filter(Boolean) as string[];
+
               fetchWithRetry('/api/slack/notify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: 'sendGoalBlocked', args: [userName, updatedGoal, reason || "No reason provided"] }),
+                body: JSON.stringify({ 
+                  webhookUrl: org.slackWebhookUrl, 
+                  method: 'sendGoalBlocked', 
+                  args: [userName, updatedGoal, reason || "No reason provided", taggedNames] 
+                }),
               }).catch(e => console.error("Slack notify error:", e));
             }
           }
@@ -816,12 +825,15 @@ export const useStore = create<AppState>((set, get) => ({
               }
             };
 
-            if (status === "completed" && oldGoal.status !== "completed" && org.telegramSettings?.notify_on_completion) {
+            if (status === "completed" && oldGoal.status !== "completed" && (org.telegramSettings?.notify_on_completion !== false)) {
               const member = state.members.find(m => updatedGoal.assignedTo.includes(m.id));
               const streakCount = member?.currentStreak || 0;
               sendNotify('sendGoalCompletion', [userName, updatedGoal, streakCount]);
-            } else if (status === "blocked" && oldGoal.status !== "blocked" && org.telegramSettings?.notify_on_blocked) {
-              sendNotify('sendGoalBlocked', [userName, updatedGoal, reason || "No reason provided"]);
+            } else if (status === "blocked" && oldGoal.status !== "blocked" && (org.telegramSettings?.notify_on_blocked !== false)) {
+              const taggedNames = (taggedMemberIds || [])
+                .map(id => state.members.find(m => m.id === id)?.name)
+                .filter(Boolean) as string[];
+              sendNotify('sendGoalBlocked', [userName, updatedGoal, reason || "No reason provided", taggedNames]);
             }
           }
         }
@@ -999,25 +1011,37 @@ export const useStore = create<AppState>((set, get) => ({
       const state = get();
       const goal = state.goals.find(g => g.id === goalId);
       const org = state.organizations.find(o => o.id === goal?.orgId);
-      if (org?.telegramChatId && org.telegramSettings?.notify_on_checkin) {
+      if (org?.telegramChatId && (org.telegramSettings?.notify_on_checkin !== false)) {
         const userName = state.user?.name || "Someone";
+        const taggedNames = (taggedMemberIds || [])
+          .map(id => state.members.find(m => m.id === id)?.name)
+          .filter(Boolean) as string[];
+
         fetchWithRetry('/api/telegram/notify', {
           method: 'POST',
           body: JSON.stringify({ 
             chatId: org.telegramChatId, 
             method: 'sendCheckInNotification', 
-            args: [userName, goal?.title || "Goal", note] 
+            args: [userName, goal?.title || "Goal", note, taggedNames] 
           })
         }).catch(err => console.error("Telegram notify error:", err));
       }
 
       // Slack Notification (via server proxy)
-      if (org?.slackWebhookUrl && org.slackSettings?.notify_on_checkin) {
+      if (org?.slackWebhookUrl && (org.slackSettings?.notify_on_checkin !== false)) {
         const userName = state.user?.name || "Someone";
+        const taggedNames = (taggedMemberIds || [])
+          .map(id => state.members.find(m => m.id === id)?.name)
+          .filter(Boolean) as string[];
+
         fetchWithRetry('/api/slack/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ webhookUrl: org.slackWebhookUrl, method: 'sendCheckInNotification', args: [userName, goal?.title || "Goal", note] }),
+          body: JSON.stringify({ 
+            webhookUrl: org.slackWebhookUrl, 
+            method: 'sendCheckInNotification', 
+            args: [userName, goal?.title || "Goal", note, taggedNames] 
+          }),
         }).catch(err => console.error("Slack notify error:", err));
       }
     }

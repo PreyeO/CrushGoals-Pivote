@@ -4,16 +4,21 @@ import { WeeklySummary } from "./reportService";
 export const slackService = {
   async sendMessage(webhookUrl: string, blocks: Record<string, any>[]) {
     try {
-      const response = await fetch('/api/slack', {
+      const isServer = typeof window === 'undefined';
+      
+      const targetUrl = isServer ? webhookUrl : '/api/slack';
+      const body = isServer ? JSON.stringify({ blocks }) : JSON.stringify({ webhookUrl, blocks });
+
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ webhookUrl, blocks }),
+        body,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
         throw new Error(errorData.error || `Slack API error: ${response.statusText}`);
       }
     } catch (error) {
@@ -80,7 +85,11 @@ export const slackService = {
     return this.sendMessage(webhookUrl, blocks);
   },
 
-  async sendGoalBlocked(webhookUrl: string, memberName: string, goal: OrgGoal, reason: string) {
+  async sendGoalBlocked(webhookUrl: string, memberName: string, goal: OrgGoal, reason: string, taggedNames?: string[]) {
+    const attentionText = taggedNames && taggedNames.length > 0 
+      ? `\n\n📌 *Attention ${taggedNames.map(name => `@${name}`).join(', ')}*: Can you jump in and help resolve this? 🤝`
+      : "\n\nSomeone jump in and help resolve this! 🤝";
+
     const blocks = [
       {
         type: "header",
@@ -94,7 +103,7 @@ export const slackService = {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `⚠️ ATTENTION TEAM\n\n${memberName} is facing a challenge with "${goal.title}". Let's jump in and help solve this! 🤝`
+          text: `⚠️ ATTENTION TEAM\n\n${memberName} is facing a challenge with "${goal.title}". Let's help out! 🔥`
         }
       },
       {
@@ -109,7 +118,7 @@ export const slackService = {
         elements: [
           {
             type: "mrkdwn",
-            text: "Someone jump in and help resolve this! 🤝"
+            text: attentionText
           }
         ]
       },
@@ -149,14 +158,18 @@ export const slackService = {
     return this.sendMessage(webhookUrl, blocks);
   },
 
-  async sendCheckInNotification(webhookUrl: string, memberName: string, goalTitle: string, note?: string) {
+  async sendCheckInNotification(webhookUrl: string, memberName: string, goalTitle: string, note?: string, taggedNames?: string[]) {
     const noteText = note ? `\n\nNote: ${note}` : "";
+    const shoutOutText = taggedNames && taggedNames.length > 0
+      ? `\n\n🙌 Shout out to ${taggedNames.map(name => `@${name}`).join(', ')} for the support! 🚀`
+      : "";
+
     const blocks = [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `🚀 ${memberName} is making moves!\n\nProgress updated for "${goalTitle}". Keep the momentum going! 🔥${noteText}`
+          text: `🚀 ${memberName} is making moves!\n\nProgress updated for "${goalTitle}". Keep the momentum going! 🔥${noteText}${shoutOutText}`
         }
       },
       {
@@ -225,7 +238,7 @@ export const slackService = {
         type: "header",
         text: {
           type: "plain_text",
-          text: "🚀 Weekly Victory Summary",
+          text: "🚀 Time to Crush the Week!",
           emoji: true
         }
       },
@@ -233,7 +246,7 @@ export const slackService = {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `Last week was massive! Here's the performance overview for your team:`
+          text: `Good morning! ☀️ Last week was massive, and we're ready to win again. Here's your performance overview:`
         }
       },
       {

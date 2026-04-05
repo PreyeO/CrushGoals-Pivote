@@ -109,7 +109,7 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
       // 2. Smart Status Logic:
       if (memberStatus === "blocked") {
         // Mark goal as blocked (Admins can do this, or any member can flag a shared goal)
-        await updateGoalStatus(goal.id, "blocked", note);
+        await updateGoalStatus(goal.id, "blocked", note, taggedMemberIds);
       } else if (memberStatus === "completed") {
         // Allow full goal completion: admin always, non-admin if progress is genuinely at 100%
         const progressPct = goal.targetNumber

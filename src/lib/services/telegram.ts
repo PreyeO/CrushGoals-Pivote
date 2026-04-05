@@ -133,8 +133,11 @@ export const telegramService = {
     return this.sendMessage(chatId, text);
   },
 
-  async sendGoalBlocked(chatId: string, memberName: string, goal: OrgGoal, reason: string) {
-    const text = `⚠️ ATTENTION TEAM\n\n${memberName} is facing a challenge with "${goal.title}". Let's jump in and help solve this! 🤝\n\nReason: ${this.escapeMarkdown(reason)}`;
+  async sendGoalBlocked(chatId: string, memberName: string, goal: OrgGoal, reason: string, taggedNames?: string[]) {
+    const attentionText = taggedNames && taggedNames.length > 0
+      ? `\n\n📌 *Attention ${taggedNames.map(name => `@${this.escapeMarkdown(name)}`).join(', ')}*: Can you jump in and help resolve this? 🤝`
+      : "";
+    const text = `⚠️ ATTENTION TEAM\n\n${memberName} is facing a challenge with "${goal.title}". Let's jump in and help solve this! 🤝\n\nReason: ${this.escapeMarkdown(reason)}${attentionText}`;
     return this.sendMessage(chatId, text);
   },
 
@@ -144,9 +147,12 @@ export const telegramService = {
     return this.sendMessage(chatId, text);
   },
 
-  async sendCheckInNotification(chatId: string, memberName: string, goalTitle: string, note?: string) {
+  async sendCheckInNotification(chatId: string, memberName: string, goalTitle: string, note?: string, taggedNames?: string[]) {
     const noteText = note ? `\n\nNote: ${this.escapeMarkdown(note)}` : "";
-    const text = `🚀 ${memberName} is making moves!\n\nProgress updated for "${goalTitle}". Keep the momentum going! 🔥${noteText}`;
+    const shoutOutText = taggedNames && taggedNames.length > 0
+      ? `\n\n🙌 Shout out to ${taggedNames.map(name => `@${this.escapeMarkdown(name)}`).join(', ')} for the support! 🚀`
+      : "";
+    const text = `🚀 ${memberName} is making moves!\n\nProgress updated for "${goalTitle}". Keep the momentum going! 🔥${noteText}${shoutOutText}`;
     return this.sendMessage(chatId, text);
   },
 
@@ -160,8 +166,8 @@ export const telegramService = {
   },
 
   async sendWeeklySummary(chatId: string, summary: WeeklySummary) {
-    let text = `🚀 *Weekly Victory Summary*\n\n`;
-    text += `Last week was massive\\! Performance overview:\n\n`;
+    let text = `🚀 *Time to Crush the Week\\!* \n\n`;
+    text += `Good morning\\! ☀️ Last week was massive, and we're ready to win again. Performance overview:\n\n`;
     text += `✅ *Crushed:* ${summary.crushedCount}\n`;
     text += `🏗️ *Active:* ${summary.activeCount}\n`;
     text += `🚨 *Blocked:* ${summary.blockedCount}\n`;
