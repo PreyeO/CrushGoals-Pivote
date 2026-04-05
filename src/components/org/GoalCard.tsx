@@ -18,6 +18,8 @@ import {
   Pencil,
   CheckCircle,
   EyeOff,
+  UserPlus,
+  Activity,
 } from "lucide-react";
 import { getGoalAssignees } from "@/lib/store-utils";
 import { toast } from "sonner";
@@ -29,6 +31,7 @@ import { statusStyles, priorityStyles } from "@/lib/goal-constants";
 import { GoalTeamProgressPanel } from "./GoalTeamProgressPanel";
 import { GoalDailyProgress } from "./GoalDailyProgress";
 import { GoalStandardProgress } from "./GoalStandardProgress";
+import { GoalDetails } from "@/components/goals/GoalDetails";
 
 export function GoalCard({ goal }: { goal: OrgGoal }) {
   const [now] = useState(() => Date.now());
@@ -128,7 +131,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-bold text-lg leading-tight group-hover/card:text-primary transition-colors">
+                <h3 className={cn("font-bold text-lg leading-tight transition-colors", goal.status === "blocked" ? "text-destructive" : "group-hover/card:text-primary")}>
                   {goal.title}
                 </h3>
                 {isPrivate && (
@@ -297,9 +300,30 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
               day: "numeric",
             })}
           </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpanded(!expanded)}
+            className={cn(
+              "text-[10px] font-black uppercase tracking-widest gap-2 h-7 px-3 rounded-full transition-all duration-300",
+              expanded 
+                ? "bg-primary/20 text-primary hover:bg-primary/30 shadow-lg shadow-primary/10" 
+                : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+            )}
+          >
+            <Activity className={cn("w-3.5 h-3.5 transition-transform duration-300", expanded && "rotate-180 scale-110")} />
+            {expanded ? "Hide Activity" : "See Activity"}
+          </Button>
           <GoalCheckInModal goal={goal} />
         </div>
       </div>
+
+      {/* Expanded Details Section */}
+      {expanded && (
+        <div className="px-6 pb-6 border-t border-border/20 bg-accent/5 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
+           <GoalDetails goal={goal} />
+        </div>
+      )}
     </div>
   );
 }

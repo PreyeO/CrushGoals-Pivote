@@ -79,10 +79,15 @@ export const goalService = {
 
   async updateProgress(goalId: string, progress: number, note?: string) {
     // Update goal progress
-    const { error: goalError } = await getSupabase()
+    const { error: goalError, data } = await getSupabase()
       .from("goals")
       .update({ current_value: progress, updated_at: new Date().toISOString() })
-      .eq("id", goalId);
+      .eq("id", goalId)
+      .select();
+      
+    if (!goalError && (!data || data.length === 0)) {
+       throw new Error("Goal progress update failed silently: no rows affected. Ensure you have permission.");
+    }
 
     if (goalError) {
       console.error("Goal progress update error:", goalError);
@@ -141,14 +146,18 @@ export const goalService = {
   },
 
   async updateStatus(goalId: string, status: GoalStatus, reason?: string) {
-    const { error } = await getSupabase()
+    const { error, data } = await getSupabase()
       .from("goals")
       .update({ 
         status, 
-        reason: status === 'blocked' ? reason : (status === 'completed' ? null : undefined), 
         updated_at: new Date().toISOString() 
       })
-      .eq("id", goalId);
+      .eq("id", goalId)
+      .select();
+      
+    if (!error && (!data || data.length === 0)) {
+       throw new Error("Goal status update failed silently: no rows affected. Ensure you have permission.");
+    }
     if (error) throw error;
   },
 
@@ -242,6 +251,31 @@ export const goalService = {
     }));
   },
 
+  async getMemberStatusesForOrg(orgId: string) {
+    const { data, error } = await getSupabase()
+      .from("member_goal_status")
+      .select("*")
+      .eq("org_id", orgId);
+
+    if (error) {
+      console.error("getMemberStatusesForOrg error:", error);
+      throw error;
+    }
+
+    return (data ?? []).map((row: Record<string, any>) => ({
+      id: row.id,
+      goalId: row.goal_id,
+      userId: row.user_id,
+      orgId: row.org_id,
+      status: row.status,
+      note: row.note,
+      contribution: row.contribution ?? 0,
+      updatedAt: row.updated_at,
+      name: "",
+      avatarUrl: null,
+    }));
+  },
+
   async upsertMemberStatus(
     goalId: string,
     orgId: string,
@@ -264,21 +298,23 @@ export const goalService = {
       contribution,
     });
 
+    const payload: any = {
+      goal_id: goalId,
+      user_id: user.id,
+      org_id: orgId,
+      status,
+      note: note || null,
+      contribution: contribution ?? 0,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (taggedMemberIds && taggedMemberIds.length > 0) {
+      payload.tagged_member_ids = taggedMemberIds;
+    }
+
     const { data, error } = await getSupabase()
       .from("member_goal_status")
-      .upsert(
-        {
-          goal_id: goalId,
-          user_id: user.id,
-          org_id: orgId,
-          status,
-          note: note || null,
-          contribution: contribution ?? 0,
-          tagged_member_ids: taggedMemberIds || null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "goal_id,user_id" },
-      )
+      .upsert(payload, { onConflict: "goal_id,user_id" })
       .select();
 
     if (error) {
@@ -295,20 +331,22 @@ export const goalService = {
     } = await getSupabase().auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
+    const payload: any = {
+      goal_id: goalId,
+      user_id: user.id,
+      check_date: checkDate,
+      completed: true,
+      note: note || null,
+      created_at: new Date().toISOString(),
+    };
+
+    if (taggedMemberIds && taggedMemberIds.length > 0) {
+      payload.tagged_member_ids = taggedMemberIds;
+    }
+
     const { data, error } = await getSupabase()
       .from("daily_checkins")
-      .upsert(
-        {
-          goal_id: goalId,
-          user_id: user.id,
-          check_date: checkDate,
-          completed: true,
-          note: note || null,
-          tagged_member_ids: taggedMemberIds || null,
-          created_at: new Date().toISOString(),
-        },
-        { onConflict: "goal_id,user_id,check_date" },
-      )
+      .upsert(payload, { onConflict: "goal_id,user_id,check_date" })
       .select();
 
     if (error) {

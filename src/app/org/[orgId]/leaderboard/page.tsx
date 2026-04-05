@@ -4,7 +4,7 @@ import { use, useState, useEffect } from "react";
 import { getOrgLeaderboard } from "@/lib/store-utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy } from "lucide-react";
-import { notFound } from "next/navigation";
+
 import { LeaderboardPodium } from "@/components/org/LeaderboardPodium";
 import { LeaderboardTable } from "@/components/org/LeaderboardTable";
 
@@ -21,8 +21,7 @@ export default function OrgLeaderboardPage({ params }: { params: Promise<{ orgId
 
     const org = orgs.find(o => o.id === orgId);
 
-    if (isLoading && !org) return <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse text-muted-foreground">Loading Leaderboard...</div>;
-    if (!org) return notFound();
+    if (!org) return <div className="p-8 flex items-center justify-center min-h-[50vh] animate-pulse text-muted-foreground">Loading Leaderboard...</div>;
 
     const leaderboard = getOrgLeaderboard(orgId, members);
     const top3 = leaderboard.slice(0, 3);

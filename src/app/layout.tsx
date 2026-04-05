@@ -24,6 +24,7 @@ import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next"
 import { PaymentStatusHandler } from "@/components/PaymentStatusHandler";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { GlobalCelebration } from "@/components/ui/GlobalCelebration";
 
 export default function RootLayout({
   children,
@@ -34,6 +35,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased`}>
         <PaymentStatusHandler />
+        <GlobalCelebration />
         <ErrorBoundary>
           <main>{children}</main>
         </ErrorBoundary>

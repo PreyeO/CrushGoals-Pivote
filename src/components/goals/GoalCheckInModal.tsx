@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { OrgGoal, MemberGoalStatusValue, OrgMember } from "@/types";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,14 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
   const members = useStore((state) => state.members);
   const user = useStore((state) => state.user);
   
-  // Get members for this specific organization
+  // Get current user's role for this organization
+  const myMember = useMemo(() => 
+    members.find(m => m.orgId === goal.orgId && m.userId === user?.id),
+  [members, goal.orgId, user?.id]);
+  
+  const isAdmin = myMember?.role === "admin" || myMember?.role === "owner";
+
+  // Get other members for tagging
   const orgMembers = useMemo(() => 
     members.filter(m => m.orgId === goal.orgId && m.userId !== user?.id),
   [members, goal.orgId, user?.id]);
@@ -81,25 +88,45 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
   const isBehind = !isDaily && displayProgress < expectedProgress - 10;
   const isAhead = !isDaily && displayProgress > expectedProgress + 10;
 
+  // AUTO-SYNC: flip to "Completed" when slider/input reaches 100% or target
+  useEffect(() => {
+    const isComplete = goal.targetNumber
+      ? progress >= goal.targetNumber
+      : progress >= 100;
+    if (!isDaily && isComplete && memberStatus !== "completed") {
+      setMemberStatus("completed");
+    }
+  }, [progress, goal.targetNumber, isDaily, memberStatus]);
+
   const handleUpdate = async () => {
     setIsSaving(true);
     try {
-      // 1. Update shared goal progress (only for non-daily)
+      // 1. Update shared goal progress (only for non-daily/one-time)
       if (!isDaily) {
         await updateProgress(goal.id, progress);
       }
 
       // 2. Smart Status Logic:
       if (memberStatus === "blocked") {
-        // Mark goal as blocked
+        // Mark goal as blocked (Admins can do this, or any member can flag a shared goal)
         await updateGoalStatus(goal.id, "blocked", note);
       } else if (memberStatus === "completed") {
-        // Mark goal as completed
-        await updateGoalStatus(goal.id, "completed");
+        // Allow full goal completion: admin always, non-admin if progress is genuinely at 100%
+        const progressPct = goal.targetNumber
+          ? Math.round((progress / goal.targetNumber) * 100)
+          : progress;
+        if (isAdmin || progressPct >= 100) {
+          await updateGoalStatus(goal.id, "completed");
+        }
       } else if (goal.status === "blocked" || goal.status === "not_started") {
-        // AUTO-UNBLOCK or START: If user selects anything other than blocked/completed,
-        // move goal back to in_progress
-        await updateGoalStatus(goal.id, "in_progress");
+        // Only move back to in_progress if the goal isn't already at 100%
+        // (auto-complete already handled it in the store)
+        const progressPct = goal.targetNumber
+          ? Math.round((progress / goal.targetNumber) * 100)
+          : progress;
+        if (progressPct < 100) {
+          await updateGoalStatus(goal.id, "in_progress");
+        }
       }
 
       // 3. Save personal member status
@@ -107,12 +134,24 @@ export function GoalCheckInModal({ goal, children }: GoalCheckInModalProps) {
       
       // AUTO-SYNC: If milestone/check-off goal is marked completed, set progress to 100%
       if (!isDaily && memberStatus === "completed") {
-        finalProgress = 100;
-        await updateProgress(goal.id, 100);
+        // If they are an admin, we assume they are finishing the whole goal
+        if (isAdmin) {
+            finalProgress = goal.targetNumber || 100;
+            await updateProgress(goal.id, finalProgress);
+            if (goal.status !== "completed") {
+                await updateGoalStatus(goal.id, "completed");
+            }
+        } else {
+            // Standard member finished their part, but overall progress doesn't jump to 100%
+            // unless they manually slid it there (already handled in step 1)
+        }
       } else if (!isDaily && goal.status === "completed" && memberStatus !== "completed") {
-        // If it WAS completed but now it's not, reset progress to 0 (or stay as is)
-        finalProgress = 0;
-        await updateProgress(goal.id, 0);
+        // If it WAS completed but now it's not (only Admins can usually do this or if they are reopening)
+        if (isAdmin) {
+            finalProgress = 0;
+            await updateProgress(goal.id, 0);
+            await updateGoalStatus(goal.id, "in_progress");
+        }
       }
 
       await upsertMemberStatus(

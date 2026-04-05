@@ -7,7 +7,6 @@ import { OrgHeader } from "@/components/org/OrgHeader";
 import { OrgStats } from "@/components/org/OrgStats";
 import { LeaderboardTable } from "@/components/org/LeaderboardTable";
 import { OrgDashboardSkeleton } from "@/components/org/OrgDashboardSkeleton";
-import { notFound } from "next/navigation";
 import dynamic from "next/dynamic";
 import { getOrgHealthScore, getOrgLeaderboard } from "@/lib/store-utils";
 import type { OrgGoal, OrgMember, Organization } from "@/types";
@@ -71,8 +70,7 @@ export default function OrgDashboardPage({
   );
 
   // Role gating: only admins/owners see Pulse
-  if (isLoading && !org) return <OrgDashboardSkeleton />;
-  if (!org) return notFound();
+  if (!org) return <OrgDashboardSkeleton />;
 
   // Role gating: only admins/owners see Pulse
   const myMember = membersList.find((m) => m.userId === user?.id);
