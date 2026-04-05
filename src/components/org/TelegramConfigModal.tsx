@@ -86,7 +86,6 @@ export function TelegramConfigModal({
     setIsSaving(true);
     try {
       await updateOrganization(orgId, {
-        telegramChatId,
         telegramSettings,
       });
       toast.success("Telegram settings saved");
@@ -159,80 +158,47 @@ export function TelegramConfigModal({
                   <Hash className="w-4 h-4" /> Connection Steps
                 </h3>
 
-                <div className="bg-accent/40 border border-border/20 rounded-2xl p-6 space-y-6 shadow-inner">
-                  <div className="flex gap-4 items-start">
-                    <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">
-                      1
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-bold tracking-tight">
-                        Add the bot to your group
-                      </h4>
-                      <p className="text-sm">
-                        Open Telegram, search for{" "}
-                        <span className="font-bold text-sky-500">
-                          @CrushGoals_Bot
-                        </span>{" "}
-                        {`and add it to your team's group chat. It takes 30 seconds.`}
+                <div className="bg-accent/40 border border-border/20 rounded-2xl p-6 space-y-4 shadow-inner">
+                  {[
+                    "Search for @CrushGoals_Bot in Telegram. Go to Bot Settings, click Add to Group, and select your group. Add bot as an Admin.",
+                    "Copy the unique connection command shown below.",
+                    "Paste and send the command in your Telegram group chat.",
+                    "Wait for the Bot to reply with \"Group Connected!\" to confirm the link.",
+                    "Select which updates you want (Check-ins, Blockers, etc.) in the Events section.",
+                    "Click Save Configuration at the bottom to finish!",
+                  ].map((step, i) => (
+                    <div key={i} className="flex gap-4 items-start pb-2 border-b border-border/5 last:border-0 last:pb-0">
+                      <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-500 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <p className="text-[12px] font-medium leading-relaxed">
+                        {step}
                       </p>
                     </div>
-                  </div>
+                  ))}
 
-                  <div className="flex gap-4 items-start">
-                    <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">
-                      2
-                    </span>
-                    <div className="space-y-2 w-full">
-                      <h4 className="text-sm font-bold tracking-tight">
-                        Connect your organization
+                  <div className="pt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                        <Copy className="w-3 h-3" /> Connection Command
                       </h4>
-                      <p className="text-[12px] text-muted-foreground leading-relaxed">
-                        Send this code in your Telegram group — the bot will
-                        link it to CrushGoals automatically.
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="px-4 py-2.5 bg-background rounded-xl border border-sky-500/30 text-sky-500 font-mono font-bold tracking-[0.2em] text-lg lg:text-xl shadow-inner select-all">
-                          {org.connectCode || "ABC123"}
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <div className="flex-1 px-4 py-3 bg-background rounded-xl border border-sky-500/30 text-sky-500 font-mono font-bold tracking-tight text-sm shadow-inner select-all truncate">
+                          /connect {org.connectCode || "ABC123"}
                         </div>
                         <Button
                           variant="secondary"
-                          className="h-12 px-4 font-bold gap-2 whitespace-nowrap hidden sm:flex"
+                          className="h-11 px-4 font-bold gap-2 whitespace-nowrap"
                           onClick={() => {
                             navigator.clipboard.writeText(
-                              `/connect ${org.connectCode}`,
+                              `/connect ${org.connectCode || "ABC123"}`,
                             );
-                            toast.success("Code copied!");
+                            toast.success("Command copied!");
                           }}
                         >
-                          <Copy className="w-4 h-4" /> Copy Code
+                          <Copy className="w-4 h-4" /> Copy
                         </Button>
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="h-12 w-12 sm:hidden"
-                          onClick={() => {
-                            navigator.clipboard.writeText(
-                              `/connect ${org.connectCode}`,
-                            );
-                            toast.success("Code copied!");
-                          }}
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 items-start">
-                    <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">
-                      3
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-bold tracking-tight">{`You're done`}</h4>
-                      <p className="text-[12px] text-muted-foreground leading-relaxed">
-                        The bot will confirm when your group is connected. Start
-                        crushing goals and your team gets notified instantly.
-                      </p>
                     </div>
                   </div>
                 </div>
