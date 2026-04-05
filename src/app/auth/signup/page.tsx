@@ -10,6 +10,11 @@ export default function SignUpPage() {
         <AuthLayout
             title="Start Your Journey"
             subtitle="Start tracking your organization's progress for free."
+            testimonial={{
+                quote: "Setting goals is easy, but crushing them requires a system. CrushGoals is the secret weapon for our high-performance team.",
+                author: "Serena Braide",
+                role: "Founder, Serena Braide Brand"
+            }}
         >
             <Suspense fallback={<div className="h-48 flex items-center justify-center font-black animate-pulse opacity-20 uppercase tracking-widest text-[10px]">Preparing Workspace...</div>}>
                 <SignUpForm />

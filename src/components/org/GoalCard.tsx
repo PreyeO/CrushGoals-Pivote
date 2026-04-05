@@ -8,27 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  ChevronDown,
   Calendar,
-  Ban,
-  AlertTriangle,
   Trash2,
-  Users,
-  Flame,
   Pencil,
   CheckCircle,
   EyeOff,
-  UserPlus,
   Activity,
 } from "lucide-react";
 import { getGoalAssignees } from "@/lib/store-utils";
 import { toast } from "sonner";
-import type { OrgGoal, OrgMember, GoalStatus } from "@/types";
+import type { OrgGoal, GoalStatus } from "@/types";
 import { GoalCheckInModal } from "@/components/goals/GoalCheckInModal";
 import { CreateGoalModal } from "@/components/create-goal-modal";
 import { Celebration } from "@/components/ui/celebration";
 import { statusStyles, priorityStyles } from "@/lib/goal-constants";
-import { GoalTeamProgressPanel } from "./GoalTeamProgressPanel";
 import { GoalDailyProgress } from "./GoalDailyProgress";
 import { GoalStandardProgress } from "./GoalStandardProgress";
 import { GoalDetails } from "@/components/goals/GoalDetails";
@@ -94,7 +87,11 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
   };
 
   const isPrivate = goal.isPrivate;
-  const showPrivacyOverlay = isPrivate && user?.id !== goal.createdBy && myMember?.role !== "owner" && myMember?.role !== "admin";
+  const showPrivacyOverlay =
+    isPrivate &&
+    user?.id !== goal.createdBy &&
+    myMember?.role !== "owner" &&
+    myMember?.role !== "admin";
 
   return (
     <div
@@ -104,8 +101,13 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
         isCompleted ? "opacity-90" : "opacity-100",
       )}
     >
-      {showCelebration && <Celebration active={true} onComplete={() => setShowCelebration(false)} />}
-      
+      {showCelebration && (
+        <Celebration
+          active={true}
+          onComplete={() => setShowCelebration(false)}
+        />
+      )}
+
       <div className="p-6 flex-1 relative">
         {showPrivacyOverlay && (
           <div className="absolute inset-0 bg-background/60 backdrop-blur-[6px] z-10 flex flex-col items-center justify-center rounded-2xl p-6 text-center animate-in fade-in duration-300">
@@ -113,8 +115,9 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
               <EyeOff className="w-6 h-6 text-muted-foreground" />
             </div>
             <h4 className="font-bold text-sm mb-1">Private Goal</h4>
-            <p className="text-[10px] text-muted-foreground max-w-[200px]">
-                This is a personal goal set by {assignees[0]?.name || "a team member"}.
+            <p className="text-[10px] text-muted-foreground max-w-50">
+              This is a personal goal set by{" "}
+              {assignees[0]?.name || "a team member"}.
             </p>
           </div>
         )}
@@ -131,13 +134,23 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className={cn("font-bold text-lg leading-tight transition-colors", goal.status === "blocked" ? "text-destructive" : "group-hover/card:text-primary")}>
+                <h3
+                  className={cn(
+                    "font-bold text-lg leading-tight transition-colors",
+                    goal.status === "blocked"
+                      ? "text-destructive"
+                      : "group-hover/card:text-primary",
+                  )}
+                >
                   {goal.title}
                 </h3>
                 {isPrivate && (
-                    <Badge variant="outline" className="h-4 px-1.5 text-[8px] gap-1 border-primary/20 bg-primary/5 text-primary">
-                        <EyeOff className="w-2 h-2" /> Private
-                    </Badge>
+                  <Badge
+                    variant="outline"
+                    className="h-4 px-1.5 text-[8px] gap-1 border-primary/20 bg-primary/5 text-primary"
+                  >
+                    <EyeOff className="w-2 h-2" /> Private
+                  </Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground line-clamp-1">
@@ -161,35 +174,35 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             {!showPrivacyOverlay && canEdit && (
               <div className="relative">
                 {confirmDelete ? (
-                   <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                  <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
                     <Button
-                        variant="destructive"
-                        size="sm"
-                        className="h-7 text-[10px] font-bold"
-                        onClick={handleDelete}
-                        disabled={isDeleting}
+                      variant="destructive"
+                      size="sm"
+                      className="h-7 text-[10px] font-bold"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
                     >
-                        Delete
+                      Delete
                     </Button>
                     <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-[10px] font-bold"
-                        onClick={() => setConfirmDelete(false)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-[10px] font-bold"
+                      onClick={() => setConfirmDelete(false)}
                     >
-                        Cancel
+                      Cancel
                     </Button>
-                   </div>
+                  </div>
                 ) : (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setConfirmDelete(true)}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
-                        disabled={isDeleting}
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setConfirmDelete(true)}
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 )}
               </div>
             )}
@@ -211,7 +224,8 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             variant="outline"
             className={cn(
               "text-[10px] h-5 uppercase tracking-widest font-black py-0 px-2",
-              statusStyles[goal.status as GoalStatus] || "bg-accent/30 text-muted-foreground border-transparent",
+              statusStyles[goal.status as GoalStatus] ||
+                "bg-accent/30 text-muted-foreground border-transparent",
             )}
           >
             {goal.status.replace("_", " ")}
@@ -236,9 +250,9 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
 
         {/* Progress Section */}
         {isDaily ? (
-          <GoalDailyProgress 
-            goal={goal} 
-            checkins={checkins} 
+          <GoalDailyProgress
+            goal={goal}
+            checkins={checkins}
             isReadOnly={!isAssigned}
           />
         ) : (
@@ -246,16 +260,15 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             <GoalStandardProgress goal={goal} isOverdue={isOverdue} />
             {goal.frequency !== "one_time" && (
               <div className="mb-4">
-                  <GoalDailyProgress 
-                  goal={goal} 
-                  checkins={checkins} 
-                  isReadOnly={true} 
-                  />
+                <GoalDailyProgress
+                  goal={goal}
+                  checkins={checkins}
+                  isReadOnly={true}
+                />
               </div>
             )}
           </>
         )}
-
       </div>
 
       {/* Meta row */}
@@ -306,12 +319,17 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
             onClick={() => setExpanded(!expanded)}
             className={cn(
               "text-[10px] font-black uppercase tracking-widest gap-2 h-7 px-3 rounded-full transition-all duration-300",
-              expanded 
-                ? "bg-primary/20 text-primary hover:bg-primary/30 shadow-lg shadow-primary/10" 
-                : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+              expanded
+                ? "bg-primary/20 text-primary hover:bg-primary/30 shadow-lg shadow-primary/10"
+                : "text-muted-foreground hover:text-primary hover:bg-primary/5",
             )}
           >
-            <Activity className={cn("w-3.5 h-3.5 transition-transform duration-300", expanded && "rotate-180 scale-110")} />
+            <Activity
+              className={cn(
+                "w-3.5 h-3.5 transition-transform duration-300",
+                expanded && "rotate-180 scale-110",
+              )}
+            />
             {expanded ? "Hide Activity" : "See Activity"}
           </Button>
           <GoalCheckInModal goal={goal} />
@@ -321,7 +339,7 @@ export function GoalCard({ goal }: { goal: OrgGoal }) {
       {/* Expanded Details Section */}
       {expanded && (
         <div className="px-6 pb-6 border-t border-border/20 bg-accent/5 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
-           <GoalDetails goal={goal} />
+          <GoalDetails goal={goal} />
         </div>
       )}
     </div>

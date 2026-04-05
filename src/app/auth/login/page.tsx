@@ -10,6 +10,11 @@ export default function LoginPage() {
         <AuthLayout
             title="Welcome Back"
             subtitle="Ready to crush some goals today?"
+            testimonial={{
+                quote: "CrushGoals transformed how our organization executes. No more guessing or endless meetings — just clear goals, ownership, and real accountability.",
+                author: "Preye Omusuku",
+                role: "Founder, Letscr8t"
+            }}
         >
             <Suspense fallback={<div className="h-48 flex items-center justify-center font-black animate-pulse opacity-20 uppercase tracking-widest text-[10px]">Scanning Identity...</div>}>
                 <LoginForm />

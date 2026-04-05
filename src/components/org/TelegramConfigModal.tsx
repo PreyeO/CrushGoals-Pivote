@@ -122,8 +122,8 @@ export function TelegramConfigModal({
                     "Search for @CrushGoals_Bot in Telegram. Go to Bot Settings, click Add to Group, and select your group. Add bot as an Admin.",
                     "Copy the unique connection command shown below.",
                     "Paste and send the command in your Telegram group chat.",
-                    "Wait for the Bot to reply with \"Group Connected!\" to confirm the link.",
-                    "Click Save Configuration at the bottom to finish!",
+                    "Once the bot replies \"Group Connected!\", you're ready.",
+                    "Click Complete Integration at the bottom to finish!",
                   ].map((step, i) => (
                     <div key={i} className="flex gap-4 items-start border-b border-border/5 pb-3 last:border-0 last:pb-0">
                       <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">
@@ -161,41 +161,7 @@ export function TelegramConfigModal({
                   </div>
                 </div>
 
-                <div className="pt-2">
-                  {isTelegramConnected ? (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse" />
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                          Connected to:{" "}
-                          {org.telegramChatTitle ||
-                            `@Group_${org.telegramChatId?.substring(0, 4) || ""}`}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-[11px] hover:text-red-500 hover:bg-red-500/10 font-bold"
-                        onClick={() => {
-                          setTelegramChatId("");
-                          updateOrganization(orgId, {
-                            telegramChatId: "",
-                            telegramChatTitle: "",
-                          });
-                        }}
-                      >
-                        Disconnect
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-muted/50 border border-border rounded-2xl">
-                      <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Not connected yet — complete steps above
-                      </p>
-                    </div>
-                  )}
-                </div>
+
               </div>
 
               <div className="space-y-4 pt-4 border-t border-border/10">
@@ -219,8 +185,21 @@ export function TelegramConfigModal({
                   disabled={isSaving}
                   className="w-full h-14 bg-sky-500 hover:bg-sky-600 text-white border-0 font-black tracking-widest uppercase text-[12px] shadow-lg shadow-sky-500/20 rounded-2xl"
                 >
-                  {isSaving ? "Saving..." : "Save Configuration"}
+                  {isSaving ? "Saving Configuration..." : "Complete Telegram Integration"}
                 </Button>
+                {isTelegramConnected && (
+                    <button 
+                        onClick={() => {
+                            if (confirm("Are you sure you want to disconnect Telegram?")) {
+                                setTelegramChatId("");
+                                updateOrganization(orgId, { telegramChatId: "", telegramChatTitle: "" });
+                            }
+                        }}
+                        className="w-full text-center text-[10px] text-muted-foreground/40 hover:text-red-500/60 font-bold uppercase tracking-widest transition-colors mt-2"
+                    >
+                        Disconnect Connection
+                    </button>
+                )}
               </div>
             </div>
           </div>

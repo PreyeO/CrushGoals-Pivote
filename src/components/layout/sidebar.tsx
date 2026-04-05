@@ -162,7 +162,7 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
       <aside
         className={cn(
           "fixed top-0 left-0 bottom-0 z-40 flex flex-col bg-sidebar border-r border-border/40 transition-all duration-300",
-          collapsed ? "w-[72px]" : "w-[260px]",
+          collapsed ? "w-18" : "w-65",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
@@ -192,33 +192,34 @@ export function Sidebar({ currentOrgId: propOrgId }: SidebarProps) {
           )}
 
           {/* Pending invitations indicator — only shown to users who received an invite */}
-          {pendingInvites.length > 0 && (() => {
-            const inviteHref =
-              pendingInvites.length === 1
-                ? `/invite/${pendingInvites[0].token}`
-                : `/invitations`;
-            return (
-              <Link
-                href={inviteHref}
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
-              >
-                <Mail className="w-4.5 h-4.5 shrink-0" />
-                {!collapsed && (
-                  <span className="flex-1">
-                    {pendingInvites.length === 1
-                      ? "Pending Invite"
-                      : `${pendingInvites.length} Pending Invites`}
-                  </span>
-                )}
-                {!collapsed && (
-                  <span className="ml-auto text-[10px] font-black bg-amber-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
-                    {pendingInvites.length}
-                  </span>
-                )}
-              </Link>
-            );
-          })()}
+          {pendingInvites.length > 0 &&
+            (() => {
+              const inviteHref =
+                pendingInvites.length === 1
+                  ? `/invite/${pendingInvites[0].token}`
+                  : `/invitations`;
+              return (
+                <Link
+                  href={inviteHref}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
+                >
+                  <Mail className="w-4.5 h-4.5 shrink-0" />
+                  {!collapsed && (
+                    <span className="flex-1">
+                      {pendingInvites.length === 1
+                        ? "Pending Invite"
+                        : `${pendingInvites.length} Pending Invites`}
+                    </span>
+                  )}
+                  {!collapsed && (
+                    <span className="ml-auto text-[10px] font-black bg-amber-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                      {pendingInvites.length}
+                    </span>
+                  )}
+                </Link>
+              );
+            })()}
 
           {resolvedOrgId && orgNavItems.length > 0 && (
             <div className="pt-2">

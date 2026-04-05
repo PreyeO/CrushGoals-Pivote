@@ -5,6 +5,7 @@ import { Hero } from "@/components/landing-section/Hero";
 import { StatsBar } from "@/components/landing-section/StatsBar";
 import { Features } from "@/components/landing-section/Features";
 import { HowItWorks } from "@/components/landing-section/HowItWorks";
+import { AutomationSuite } from "@/components/landing-section/AutomationSuite";
 import { Testimonials } from "@/components/landing-section/Testimonials";
 import { Pricing } from "@/components/landing-section/Pricing";
 import { FinalCTA } from "@/components/landing-section/FinalCTA";
@@ -18,6 +19,7 @@ export default function LandingPage() {
       <StatsBar />
       <Features />
       <HowItWorks />
+      <AutomationSuite />
       <Testimonials />
       <Pricing />
       <FinalCTA />
