@@ -68,6 +68,7 @@ export interface MemberGoalStatus {
   // joined from profiles
   name: string;
   avatarUrl: string | null;
+  taggedMemberIds?: string[];
 }
 
 export interface OrgMember {

@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
-import { X, Hash, AlertCircle, Bell, Copy, Zap } from "lucide-react";
+import { X, Hash, Copy, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { TelegramLogo } from "@/components/org/IntegrationLogos";
 import { Organization } from "@/types";
@@ -16,26 +14,6 @@ interface TelegramConfigModalProps {
   orgId: string;
 }
 
-const TELEGRAM_EVENTS = [
-  { id: "notify_on_creation", label: "New Goals" },
-  { id: "notify_on_checkin", label: "Daily Check-ins" },
-  { id: "notify_on_completion", label: "Goal Wins" },
-  { id: "notify_on_blocked", label: "Blockers" },
-  { id: "notify_on_stale", label: "Stale Nudges" },
-  { id: "notify_on_streaks", label: "Streaks" },
-] as const;
-
-interface TelegramSettings {
-  notify_on_completion: boolean;
-  notify_on_blocked: boolean;
-  notify_on_stale: boolean;
-  notify_on_streaks: boolean;
-  notify_on_creation: boolean;
-  notify_on_checkin: boolean;
-  stale_threshold_days: number;
-  allow_commands: boolean;
-}
-
 export function TelegramConfigModal({
   isOpen,
   onClose,
@@ -45,36 +23,12 @@ export function TelegramConfigModal({
   const updateOrganization = useStore((state) => state.updateOrganization);
 
   const [telegramChatId, setTelegramChatId] = useState("");
-  const [telegramSettings, setTelegramSettings] = useState<TelegramSettings>({
-    notify_on_completion: true,
-    notify_on_blocked: true,
-    notify_on_stale: true,
-    notify_on_streaks: true,
-    notify_on_creation: true,
-    notify_on_checkin: true,
-    stale_threshold_days: 5,
-    allow_commands: true,
-  });
-
   const [isSaving, setIsSaving] = useState(false);
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
 
   useEffect(() => {
     if (org && isOpen) {
       setTelegramChatId(org.telegramChatId || "");
-      if (org.telegramSettings) {
-        setTelegramSettings({
-          notify_on_completion:
-            org.telegramSettings.notify_on_completion ?? true,
-          notify_on_blocked: org.telegramSettings.notify_on_blocked ?? true,
-          notify_on_stale: org.telegramSettings.notify_on_stale ?? true,
-          notify_on_streaks: org.telegramSettings.notify_on_streaks ?? true,
-          notify_on_creation: org.telegramSettings.notify_on_creation ?? true,
-          notify_on_checkin: org.telegramSettings.notify_on_checkin ?? true,
-          stale_threshold_days: org.telegramSettings.stale_threshold_days || 5,
-          allow_commands: org.telegramSettings.allow_commands ?? true,
-        });
-      }
     }
   }, [org, isOpen]);
 
@@ -86,7 +40,16 @@ export function TelegramConfigModal({
     setIsSaving(true);
     try {
       await updateOrganization(orgId, {
-        telegramSettings,
+        telegramSettings: {
+            notify_on_completion: true,
+            notify_on_blocked: true,
+            notify_on_stale: true,
+            notify_on_streaks: true,
+            notify_on_creation: true,
+            notify_on_checkin: true,
+            stale_threshold_days: 5,
+            allow_commands: true,
+        },
       });
       toast.success("Telegram settings saved");
       onClose();
@@ -126,17 +89,14 @@ export function TelegramConfigModal({
         className="absolute inset-0 bg-background/80 backdrop-blur-md"
         onClick={onClose}
       />
-      <div className="relative w-full h-[95vh] sm:h-auto max-w-5xl glass-card overflow-hidden shadow-2xl border-sky-500/20 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 rounded-t-3xl sm:rounded-3xl">
+      <div className="relative w-full h-[95vh] sm:h-auto max-w-2xl glass-card overflow-hidden shadow-2xl border-sky-500/20 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 rounded-t-3xl sm:rounded-3xl">
         <div className="p-5 md:px-10 md:py-8 border-b border-border/40 flex items-center justify-between bg-sky-500/5">
           <div className="flex items-center gap-4">
             <TelegramLogo className="w-10 h-10 md:w-12 md:h-12" />
             <div>
               <h2 className="text-xl md:text-2xl font-bold tracking-tight">
-                Telegram Notifications
+                Telegram Configuration
               </h2>
-              <p className="text-[12px] text-muted-foreground mt-1 hidden sm:block">
-                Get goal updates delivered straight to your Telegram group.
-              </p>
             </div>
           </div>
           <Button
@@ -149,29 +109,27 @@ export function TelegramConfigModal({
           </Button>
         </div>
 
-        <div className="p-5 md:p-10 h-[calc(95vh-80px)] sm:max-h-[70vh] overflow-y-auto scrollbar-thin">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Left Column: Connection Steps */}
-            <div className="space-y-8">
+        <div className="p-6 md:p-12 h-[calc(95vh-80px)] sm:max-h-[75vh] overflow-y-auto scrollbar-thin">
+          <div className="max-w-2xl mx-auto space-y-10">
+            <div className="space-y-6">
               <div className="space-y-4">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-sky-500 flex items-center gap-2">
                   <Hash className="w-4 h-4" /> Connection Steps
                 </h3>
 
-                <div className="bg-accent/40 border border-border/20 rounded-2xl p-6 space-y-4 shadow-inner">
+                <div className="bg-accent/40 border border-border/20 rounded-2xl p-6 md:p-8 space-y-4 shadow-inner">
                   {[
                     "Search for @CrushGoals_Bot in Telegram. Go to Bot Settings, click Add to Group, and select your group. Add bot as an Admin.",
                     "Copy the unique connection command shown below.",
                     "Paste and send the command in your Telegram group chat.",
                     "Wait for the Bot to reply with \"Group Connected!\" to confirm the link.",
-                    "Select which updates you want (Check-ins, Blockers, etc.) in the Events section.",
                     "Click Save Configuration at the bottom to finish!",
                   ].map((step, i) => (
-                    <div key={i} className="flex gap-4 items-start pb-2 border-b border-border/5 last:border-0 last:pb-0">
-                      <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-500 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                    <div key={i} className="flex gap-4 items-start border-b border-border/5 pb-3 last:border-0 last:pb-0">
+                      <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">
                         {i + 1}
                       </span>
-                      <p className="text-[12px] font-medium leading-relaxed">
+                      <p className="text-[13px] font-medium leading-relaxed">
                         {step}
                       </p>
                     </div>
@@ -183,7 +141,7 @@ export function TelegramConfigModal({
                         <Copy className="w-3 h-3" /> Connection Command
                       </h4>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-center">
                        <div className="flex-1 px-4 py-3 bg-background rounded-xl border border-sky-500/30 text-sky-500 font-mono font-bold tracking-tight text-sm shadow-inner select-all truncate">
                           /connect {org.connectCode || "ABC123"}
                         </div>
@@ -209,7 +167,7 @@ export function TelegramConfigModal({
                       <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse" />
                       <div className="flex-1">
                         <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                          Connected —{" "}
+                          Connected to:{" "}
                           {org.telegramChatTitle ||
                             `@Group_${org.telegramChatId?.substring(0, 4) || ""}`}
                         </p>
@@ -239,87 +197,31 @@ export function TelegramConfigModal({
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Right Column: Preferences */}
-            <div className="space-y-6">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-sky-500 flex items-center gap-2">
-                <Bell className="w-4 h-4" /> Events
-              </h3>
-              <p className="text-[11px] font-medium text-muted-foreground">
-                What should we notify your Telegram group about?
-              </p>
-
-              <div className="space-y-3">
-                {TELEGRAM_EVENTS.map((event) => (
-                  <div
-                    key={event.id}
-                    className="p-4 rounded-2xl border bg-white/50 border-border/40 flex items-center gap-4 cursor-pointer transition-colors hover:bg-muted/50"
-                    onClick={() =>
-                      setTelegramSettings((prev) => ({
-                        ...prev,
-                        [event.id]: !prev[event.id],
-                      }))
-                    }
+              <div className="space-y-4 pt-4 border-t border-border/10">
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    className="w-full h-12 font-bold gap-2 rounded-xl"
+                    onClick={handleTestTelegram}
+                    disabled={!telegramChatId || isTestingTelegram}
                   >
-                    <Checkbox
-                      checked={telegramSettings[event.id]}
-                      className="h-5 w-5 data-[state=checked]:bg-sky-500 data-[state=checked]:border-sky-500"
-                    />
-                    <Label className="text-xs font-bold whitespace-nowrap cursor-pointer">
-                      {event.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-4 pt-4 border-t border-border/40">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-sky-500 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" /> Stale Threshold
-                </h3>
-                <div className="bg-background/40 p-5 rounded-2xl border border-border/20 space-y-4">
-                  <Slider
-                    min={1}
-                    max={14}
-                    step={1}
-                    value={[telegramSettings.stale_threshold_days]}
-                    onValueChange={([v]) =>
-                      setTelegramSettings({
-                        ...telegramSettings,
-                        stale_threshold_days: v,
-                      })
-                    }
-                  />
-                  <p className="text-[10px] text-center text-muted-foreground italic">
-                    Nudge after {telegramSettings.stale_threshold_days} days.
+                    {isTestingTelegram ? "Sending..." : "Send Test Message"}
+                    <Zap className="w-4 h-4" />
+                  </Button>
+                  <p className="text-[11px] text-center text-muted-foreground italic">
+                    Ensures your Telegram group is receiving alerts correctly.
                   </p>
                 </div>
-              </div>
-            </div>
 
-            <div className="space-y-4 pt-4 border-t border-border/40">
-              <div className="flex flex-col gap-2">
                 <Button
-                  variant="outline"
-                  className="w-full h-11 font-bold gap-2"
-                  onClick={handleTestTelegram}
-                  disabled={!telegramChatId || isTestingTelegram}
+                  onClick={handleSaveTelegram}
+                  disabled={isSaving}
+                  className="w-full h-14 bg-sky-500 hover:bg-sky-600 text-white border-0 font-black tracking-widest uppercase text-[12px] shadow-lg shadow-sky-500/20 rounded-2xl"
                 >
-                  {isTestingTelegram ? "Sending..." : "Send Test Message"}
-                  <Zap className="w-4 h-4" />
+                  {isSaving ? "Saving..." : "Save Configuration"}
                 </Button>
-                <p className="text-[11px] text-center text-muted-foreground">
-                  Sends a sample notification to confirm everything is working.
-                </p>
               </div>
-
-              <Button
-                onClick={handleSaveTelegram}
-                disabled={isSaving}
-                className="w-full h-12 bg-sky-500 hover:bg-sky-600 text-white border-0 font-black tracking-widest uppercase text-[11px] shadow-lg shadow-sky-500/20"
-              >
-                {isSaving ? "Saving..." : "Save Configuration"}
-              </Button>
             </div>
           </div>
         </div>

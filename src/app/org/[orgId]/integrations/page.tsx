@@ -72,6 +72,15 @@ export default function IntegrationsPage({
     i.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const globalFeatures = [
+    { icon: "🚀", title: "New Goal Announcements", desc: "Instantly notify the team when new objectives are set." },
+    { icon: "🔥", title: "Daily Progress Check-ins", desc: "Summarize what was achieved and what's next." },
+    { icon: "🏆", title: "Mission Accomplished Wins", desc: "Celebrations for the whole team when goals reach 100%." },
+    { icon: "🚨", title: "Blocker Alerts & Mentions", desc: "Instant visibility when someone is stuck or tagged." },
+    { icon: "📊", title: "Weekly Victory Summaries", desc: "A high-level report of the team's wins every Monday 7:30am." },
+    { icon: "⏰", title: "5-Day Momentum Nudges", desc: "Automatic reminders for goals that haven't moved." },
+  ];
+
   return (
     <div className="max-w-6xl mx-auto px-5 md:px-8 space-y-10 py-4 lg:py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Page Header */}
@@ -108,6 +117,33 @@ export default function IntegrationsPage({
         {filteredIntegrations.map((integration) => (
           <IntegrationCard key={integration.id} {...integration} />
         ))}
+      </div>
+
+      <div className="pt-10 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                  <h3 className="text-lg font-bold tracking-tight flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-primary" /> Automated Team Suite
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-medium">
+                      These automation services are activated instantly once you connect a channel.
+                  </p>
+              </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {globalFeatures.map((f, i) => (
+                  <div key={i} className="glass-card p-4 flex gap-4 transition-all hover:border-primary/30">
+                      <span className="text-2xl shrink-0">{f.icon}</span>
+                      <div className="space-y-1">
+                          <h4 className="text-[13px] font-bold">{f.title}</h4>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              {f.desc}
+                          </p>
+                      </div>
+                  </div>
+              ))}
+          </div>
       </div>
 
       {/* Slack Configuration Overlay */}
