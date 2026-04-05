@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "sonner";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/next";
 import { PaymentStatusHandler } from "@/components/PaymentStatusHandler";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { GlobalCelebration } from "@/components/ui/GlobalCelebration";
