@@ -6,9 +6,22 @@ interface AuthLayoutProps {
   children: React.ReactNode;
   title: string;
   subtitle: string;
+  testimonial?: {
+    quote: string;
+    author: string;
+    role: string;
+  };
 }
 
-export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+export function AuthLayout({ children, title, subtitle, testimonial }: AuthLayoutProps) {
+  const defaultTestimonial = {
+    quote: "CrushGoals transformed how our organization executes. No more guessing or endless meetings — just clear goals, ownership, and real accountability.",
+    author: "Jordan Doe",
+    role: "Founder, TechSprint"
+  };
+
+  const t = testimonial || defaultTestimonial;
+  const initials = t.author.split(' ').map(n => n[0]).join('').toUpperCase();
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background overflow-hidden">
       {/* Left side: Form */}
@@ -43,18 +56,16 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           </div>
           <blockquote className="space-y-4">
             <p className="text-2xl font-medium leading-tight">
-              CrushGoals transformed how our organization executes. No more
-              guessing or endless meetings — just clear goals, ownership, and
-              real accountability.
+              &ldquo;{t.quote}&rdquo;
             </p>
             <footer className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center font-bold text-white shadow-lg">
-                JD
+                {initials}
               </div>
               <div>
-                <div className="font-bold">Jordan Doe</div>
+                <div className="font-bold">{t.author}</div>
                 <div className="text-sm text-muted-foreground">
-                  Founder, TechSprint
+                  {t.role}
                 </div>
               </div>
             </footer>

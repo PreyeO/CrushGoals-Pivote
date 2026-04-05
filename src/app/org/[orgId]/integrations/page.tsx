@@ -51,7 +51,7 @@ export default function IntegrationsPage({
       description: "Interactive goal management via groups and direct messages.",
       icon: <TelegramLogo className="w-full h-full" />,
       isConnected: isTelegramConnected,
-      statusLabel: "Active",
+      statusLabel: "Connected",
       actionLabel: "Manage Bot",
       ActionIcon: Bot,
       onClick: () => setIsTelegramConfigOpen(true),
